@@ -133,7 +133,8 @@ document.addEventListener('DOMContentLoaded', () => {
         'PATRICIO CABELLO': 'pcabello@innpack.cl',
         'PAULINA FARET': 'pfaret@innpack.cl',
         'PEDRO': 'pcroa@faret.cl',
-        'PEDRO ROA': 'pcroa@faret.cl'
+        'PEDRO ROA': 'pcroa@faret.cl',
+        'MARCO BRAVO': 'mbravo@innpack.cl'
     };
 
     function normalizarNombre(nombre) {
