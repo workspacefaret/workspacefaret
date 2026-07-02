@@ -1041,3 +1041,100 @@ body::before {
     line-height: 1.5;
 }
 
+
+/* Formularios - Panel Administrativo */
+@import url('/assets/css/formularios/admin-formularios.css');
+
+/* Responsive tablas/forms generales Workspace */
+@media (max-width: 900px) {
+    .kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .filter-card {
+        grid-template-columns: 1fr !important;
+    }
+
+    .filter-actions {
+        display: flex;
+        justify-content: stretch;
+    }
+
+    .filter-actions button,
+    .btn-primary,
+    .btn-secondary {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .table-responsive {
+        overflow: visible;
+    }
+
+    .data-table {
+        min-width: 0;
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 12px;
+    }
+
+    .data-table thead {
+        display: none;
+    }
+
+    .data-table,
+    .data-table tbody,
+    .data-table tr,
+    .data-table td {
+        display: block;
+    }
+
+    .data-table tr {
+        background: rgba(15, 23, 42, .92);
+        border: 1px solid rgba(148, 163, 184, .18);
+        border-radius: 16px;
+        padding: 14px;
+    }
+
+    .data-table td {
+        border: 0;
+        padding: 8px 0;
+        display: grid;
+        grid-template-columns: 110px 1fr;
+        gap: 10px;
+    }
+
+    .data-table td::before {
+        color: #94a3b8;
+        font-size: 11px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+    }
+
+    .data-table td:nth-child(1)::before { content: "ID"; }
+    .data-table td:nth-child(2)::before { content: "Usuario"; }
+    .data-table td:nth-child(3)::before { content: "Nombre"; }
+    .data-table td:nth-child(4)::before { content: "Rol"; }
+    .data-table td:nth-child(5)::before { content: "Estado"; }
+    .data-table td:nth-child(6)::before { content: "Creado"; }
+    .data-table td:nth-child(7)::before { content: "Acciones"; }
+}
+
+@media (max-width: 520px) {
+    .kpi-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .table-card,
+    .card {
+        padding: 18px;
+        border-radius: 18px;
+    }
+
+    .data-table td {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+}

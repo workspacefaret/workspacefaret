@@ -31,11 +31,7 @@
             <i class="bi bi-truck"></i>
             Logística
         </a>
-        <a href="/modules/formularios/desarrollo/">
-            <i class="bi bi-palette-fill"></i>
-            Desarrollo
-        </a>
-        <!--
+  <!--
         <a href="/modules/operacion/diseno/">
             <i class="bi bi-palette-fill"></i>
             Diseño
@@ -53,12 +49,7 @@
 
         <div class="menu-section">Formularios y datos</div>
 
-        <a href="/modules/formularios/">
-            <i class="bi bi-ui-checks-grid"></i>
-            Formularios
-        </a>
-
-        <!--
+       <!--
 <a href="/modules/operacion/logistica/formularios/">
     <i class="bi bi-clipboard2-check-fill"></i>
     Formularios Logística

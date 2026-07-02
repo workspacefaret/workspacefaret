@@ -9,9 +9,9 @@ $areas = [
         'icono' => 'bi-truck'
     ],
     [
-        'titulo' => 'Diseño',
-        'descripcion' => 'Solicitudes, aprobaciones, registros y recursos del área de diseño.',
-        'url' => '/modules/en-proceso/?modulo=Diseño',
+        'titulo' => 'Desarrollo',
+        'descripcion' => 'Formularios, registros y seguimiento de solicitudes de desarrollo gráfico.',
+        'url' => '/modules/formularios/desarrollo/',
         'icono' => 'bi-palette-fill'
     ],
     [
