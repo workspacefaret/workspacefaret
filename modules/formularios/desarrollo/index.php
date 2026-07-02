@@ -12,36 +12,20 @@ ob_start();
 <section class="section">
     <div class="grid-3">
 
-        <a class="action-card" href="/modules/formularios/desarrollo/solicitud-grafica/">
+        <a class="action-card" href="/modules/formularios/desarrollo/formularios/">
             <div class="action-card-icon">
                 <i class="bi bi-file-earmark-plus-fill"></i>
             </div>
             <h3>Formularios</h3>
-            <p>Ingreso de nuevas solicitudes de desarrollo gráfico.</p>
+            <p>Ingreso de nuevas solicitudes de desarrollo (gráfico y estructural).</p>
         </a>
 
-        <a class="action-card" href="/modules/formularios/desarrollo/admin/">
+        <a class="action-card" href="/modules/formularios/desarrollo/registros/">
             <div class="action-card-icon">
                 <i class="bi bi-table"></i>
             </div>
             <h3>Registros</h3>
-            <p>Panel administrativo para revisar, filtrar y gestionar solicitudes existentes.</p>
-        </a>
-
-        <a class="action-card" href="/modules/formularios/desarrollo/solicitud-estructural/">
-            <div class="action-card-icon">
-                <i class="bi bi-bounding-box-circles"></i>
-            </div>
-            <h3>Solicitud Desarrollo Estructural</h3>
-            <p>Ingreso de nuevas solicitudes de desarrollo estructural.</p>
-        </a>
-
-        <a class="action-card" href="/modules/formularios/desarrollo/solicitud-estructural/admin/">
-            <div class="action-card-icon">
-                <i class="bi bi-table"></i>
-            </div>
-            <h3>Registros Estructural</h3>
-            <p>Panel administrativo de solicitudes de desarrollo estructural.</p>
+            <p>Paneles administrativos para revisar, filtrar y gestionar solicitudes existentes.</p>
         </a>
 
         <a class="action-card" href="/modules/operacion/">

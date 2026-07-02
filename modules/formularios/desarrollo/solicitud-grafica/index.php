@@ -127,12 +127,14 @@ ob_start();
 
             <div class="field">
                 <label for="cantidadMuestras">Cantidad muestras</label>
-                <input type="number" id="cantidadMuestras" name="cantidadMuestras" min="0" value="0">
+                <input type="number" id="cantidadMuestras" name="cantidadMuestras" min="1" max="1" value="1" required>
+                <small id="cantidadMuestrasError" style="display:none;color:#dc2626;font-size:12px;margin-top:4px;">máximo 1</small>
             </div>
 
             <div class="field">
                 <label for="cantidadItems">Cantidad items</label>
-                <input type="number" id="cantidadItems" name="cantidadItems" min="1" value="1">
+                <input type="number" id="cantidadItems" name="cantidadItems" min="1" max="1" value="1" required>
+                <small id="cantidadItemsError" style="display:none;color:#dc2626;font-size:12px;margin-top:4px;">máximo 1</small>
             </div>
 
             <div class="field field-full">

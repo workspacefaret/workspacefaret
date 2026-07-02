@@ -15,6 +15,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const clienteNuevoInput = document.getElementById('clienteNuevo');
     const clientesResults = document.getElementById('clientesResults');
 
+    const cantidadMuestrasInput = document.getElementById('cantidadMuestras');
+    const cantidadMuestrasError = document.getElementById('cantidadMuestrasError');
+    const cantidadItemsInput = document.getElementById('cantidadItems');
+    const cantidadItemsError = document.getElementById('cantidadItemsError');
+
     const btnEnviar = document.getElementById('btnEnviarSolicitud');
     const adjuntosInput = document.getElementById('adjuntos');
     const adjuntosPreview = document.getElementById('adjuntosPreview');
@@ -113,20 +118,58 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const SOLICITANTES_EMAIL_MAP = {
+        'CARLOS MESSINA': 'cmessina@innpack.cl',
+        'FRANCISCO ARTEAGA': 'farteaga@pharpack.cl',
+        'DIEGO CARRASCO': 'dcarrasco@innpack.cl',
+        'DAMARIS ALARCON': 'dalarcon@innpack.cl',
+        'DIANA TAMAYO': 'dtamayo@faret.cl',
+        'EDUARDO SEDAN': 'esedan@faret.cl',
+        'FRANCISCO HUMENYI': 'fhumenyi@faret.cl',
+        'HECTOR GARCIA': 'hgarcia@innpack.cl',
+        'MARIA NELLY': 'mmorante@faret.cl',
+        'MARIA NELLY MORANTE': 'mmorante@faret.cl',
+        'NICOLAS FARET': 'nfaret@faret.cl',
+        'PATRICIO CABELLO': 'pcabello@innpack.cl',
+        'PAULINA FARET': 'pfaret@innpack.cl',
+        'PEDRO': 'pcroa@faret.cl',
+        'PEDRO ROA': 'pcroa@faret.cl'
+    };
+
+    function normalizarNombre(nombre) {
+        return String(nombre || '')
+            .trim()
+            .toUpperCase()
+            .normalize('NFD')
+            .replace(/[̀-ͯ]/g, '')
+            .replace(/\s+/g, ' ');
+    }
+
     solicitanteSelect.addEventListener('change', () => {
         const solicitante = catalogos.solicitantes.find(x => String(x.id) === solicitanteSelect.value);
+        const correo = solicitante ? SOLICITANTES_EMAIL_MAP[normalizarNombre(solicitante.nombre)] : null;
 
-        if (!solicitante) return;
-
-        const correo = solicitante.nombre
-            .trim()
-            .toLowerCase()
-            .replace(/\s+/g, '.')
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '');
-
-        emailSolicitanteInput.value = `${correo}@faret.cl`;
+        emailSolicitanteInput.value = correo || '';
     });
+
+    [
+        [cantidadMuestrasInput, cantidadMuestrasError],
+        [cantidadItemsInput, cantidadItemsError]
+    ].forEach(([input, errorEl]) => {
+        input.addEventListener('input', () => validarCantidadUnica(input, errorEl));
+    });
+
+    function validarCantidadUnica(input, errorEl) {
+        const valor = Number(input.value || 0);
+        const esValida = valor === 1;
+
+        errorEl.style.display = esValida ? 'none' : 'block';
+        btnEnviar.disabled = !esValida
+            || Number(cantidadMuestrasInput.value || 0) !== 1
+            || Number(cantidadItemsInput.value || 0) !== 1;
+
+        return esValida;
+    }
 
     clienteSearchInput.addEventListener('focus', () => {
         mostrarOpcionNuevoCliente();
@@ -267,6 +310,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!clienteTexto && !clienteNuevo) {
             mostrarAlerta('error', 'Debes seleccionar un cliente o indicar un cliente nuevo.');
+            return;
+        }
+
+        if (!validarCantidadUnica(cantidadMuestrasInput, cantidadMuestrasError) || !validarCantidadUnica(cantidadItemsInput, cantidadItemsError)) {
+            mostrarAlerta('error', 'máximo 1');
             return;
         }
 
