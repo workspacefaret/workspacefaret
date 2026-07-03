@@ -101,10 +101,73 @@ ob_start();
     </div>
 </section>
 
+<section class="section">
+    <div class="panel">
+        <div class="section-header">
+            <div class="section-title">
+                <h2>Resumen Desarrollo Estructural</h2>
+                <p>Indicadores principales cargados desde la API corporativa de formularios.</p>
+            </div>
+            <a class="badge badge-primary" href="/modules/formularios/desarrollo/solicitud-estructural/admin/">Ver registros completos</a>
+        </div>
+
+        <div class="grid-4">
+            <div class="stat-card">
+                <span>Total solicitudes</span>
+                <strong id="dashEstructuralTotal">0</strong>
+                <small>Solicitudes registradas en la API.</small>
+            </div>
+
+            <div class="stat-card">
+                <span>Con archivo adjunto</span>
+                <strong id="dashEstructuralAdjunto">0</strong>
+                <small>Solicitudes con al menos un adjunto.</small>
+            </div>
+
+            <div class="stat-card">
+                <span>Cliente nuevo</span>
+                <strong id="dashEstructuralClienteNuevo">0</strong>
+                <small>Solicitudes con cliente nuevo indicado.</small>
+            </div>
+
+            <div class="stat-card">
+                <span>Últimos 7 días</span>
+                <strong id="dashEstructuralRecientes">0</strong>
+                <small>Solicitudes registradas la última semana.</small>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="dashboard-charts-grid">
+        <div class="chart-card">
+            <h3>Producto</h3>
+            <div id="chartEstructuralProducto">Cargando...</div>
+        </div>
+
+        <div class="chart-card">
+            <h3>Sustrato</h3>
+            <div id="chartEstructuralSustrato">Cargando...</div>
+        </div>
+
+        <div class="chart-card">
+            <h3>Destino muestras</h3>
+            <div id="chartEstructuralDestino">Cargando...</div>
+        </div>
+
+        <div class="chart-card">
+            <h3>Solicitantes</h3>
+            <div id="chartEstructuralSolicitantes">Cargando...</div>
+        </div>
+    </div>
+</section>
+
 <script>
     window.API_FORMULARIOS = 'https://api.faret.cl/formularios/api/';
 </script>
 <script src="/assets/js/formularios/desarrollo-dashboard.js"></script>
+<script src="/assets/js/formularios/desarrollo-estructural-dashboard.js"></script>
 
 <?php
 $contenido = ob_get_clean();
