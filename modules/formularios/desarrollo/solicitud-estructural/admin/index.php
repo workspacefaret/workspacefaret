@@ -78,6 +78,13 @@ ob_start();
             </div>
 
             <div class="admin-filter-field">
+                <label for="filtroEstado">Estado</label>
+                <select id="filtroEstado">
+                    <option value="">Todos</option>
+                </select>
+            </div>
+
+            <div class="admin-filter-field">
                 <label for="filtroFechaDesde">Desde</label>
                 <input type="date" id="filtroFechaDesde">
             </div>
@@ -96,13 +103,15 @@ ob_start();
         </div>
 
         <div class="admin-table-wrap">
-            <table class="admin-table">
+            <table class="admin-table admin-table-estructural">
                 <thead>
                     <tr>
                         <th>Código</th>
+                        <th>Estado</th>
                         <th>Fecha creación</th>
                         <th>Solicitante</th>
                         <th>Cliente</th>
+                        <th>OC</th>
                         <th>Producto</th>
                         <th>Cantidad muestras</th>
                         <th>Destino muestras</th>
@@ -112,7 +121,7 @@ ob_start();
                 </thead>
                 <tbody id="tablaSolicitudesBody">
                     <tr>
-                        <td colspan="9" class="admin-empty">Cargando solicitudes...</td>
+                        <td colspan="11" class="admin-empty">Cargando solicitudes...</td>
                     </tr>
                 </tbody>
             </table>

@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const filtroCodigo = document.getElementById('filtroCodigo');
     const filtroCliente = document.getElementById('filtroCliente');
+    const filtroEstado = document.getElementById('filtroEstado');
     const filtroFechaDesde = document.getElementById('filtroFechaDesde');
     const filtroFechaHasta = document.getElementById('filtroFechaHasta');
 
@@ -19,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnLimpiarFiltros')?.addEventListener('click', limpiarFiltros);
     document.getElementById('btnExportarExcel')?.addEventListener('click', exportarExcel);
 
-    [filtroCodigo, filtroCliente, filtroFechaDesde, filtroFechaHasta].forEach(control => {
+    [filtroCodigo, filtroCliente, filtroEstado, filtroFechaDesde, filtroFechaHasta].forEach(control => {
         control?.addEventListener('input', aplicarFiltros);
         control?.addEventListener('change', aplicarFiltros);
     });
@@ -37,18 +38,20 @@ document.addEventListener('DOMContentLoaded', () => {
             solicitudesFiltradas = [...solicitudes];
             paginaActual = 1;
 
+            cargarOpcionesFiltros();
             actualizarKpis();
             renderTabla();
             renderPaginacion();
 
         } catch (error) {
-            tablaBody.innerHTML = `<tr><td colspan="9" class="admin-empty">${escapeHtml(error.message)}</td></tr>`;
+            tablaBody.innerHTML = `<tr><td colspan="11" class="admin-empty">${escapeHtml(error.message)}</td></tr>`;
         }
     }
 
     function aplicarFiltros() {
         const codigo = normalizar(filtroCodigo.value);
         const cliente = normalizar(filtroCliente.value);
+        const estado = filtroEstado.value;
         const desde = filtroFechaDesde.value ? new Date(filtroFechaDesde.value) : null;
         const hasta = filtroFechaHasta.value ? new Date(filtroFechaHasta.value) : null;
 
@@ -57,6 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (codigo && !normalizar(item.codigo).includes(codigo)) return false;
             if (cliente && !normalizar(item.clienteNombre).includes(cliente)) return false;
+            if (estado && item.estado !== estado) return false;
             if (desde && fechaRegistro && fechaRegistro < desde) return false;
             if (hasta && fechaRegistro && fechaRegistro > hasta) return false;
 
@@ -72,14 +76,28 @@ document.addEventListener('DOMContentLoaded', () => {
     function limpiarFiltros() {
         filtroCodigo.value = '';
         filtroCliente.value = '';
+        filtroEstado.value = '';
         filtroFechaDesde.value = '';
         filtroFechaHasta.value = '';
         aplicarFiltros();
     }
 
+    function cargarOpcionesFiltros() {
+        cargarSelectUnico(filtroEstado, solicitudes.map(x => x.estado), 'Todos');
+    }
+
+    function cargarSelectUnico(select, valores, textoInicial) {
+        const valorActual = select.value;
+        select.innerHTML = `<option value="">${textoInicial}</option>`;
+        [...new Set(valores.filter(Boolean))].sort().forEach(valor => {
+            select.innerHTML += `<option value="${escapeHtml(valor)}">${escapeHtml(valor)}</option>`;
+        });
+        select.value = valorActual;
+    }
+
     function renderTabla() {
         if (!solicitudesFiltradas.length) {
-            tablaBody.innerHTML = `<tr><td colspan="9" class="admin-empty">No hay solicitudes para mostrar.</td></tr>`;
+            tablaBody.innerHTML = `<tr><td colspan="11" class="admin-empty">No hay solicitudes para mostrar.</td></tr>`;
             return;
         }
 
@@ -89,9 +107,11 @@ document.addEventListener('DOMContentLoaded', () => {
         tablaBody.innerHTML = pagina.map(item => `
             <tr>
                 <td><strong>${escapeHtml(item.codigo)}</strong></td>
+                <td><span class="admin-status">${escapeHtml(item.estado)}</span></td>
                 <td>${formatearFecha(item.fechaRegistro)}</td>
                 <td>${escapeHtml(item.solicitanteNombre)}</td>
                 <td>${escapeHtml(item.clienteNombre)}${item.clienteNuevo ? ` <small>(${escapeHtml(item.clienteNuevo)})</small>` : ''}</td>
+                <td>${escapeHtml(item.oc || '-')}</td>
                 <td>${escapeHtml(item.producto)}</td>
                 <td>${escapeHtml(item.cantidadMuestras)}</td>
                 <td>${escapeHtml(item.destinoMuestras || '-')}</td>
@@ -145,10 +165,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const filas = solicitudesFiltradas.map(item => `
             <tr>
                 <td>${escapeHtml(item.codigo)}</td>
+                <td>${escapeHtml(item.estado)}</td>
                 <td>${formatearFecha(item.fechaRegistro)}</td>
                 <td>${escapeHtml(item.solicitanteNombre)}</td>
                 <td>${escapeHtml(item.clienteNombre)}</td>
                 <td>${escapeHtml(item.clienteNuevo || '')}</td>
+                <td>${escapeHtml(item.oc || '')}</td>
                 <td>${escapeHtml(item.producto)}</td>
                 <td>${escapeHtml(item.solicitud)}</td>
                 <td>${escapeHtml(item.cantidadMuestras)}</td>
@@ -174,15 +196,17 @@ document.addEventListener('DOMContentLoaded', () => {
             </head>
             <body>
                 <table>
-                    <tr><td colspan="12" class="title">Exportación Solicitudes Desarrollo Estructural</td></tr>
-                    <tr><td colspan="12" class="subtitle">Workspace Faret - ${new Date().toLocaleString('es-CL')}</td></tr>
+                    <tr><td colspan="14" class="title">Exportación Solicitudes Desarrollo Estructural</td></tr>
+                    <tr><td colspan="14" class="subtitle">Workspace Faret - ${new Date().toLocaleString('es-CL')}</td></tr>
                     <tr></tr>
                     <tr>
                         <th>CÓDIGO</th>
+                        <th>ESTADO</th>
                         <th>FECHA CREACIÓN</th>
                         <th>SOLICITANTE</th>
                         <th>CLIENTE</th>
                         <th>CLIENTE NUEVO</th>
+                        <th>OC</th>
                         <th>PRODUCTO</th>
                         <th>SOLICITUD</th>
                         <th>CANTIDAD MUESTRAS</th>
@@ -223,7 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function mostrarCargando() {
-        tablaBody.innerHTML = `<tr><td colspan="9" class="admin-empty">Cargando solicitudes...</td></tr>`;
+        tablaBody.innerHTML = `<tr><td colspan="11" class="admin-empty">Cargando solicitudes...</td></tr>`;
     }
 
     function formatearFecha(valor) {

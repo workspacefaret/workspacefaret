@@ -98,7 +98,7 @@ ob_start();
         </div>
 
         <div class="admin-table-wrap">
-            <table class="admin-table">
+            <table class="admin-table admin-table-grafico">
                 <thead>
                     <tr>
                         <th>Código</th>
@@ -106,6 +106,7 @@ ob_start();
                         <th>Prioridad</th>
                         <th>Solicitante</th>
                         <th>Cliente</th>
+                        <th>OC</th>
                         <th>Producto</th>
                         <th>Proceso</th>
                         <th>Fecha</th>
@@ -114,7 +115,7 @@ ob_start();
                 </thead>
                 <tbody id="tablaSolicitudesBody">
                     <tr>
-                        <td colspan="9" class="admin-empty">Cargando solicitudes...</td>
+                        <td colspan="10" class="admin-empty">Cargando solicitudes...</td>
                     </tr>
                 </tbody>
             </table>

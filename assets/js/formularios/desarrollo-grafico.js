@@ -332,6 +332,7 @@ document.addEventListener('DOMContentLoaded', () => {
             clienteId: clienteIdInput.value ? Number(clienteIdInput.value) : null,
             clienteNombre: clienteSeleccionado ? clienteSeleccionado.nombre : clienteTexto,
             clienteNuevo: clienteNuevo || null,
+            oc: document.getElementById('oc').value.trim(),
             producto: document.getElementById('producto').value.trim(),
             sustrato: document.getElementById('sustrato').value.trim(),
             tipoProceso: proceso.nombre,

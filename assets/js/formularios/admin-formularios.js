@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderPaginacion();
 
         } catch (error) {
-            tablaBody.innerHTML = `<tr><td colspan="9" class="admin-empty">${escapeHtml(error.message)}</td></tr>`;
+            tablaBody.innerHTML = `<tr><td colspan="10" class="admin-empty">${escapeHtml(error.message)}</td></tr>`;
         }
     }
 
@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderTabla() {
         if (!solicitudesFiltradas.length) {
-            tablaBody.innerHTML = `<tr><td colspan="9" class="admin-empty">No hay solicitudes para mostrar.</td></tr>`;
+            tablaBody.innerHTML = `<tr><td colspan="10" class="admin-empty">No hay solicitudes para mostrar.</td></tr>`;
             return;
         }
 
@@ -90,6 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td><span class="admin-priority">${escapeHtml(item.prioridad)}</span></td>
                 <td>${escapeHtml(item.solicitanteNombre)}</td>
                 <td>${escapeHtml(item.clienteNombre)}</td>
+                <td>${escapeHtml(item.oc || '-')}</td>
                 <td>${escapeHtml(item.producto)}</td>
                 <td>${escapeHtml(item.tipoProceso)}</td>
                 <td>${formatearFecha(item.fechaRegistro)}</td>
@@ -157,6 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${escapeHtml(item.solicitanteNombre)}</td>
                 <td>${escapeHtml(item.clienteNombre)}</td>
                 <td>${escapeHtml(item.clienteNuevo || '')}</td>
+                <td>${escapeHtml(item.oc || '')}</td>
                 <td>${escapeHtml(item.producto)}</td>
                 <td>${escapeHtml(item.sustrato || '')}</td>
                 <td>${escapeHtml(item.tipoProceso)}</td>
@@ -185,8 +187,8 @@ document.addEventListener('DOMContentLoaded', () => {
             </head>
             <body>
                 <table>
-                    <tr><td colspan="18" class="title">Exportación Solicitudes Desarrollo Gráfico</td></tr>
-                    <tr><td colspan="18" class="subtitle">Workspace Faret - ${new Date().toLocaleString('es-CL')}</td></tr>
+                    <tr><td colspan="19" class="title">Exportación Solicitudes Desarrollo Gráfico</td></tr>
+                    <tr><td colspan="19" class="subtitle">Workspace Faret - ${new Date().toLocaleString('es-CL')}</td></tr>
                     <tr></tr>
                     <tr>
                         <th>ESTADO</th>
@@ -197,6 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <th>SOLICITANTE</th>
                         <th>CLIENTE</th>
                         <th>CLIENTE NUEVO</th>
+                        <th>OC</th>
                         <th>PRODUCTO</th>
                         <th>SUSTRATO</th>
                         <th>TIPO PROCESO</th>
@@ -250,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function mostrarCargando() {
-        tablaBody.innerHTML = `<tr><td colspan="9" class="admin-empty">Cargando solicitudes...</td></tr>`;
+        tablaBody.innerHTML = `<tr><td colspan="10" class="admin-empty">Cargando solicitudes...</td></tr>`;
     }
 
     function formatearFecha(valor) {

@@ -65,6 +65,11 @@ ob_start();
                 <label for="clienteNuevo">Cliente nuevo opcional</label>
                 <input type="text" id="clienteNuevo" name="clienteNuevo" placeholder="Solo si no existe en catálogo">
             </div>
+
+            <div class="field">
+                <label for="oc">OC</label>
+                <input type="text" id="oc" name="oc" placeholder="N° orden de compra">
+            </div>
         </div>
 
         <div class="form-section-title">

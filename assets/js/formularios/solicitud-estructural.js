@@ -279,6 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
             clienteId: clienteIdInput.value ? Number(clienteIdInput.value) : null,
             clienteNombre: clienteSeleccionado ? clienteSeleccionado.nombre : clienteTexto,
             clienteNuevo: clienteNuevo || null,
+            oc: document.getElementById('oc').value.trim(),
             producto,
             solicitud,
             cantidadMuestras,

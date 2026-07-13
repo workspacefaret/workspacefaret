@@ -52,12 +52,28 @@ $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
                 <label for="nuevoEstado">Nuevo estado</label>
                 <select id="nuevoEstado"></select>
 
+                <label for="editorAsignado">Editor asignado</label>
+                <input type="text" id="editorAsignado" placeholder="Nombre del editor">
+
+                <label for="nivelComplejidad">Nivel de complejidad</label>
+                <select id="nivelComplejidad">
+                    <option value="">Sin definir</option>
+                    <option value="BAJA">Baja</option>
+                    <option value="MEDIA">Media</option>
+                    <option value="ALTA">Alta</option>
+                </select>
+
                 <label for="observacionEstado">Observación</label>
                 <textarea id="observacionEstado" rows="5" placeholder="Comentario opcional"></textarea>
 
                 <button class="admin-btn admin-btn-primary" id="btnCambiarEstado">
                     <i class="bi bi-check-circle"></i>
                     Guardar cambio
+                </button>
+
+                <button class="admin-btn admin-btn-secondary" id="btnReabrir" style="display:none;">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                    Reabrir solicitud
                 </button>
             </div>
         </div>
@@ -132,15 +148,23 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('detalleEstado').textContent = item.estado;
         document.getElementById('btnPdfDetalle').href = `${apiBaseUrl}solicitudes/${item.id}/pdf`;
         document.getElementById('nuevoEstado').value = item.estadoId;
+        document.getElementById('editorAsignado').value = item.operadorEdicion || '';
+        document.getElementById('nivelComplejidad').value = item.nivelComplejidad || '';
+
+        const estadosCerrados = [4, 5, 6]; // Terminado, Rechazado, Anulado
+        document.getElementById('btnReabrir').style.display = estadosCerrados.includes(item.estadoId) ? '' : 'none';
 
         document.getElementById('detalleContenido').innerHTML = `
             ${campo('Código', item.codigo)}
             ${campo('Estado', item.estado)}
+            ${campo('Editor asignado', item.operadorEdicion)}
+            ${campo('Nivel de complejidad', item.nivelComplejidad)}
             ${campo('Prioridad', item.prioridad)}
             ${campo('Solicitante', item.solicitanteNombre)}
             ${campo('Email solicitante', item.emailSolicitante)}
             ${campo('Cliente', item.clienteNombre)}
             ${campo('Cliente nuevo', item.clienteNuevo)}
+            ${campo('OC', item.oc)}
             ${campo('Producto', item.producto)}
             ${campo('Sustrato', item.sustrato)}
             ${campo('Tipo proceso', item.tipoProceso)}
@@ -209,6 +233,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnCambiarEstado').addEventListener('click', async () => {
         const estadoId = Number(document.getElementById('nuevoEstado').value);
         const observacion = document.getElementById('observacionEstado').value.trim();
+        const operadorEdicion = document.getElementById('editorAsignado').value.trim();
+        const nivelComplejidad = document.getElementById('nivelComplejidad').value;
 
         const response = await fetch(`${apiBaseUrl}solicitudes/${solicitudId}/estado`, {
             method: 'PUT',
@@ -216,7 +242,9 @@ document.addEventListener('DOMContentLoaded', () => {
             body: JSON.stringify({
                 estadoId,
                 usuario: 'Administrador Workspace',
-                observacion
+                observacion,
+                operadorEdicion,
+                nivelComplejidad
             })
         });
 
@@ -227,6 +255,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         alert('Estado actualizado correctamente.');
         location.reload();
+    });
+
+    document.getElementById('btnReabrir').addEventListener('click', () => {
+        document.getElementById('nuevoEstado').value = '2';
+        document.getElementById('observacionEstado').focus();
     });
 
     function campo(label, valor, full = false) {

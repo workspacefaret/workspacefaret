@@ -53,6 +53,11 @@ ob_start();
                 <label for="clienteNuevo">Cliente nuevo</label>
                 <input type="text" id="clienteNuevo" name="clienteNuevo" placeholder="Si seleccionó Cliente Nuevo agregar nombre del cliente">
             </div>
+
+            <div class="field">
+                <label for="oc">OC</label>
+                <input type="text" id="oc" name="oc" placeholder="N° orden de compra">
+            </div>
         </div>
 
         <div class="form-section-title">
