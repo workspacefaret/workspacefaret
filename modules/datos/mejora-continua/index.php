@@ -22,6 +22,16 @@ $cerradas = count(array_filter($registros, function ($r) {
     return strtoupper($r['estado'] ?? '') === 'CERRADA';
 }));
 
+$filtroEstado = strtoupper($_GET['estado'] ?? '');
+
+$registrosMostrados = $registros;
+
+if ($filtroEstado !== '') {
+    $registrosMostrados = array_filter($registros, function ($r) use ($filtroEstado) {
+        return strtoupper($r['estado'] ?? '') === $filtroEstado;
+    });
+}
+
 function formatoFecha($fecha)
 {
     if (!$fecha) {
@@ -70,7 +80,13 @@ function formatoFecha($fecha)
 <div class="table-header">
     <div>
         <h2>No Conformidades</h2>
-        <p>Listado general.</p>
+        <p>
+            Listado general.
+            <?php if ($filtroEstado !== ''): ?>
+                Mostrando solo estado <strong><?= htmlspecialchars($filtroEstado) ?></strong> —
+                <a href="/modules/datos/mejora-continua/">quitar filtro</a>.
+            <?php endif; ?>
+        </p>
     </div>
 
     <a href="crear.php" class="btn-primary">
@@ -97,7 +113,7 @@ function formatoFecha($fecha)
 
         <tbody>
 
-            <?php foreach ($registros as $r): ?>
+            <?php foreach ($registrosMostrados as $r): ?>
 
             <tr>
                 <td><?= htmlspecialchars($r['codigo'] ?? '-') ?></td>

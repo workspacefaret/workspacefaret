@@ -718,3 +718,194 @@
         width: fit-content;
     }
 }
+
+/* ================================
+   MODO CLARO (LIGHT THEME)
+   Overrides aditivos - no modifica reglas oscuras existentes
+================================ */
+
+[data-theme="light"] .admin-btn-secondary {
+    background: #ffffff;
+    color: #334155;
+    border-color: #cbd5e1;
+}
+
+[data-theme="light"] .admin-kpi-card {
+    background: #ffffff;
+    border-color: #e2e8f0;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, .08);
+}
+
+[data-theme="light"] .admin-kpi-card span,
+[data-theme="light"] .admin-kpi-card small {
+    color: #64748b;
+}
+
+[data-theme="light"] .admin-kpi-card strong {
+    color: #0f172a;
+}
+
+[data-theme="light"] .admin-panel {
+    background: #ffffff;
+    border-color: #e2e8f0;
+}
+
+[data-theme="light"] .admin-filter-field label {
+    color: #475569;
+}
+
+[data-theme="light"] .admin-filter-field input,
+[data-theme="light"] .admin-filter-field select {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    color: #0f172a;
+}
+
+[data-theme="light"] .admin-table-wrap {
+    border-color: #e2e8f0;
+}
+
+[data-theme="light"] .admin-table {
+    color: #1e293b;
+}
+
+[data-theme="light"] .admin-table th,
+[data-theme="light"] .admin-table td {
+    border-color: #eef2f7;
+}
+
+[data-theme="light"] .admin-table th {
+    color: #64748b;
+    background: #f8fafc;
+}
+
+[data-theme="light"] .admin-empty {
+    color: #64748b;
+}
+
+[data-theme="light"] .admin-status {
+    background: rgba(37, 99, 235, .10);
+    color: #1d4ed8;
+    border-color: rgba(37, 99, 235, .22);
+}
+
+[data-theme="light"] .admin-priority {
+    background: rgba(217, 119, 6, .10);
+    color: #b45309;
+    border-color: rgba(217, 119, 6, .22);
+}
+
+[data-theme="light"] .admin-icon-btn {
+    background: #f8fafc;
+    color: #334155;
+    border-color: #e2e8f0;
+}
+
+[data-theme="light"] .admin-icon-btn:hover {
+    background: rgba(37, 99, 235, .12);
+    color: #1d4ed8;
+}
+
+[data-theme="light"] .admin-detail-item {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+}
+
+[data-theme="light"] .admin-detail-item span {
+    color: #64748b;
+}
+
+[data-theme="light"] .admin-detail-item strong {
+    color: #0f172a;
+}
+
+[data-theme="light"] .admin-change-state label {
+    color: #475569;
+}
+
+[data-theme="light"] .admin-change-state select,
+[data-theme="light"] .admin-change-state textarea {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    color: #0f172a;
+}
+
+[data-theme="light"] .admin-list-box {
+    color: #475569;
+}
+
+[data-theme="light"] .admin-empty-box {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #64748b;
+}
+
+[data-theme="light"] .admin-file-link {
+    color: #0f172a;
+    background: #f8fafc;
+    border-color: #e2e8f0;
+}
+
+[data-theme="light"] .admin-file-link:hover {
+    background: rgba(37, 99, 235, .10);
+}
+
+[data-theme="light"] .admin-history-item {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+}
+
+[data-theme="light"] .admin-history-top strong,
+[data-theme="light"] .admin-history-item strong {
+    color: #0f172a;
+}
+
+[data-theme="light"] .admin-history-top span,
+[data-theme="light"] .admin-history-item span,
+[data-theme="light"] .admin-history-item small {
+    color: #64748b;
+}
+
+[data-theme="light"] .admin-history-item p {
+    color: #1e293b;
+}
+
+[data-theme="light"] .admin-history-note {
+    color: #475569;
+    background: #eef2f7;
+}
+
+[data-theme="light"] .chart-card {
+    background: #ffffff;
+    border-color: #e2e8f0;
+}
+
+[data-theme="light"] .chart-row {
+    color: #1e293b;
+}
+
+[data-theme="light"] .chart-bar {
+    background: #eef2f7;
+}
+
+[data-theme="light"] .admin-pagination {
+    color: #475569;
+}
+
+[data-theme="light"] .admin-pagination button {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    color: #0f172a;
+}
+
+@media (max-width: 900px) {
+    [data-theme="light"] .admin-table tr {
+        background: #ffffff;
+        border-color: #e2e8f0;
+        box-shadow: 0 12px 28px rgba(15, 23, 42, .08);
+    }
+
+    [data-theme="light"] .admin-table td::before {
+        color: #64748b;
+    }
+}

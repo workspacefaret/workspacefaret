@@ -1,5 +1,30 @@
 <?php
+require_once $_SERVER['DOCUMENT_ROOT'] . '/services/ApiClient.php';
+
 ob_start();
+
+$hoy = date('Y-m-d');
+
+$respuestaRecorridos = ApiClient::get('recorridos');
+$recorridosHoy = 0;
+
+if ($respuestaRecorridos['ok'] && is_array($respuestaRecorridos['data'])) {
+    foreach ($respuestaRecorridos['data'] as $r) {
+        $fechaInicio = $r['fechaInicio'] ?? null;
+        if ($fechaInicio && substr($fechaInicio, 0, 10) === $hoy) {
+            $recorridosHoy++;
+        }
+    }
+}
+
+$respuestaNc = ApiClient::getMejoraContinua('no-conformidades');
+$ncAbiertas = 0;
+
+if ($respuestaNc['ok'] && is_array($respuestaNc['data'])) {
+    $ncAbiertas = count(array_filter($respuestaNc['data'], function ($r) {
+        return strtoupper($r['estado'] ?? '') === 'ABIERTA';
+    }));
+}
 
 $areas = [
     [
@@ -65,98 +90,38 @@ $areas = [
 
             <div class="section-header">
                 <div class="section-title">
-                    <h2>Estado general de operación</h2>
-                    <p>Resumen inicial de actividad operacional por departamento.</p>
+                    <h2>Pendientes que requieren atención</h2>
+                    <p>Resumen en vivo de lo que está pendiente de gestión en los módulos activos.</p>
                 </div>
-
-                <span class="badge badge-primary">Vista demo</span>
             </div>
 
             <div class="grid-4">
 
-                <div class="stat-card">
-                    <span>Áreas disponibles</span>
-                    <strong>4</strong>
-                    <small>Departamentos preparados para carga de formularios</small>
-                </div>
+                <a class="stat-card stat-card-link" href="/modules/formularios/desarrollo/">
+                    <span>Solicitudes Desarrollo pendientes</span>
+                    <strong id="pendDesarrolloPendientes">-</strong>
+                    <small>Gráfico + Estructural, en Recibido / En edición / Pendiente información.</small>
+                </a>
 
-                <div class="stat-card">
-                    <span>Formularios activos</span>
-                    <strong>2</strong>
-                    <small>Actualmente enlazados desde solicitudes.faret.cl</small>
-                </div>
+                <a class="stat-card stat-card-link" href="/modules/formularios/desarrollo/admin/?prioridad=URGENTE">
+                    <span>Urgentes (Gráfico)</span>
+                    <strong id="pendDesarrolloUrgentes">-</strong>
+                    <small>Solicitudes con prioridad URGENTE.</small>
+                </a>
 
-                <div class="stat-card">
-                    <span>Módulos creados</span>
-                    <strong>5</strong>
-                    <small>Dashboard, formularios, registros, reportes y recursos</small>
-                </div>
+                <a class="stat-card stat-card-link" href="/modules/datos/mejora-continua/?estado=ABIERTA">
+                    <span>No conformidades abiertas</span>
+                    <strong><?= $ncAbiertas ?></strong>
+                    <small>Mejora Continua, estado Abierta.</small>
+                </a>
 
-                <div class="stat-card">
-                    <span>Próxima etapa</span>
-                    <strong>API</strong>
-                    <small>Conexión futura a registros y estadísticas reales</small>
-                </div>
+                <a class="stat-card stat-card-link"
+                    href="/modules/rrhh/guardias/registros/?fecha_desde=<?= htmlspecialchars($hoy) ?>&amp;fecha_hasta=<?= htmlspecialchars($hoy) ?>">
+                    <span>Recorridos guardia hoy</span>
+                    <strong><?= $recorridosHoy ?></strong>
+                    <small>Registros del día en curso.</small>
+                </a>
 
-            </div>
-
-        </div>
-
-    </section>
-
-    <section class="section">
-
-        <div class="table-card">
-
-            <div class="table-header">
-                <div>
-                    <h2>Formularios operacionales existentes</h2>
-                    <p>Formularios actuales disponibles mientras se ordena la nueva estructura por áreas.</p>
-                </div>
-            </div>
-
-            <div class="table-responsive">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Área</th>
-                            <th>Formulario</th>
-                            <th>Descripción</th>
-                            <th>Estado</th>
-                            <th>Acceso</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        <tr>
-                            <td>Logística</td>
-                            <td>Inspección Vehículos</td>
-                            <td>Registro de inspecciones operacionales.</td>
-                            <td><span class="badge badge-success">Activo</span></td>
-                            <td>
-                                <a class="badge badge-primary"
-                                    href="https://solicitudes.faret.cl/app/formularios/views/inspeccion_vehiculo/"
-                                    target="_blank">
-                                    Abrir
-                                </a>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td>Logística</td>
-                            <td>Revisión Camión Jornada</td>
-                            <td>Registro de revisión de camión, llaves y cierre operacional.</td>
-                            <td><span class="badge badge-success">Activo</span></td>
-                            <td>
-                                <a class="badge badge-primary"
-                                    href="https://solicitudes.faret.cl/app/formularios/views/revision_camion_jornada/"
-                                    target="_blank">
-                                    Abrir
-                                </a>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
             </div>
 
         </div>
@@ -164,6 +129,11 @@ $areas = [
     </section>
 
 </div>
+
+<script>
+    window.API_FORMULARIOS = '<?= htmlspecialchars(API_FORMULARIOS) ?>';
+</script>
+<script src="/assets/js/operacion-pendientes.js"></script>
 
 <?php
 $contenido = ob_get_clean();

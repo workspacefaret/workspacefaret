@@ -10,6 +10,17 @@ content="width=device-width, initial-scale=1.0">
 
 <title>Workspace Faret</title>
 
+<script>
+(function () {
+    try {
+        var tema = localStorage.getItem('workspace-theme');
+        if (tema === 'light' || tema === 'dark') {
+            document.documentElement.setAttribute('data-theme', tema);
+        }
+    } catch (e) {}
+})();
+</script>
+
 <link rel="stylesheet"
 href="/assets/css/main.css">
 
@@ -37,6 +48,8 @@ href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.m
     </div>
 
 </div>
+
+<script src="/assets/js/theme.js"></script>
 
 </body>
 </html>

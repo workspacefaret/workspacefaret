@@ -38,13 +38,21 @@ document.addEventListener('DOMContentLoaded', () => {
             paginaActual = 1;
 
             cargarOpcionesFiltros();
-            actualizarKpis();
-            renderTabla();
-            renderPaginacion();
+            aplicarFiltrosDesdeUrl();
+            aplicarFiltros();
 
         } catch (error) {
             tablaBody.innerHTML = `<tr><td colspan="10" class="admin-empty">${escapeHtml(error.message)}</td></tr>`;
         }
+    }
+
+    function aplicarFiltrosDesdeUrl() {
+        const params = new URLSearchParams(window.location.search);
+        const estado = params.get('estado');
+        const prioridad = params.get('prioridad');
+
+        if (estado) filtroEstado.value = estado;
+        if (prioridad) filtroPrioridad.value = prioridad;
     }
 
     function aplicarFiltros() {

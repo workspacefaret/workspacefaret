@@ -415,3 +415,70 @@
     font-size: 13px;
     font-weight: 700;
 }
+
+/* ================================
+   MODO CLARO (LIGHT THEME)
+   Overrides aditivos - no modifica reglas oscuras existentes.
+   El hero azul, el circulo de seccion y el panel de autocompletar
+   quedan intencionalmente iguales en ambos temas (elementos de marca).
+================================ */
+
+[data-theme="light"] .form-card-mobile {
+    background: rgba(255, 255, 255, .96);
+    border-color: #e2e8f0;
+}
+
+[data-theme="light"] .form-section-title h2 {
+    color: #0f172a;
+}
+
+[data-theme="light"] .field label {
+    color: #475569;
+}
+
+[data-theme="light"] .field input,
+[data-theme="light"] .field select,
+[data-theme="light"] .field textarea {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    color: #0f172a;
+}
+
+[data-theme="light"] .field input::placeholder,
+[data-theme="light"] .field textarea::placeholder {
+    color: rgba(15, 23, 42, .40);
+}
+
+[data-theme="light"] .field input:focus,
+[data-theme="light"] .field select:focus,
+[data-theme="light"] .field textarea:focus {
+    background: #ffffff;
+}
+
+[data-theme="light"] .chip-check span {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #334155;
+}
+
+[data-theme="light"] .upload-card {
+    background: #f8fafc;
+}
+
+[data-theme="light"] .upload-card input[type=file] {
+    color: #0f172a;
+}
+
+[data-theme="light"] .adjunto-item {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+    color: #1e293b;
+}
+
+[data-theme="light"] .form-alert.success {
+    color: #15803d;
+}
+
+[data-theme="light"] .form-alert.error {
+    color: #b91c1c;
+}
