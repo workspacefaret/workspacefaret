@@ -31,6 +31,13 @@ El propietario de este repo trabaja en **modo seguro**. Respeta estas reglas en 
 
 Workspace Faret is a server-rendered PHP portal (no framework, no build step, no package manager) that centralizes internal tools for operations, data, and HR at Faret. Pages are plain `.php` files that render HTML directly; there is no templating engine, router, autoloader, or ORM.
 
+## Deployment
+
+Confirmed 2026-07-15: `workspace.faret.cl` (this repo) and `api.faret.cl` (the sibling `Formularios.Api` .NET project, at `../Formularios.Api`) run on **separate servers** — neither is hosted on the local dev machine (no IIS installed there: `W3SVC` service doesn't exist, `inetpub/wwwroot` is empty).
+
+- **This repo (workspace.faret.cl):** no build step — deploying an update means copying only the changed `.php`/`.js`/`.css` files to the same relative path under that server's document root. No restart needed; PHP is interpreted per-request.
+- **Formularios.Api (api.faret.cl):** has its own separate build/publish/deploy process, unrelated to this repo's deploy — see that repo's own `CLAUDE.md` for details (`dotnet publish` to a local `_deploy/` folder, then manual copy to its IIS server, excluding `wwwroot/uploads` to avoid overwriting real production attachments, using an `app_offline.htm` swap to avoid file locks since it hosts in-process).
+
 There are no automated tests, linter, or build/dev-server commands configured in this repo. To work on a page, run it through any PHP 8.x-capable web server (Apache/Nginx/IIS) with the repo root as document root, since code relies on `$_SERVER['DOCUMENT_ROOT']` pointing at the project root (e.g. `php -S localhost:8000` from the repo root works for quick checks).
 
 ## Architecture

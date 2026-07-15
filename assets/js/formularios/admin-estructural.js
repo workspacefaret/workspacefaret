@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderPaginacion();
 
         } catch (error) {
-            tablaBody.innerHTML = `<tr><td colspan="11" class="admin-empty">${escapeHtml(error.message)}</td></tr>`;
+            tablaBody.innerHTML = `<tr><td colspan="12" class="admin-empty">${escapeHtml(error.message)}</td></tr>`;
         }
     }
 
@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderTabla() {
         if (!solicitudesFiltradas.length) {
-            tablaBody.innerHTML = `<tr><td colspan="11" class="admin-empty">No hay solicitudes para mostrar.</td></tr>`;
+            tablaBody.innerHTML = `<tr><td colspan="12" class="admin-empty">No hay solicitudes para mostrar.</td></tr>`;
             return;
         }
 
@@ -110,6 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td><span class="admin-status">${escapeHtml(item.estado)}</span></td>
                 <td>${formatearFecha(item.fechaRegistro)}</td>
                 <td>${escapeHtml(item.solicitanteNombre)}</td>
+                <td>${escapeHtml(item.operadorEdicion || '-')}</td>
                 <td>${escapeHtml(item.clienteNombre)}${item.clienteNuevo ? ` <small>(${escapeHtml(item.clienteNuevo)})</small>` : ''}</td>
                 <td>${escapeHtml(item.oc || '-')}</td>
                 <td>${escapeHtml(item.producto)}</td>
@@ -247,7 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function mostrarCargando() {
-        tablaBody.innerHTML = `<tr><td colspan="11" class="admin-empty">Cargando solicitudes...</td></tr>`;
+        tablaBody.innerHTML = `<tr><td colspan="12" class="admin-empty">Cargando solicitudes...</td></tr>`;
     }
 
     function formatearFecha(valor) {

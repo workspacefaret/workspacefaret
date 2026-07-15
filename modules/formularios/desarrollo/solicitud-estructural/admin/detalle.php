@@ -54,7 +54,7 @@ $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
                 <label for="nuevoEstado">Nuevo estado</label>
                 <select id="nuevoEstado"></select>
 
-                <label for="editorAsignado">Editor asignado</label>
+                <label for="editorAsignado">Diseñador Estructural Asignado</label>
                 <input type="text" id="editorAsignado" placeholder="Nombre del editor">
 
                 <label for="nivelComplejidad">Nivel de complejidad</label>

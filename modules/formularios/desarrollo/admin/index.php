@@ -105,6 +105,7 @@ ob_start();
                         <th>Estado</th>
                         <th>Prioridad</th>
                         <th>Solicitante</th>
+                        <th>Editor asignado</th>
                         <th>Cliente</th>
                         <th>OC</th>
                         <th>Producto</th>
@@ -115,7 +116,7 @@ ob_start();
                 </thead>
                 <tbody id="tablaSolicitudesBody">
                     <tr>
-                        <td colspan="10" class="admin-empty">Cargando solicitudes...</td>
+                        <td colspan="11" class="admin-empty">Cargando solicitudes...</td>
                     </tr>
                 </tbody>
             </table>
