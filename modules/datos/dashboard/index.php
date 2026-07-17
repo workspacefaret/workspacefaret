@@ -1,4 +1,9 @@
-<?php ob_start(); ?>
+<?php
+require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/auth.php';
+requireModuleAccess('reportes');
+
+ob_start();
+?>
 
 <div class="hero">
     <h1>Dashboard</h1>

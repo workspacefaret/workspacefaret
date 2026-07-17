@@ -1,4 +1,7 @@
 <?php
+require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/auth.php';
+requireModuleAccess('desarrollo');
+
 require_once $_SERVER['DOCUMENT_ROOT'] . '/config/api.php';
 
 ob_start();

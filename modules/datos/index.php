@@ -1,4 +1,7 @@
 <?php
+require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/auth.php';
+requireModuleAccess('datos');
+
 ob_start();
 ?>
 

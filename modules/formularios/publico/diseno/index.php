@@ -1,14 +1,11 @@
 <?php
-require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/auth.php';
-requireModuleAccess('desarrollo');
-
 ob_start();
 ?>
 
 <link rel="stylesheet" href="/assets/css/formularios/admin-formularios.css">
 
 <section class="hero">
-    <h1>Formularios Desarrollo</h1>
+    <h1>Formularios de Diseño</h1>
     <p>Selecciona el tipo de solicitud que deseas ingresar.</p>
 </section>
 
@@ -31,12 +28,12 @@ ob_start();
             <p>Ingreso de nuevas solicitudes de desarrollo estructural.</p>
         </a>
 
-        <a class="action-card" href="/modules/formularios/desarrollo/">
+        <a class="action-card" href="/modules/formularios/publico/">
             <div class="action-card-icon">
                 <i class="bi bi-arrow-left-circle-fill"></i>
             </div>
             <h3>Volver</h3>
-            <p>Regresar al módulo de Desarrollo.</p>
+            <p>Regresar a Formularios.</p>
         </a>
 
     </div>
@@ -44,5 +41,4 @@ ob_start();
 
 <?php
 $contenido = ob_get_clean();
-include '../../../../layouts/app.php';
-?>
+include $_SERVER['DOCUMENT_ROOT'] . '/layouts/app.php';

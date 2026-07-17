@@ -1,5 +1,8 @@
 <?php
 
+require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/auth.php';
+requireModuleAccess('mejora_continua');
+
 require_once $_SERVER['DOCUMENT_ROOT'] . '/services/ApiClient.php';
 
 $error = null;

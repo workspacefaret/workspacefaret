@@ -1,3 +1,7 @@
 <?php
 require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/auth.php';
-requireModuleAccess('desarrollo');
+
+cerrarSesionUsuario();
+
+header('Location: /auth/login.php');
+exit;

@@ -1,5 +1,8 @@
 <?php
 
+require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/auth.php';
+requireModuleAccess('datos');
+
 require_once $_SERVER['DOCUMENT_ROOT'] . '/services/ApiClient.php';
 
 ob_start();

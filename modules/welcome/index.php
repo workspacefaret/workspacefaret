@@ -32,9 +32,17 @@
                 alt="Workspace Faret"
                 class="workspace-logo">
 
-            <a href="/modules/operacion/" class="btn-enter">
-                Ingresar al Sistema
-            </a>
+            <div class="welcome-actions">
+
+                <a href="/auth/login.php" class="btn-enter">
+                    Iniciar sesión
+                </a>
+
+                <a href="/modules/formularios/publico/" class="btn-enter-secondary">
+                    Formularios
+                </a>
+
+            </div>
 
         </div>
 

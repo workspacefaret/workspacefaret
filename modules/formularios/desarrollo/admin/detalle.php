@@ -1,4 +1,7 @@
 <?php
+require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/auth.php';
+requireModuleAccess('desarrollo');
+
 ob_start();
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
