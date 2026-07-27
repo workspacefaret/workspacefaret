@@ -51,6 +51,7 @@ href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.m
 </div>
 
 <script src="/assets/js/theme.js"></script>
+<script src="/assets/js/scroll-restore.js"></script>
 
 </body>
 </html>

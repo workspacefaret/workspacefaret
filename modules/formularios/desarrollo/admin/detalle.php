@@ -79,6 +79,17 @@ $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
                     Reabrir solicitud
                 </button>
             </div>
+
+            <div class="section-header" style="margin-top: 24px;">
+                <div class="section-title">
+                    <h2>Historial</h2>
+                    <p>Registro de creación y cambios de estado.</p>
+                </div>
+            </div>
+
+            <div id="detalleHistorial" class="admin-list-box">
+                Cargando historial...
+            </div>
         </div>
 
     </div>
@@ -94,16 +105,6 @@ $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
                 </div>
             </div>
             <div id="detalleAdjuntos" class="admin-list-box">Cargando adjuntos...</div>
-        </div>
-
-        <div class="panel admin-panel">
-            <div class="section-header">
-                <div class="section-title">
-                    <h2>Historial</h2>
-                    <p>Registro de creación y cambios de estado.</p>
-                </div>
-            </div>
-            <div id="detalleHistorial" class="admin-list-box">Cargando historial...</div>
         </div>
     </div>
 </section>
@@ -154,8 +155,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('editorAsignado').value = item.operadorEdicion || '';
         document.getElementById('nivelComplejidad').value = item.nivelComplejidad || '';
 
-        const estadosCerrados = [4, 5, 6]; // Terminado, Rechazado, Anulado
-        document.getElementById('btnReabrir').style.display = estadosCerrados.includes(item.estadoId) ? '' : 'none';
+        const puedeReabrir = item.estadoId === 4; // Solo Terminado
+document.getElementById('btnReabrir').style.display = puedeReabrir ? '' : 'none';
 
         document.getElementById('detalleContenido').innerHTML = `
             ${campo('Código', item.codigo)}
@@ -260,10 +261,59 @@ document.addEventListener('DOMContentLoaded', () => {
         location.reload();
     });
 
-    document.getElementById('btnReabrir').addEventListener('click', () => {
-        document.getElementById('nuevoEstado').value = '2';
-        document.getElementById('observacionEstado').focus();
-    });
+    document.getElementById('btnReabrir').addEventListener('click', async () => {
+    const observacion = document
+        .getElementById('observacionEstado')
+        .value
+        .trim();
+
+    const confirmar = confirm(
+        '¿Confirma que desea reabrir esta solicitud?\n\n' +
+        'Los datos anteriores se conservarán y la reapertura quedará registrada en el historial.'
+    );
+
+    if (!confirmar) {
+        return;
+    }
+
+    const boton = document.getElementById('btnReabrir');
+    boton.disabled = true;
+
+    try {
+        const response = await fetch(
+            `${apiBaseUrl}solicitudes/${solicitudId}/reabrir`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    usuario: 'Administrador Workspace',
+                    observacion
+                })
+            }
+        );
+
+        if (!response.ok) {
+            const mensaje = await response.text();
+
+            alert(
+                mensaje ||
+                'No se pudo reabrir la solicitud.'
+            );
+
+            return;
+        }
+
+        alert('Solicitud reabierta correctamente.');
+        location.reload();
+    } catch (error) {
+        console.error('Error al reabrir la solicitud:', error);
+        alert('Ocurrió un error al comunicarse con la API.');
+    } finally {
+        boton.disabled = false;
+    }
+});
 
     function campo(label, valor, full = false) {
         return `
