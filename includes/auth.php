@@ -54,7 +54,46 @@ function getAuthPdo(): PDO
         )
     ');
 
+    $pdo->exec('
+        CREATE TABLE IF NOT EXISTS usuario_perfil (
+            usuario_id INTEGER PRIMARY KEY REFERENCES usuarios(id),
+            email TEXT,
+            telefono TEXT,
+            cargo TEXT,
+            area TEXT,
+            actualizado_en TEXT
+        )
+    ');
+
+    $pdo->exec('
+        CREATE TABLE IF NOT EXISTS novedades (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            titulo TEXT NOT NULL,
+            cuerpo TEXT NOT NULL,
+            creado_por INTEGER REFERENCES usuarios(id),
+            creado_en TEXT NOT NULL DEFAULT (datetime(\'now\')),
+            activo INTEGER NOT NULL DEFAULT 1
+        )
+    ');
+
     return $pdo;
+}
+
+function obtenerNovedadesActivas(int $limite = 5): array
+{
+    $stmt = getAuthPdo()->prepare('SELECT titulo, cuerpo, creado_en FROM novedades WHERE activo = 1 ORDER BY creado_en DESC LIMIT ?');
+    $stmt->bindValue(1, $limite, PDO::PARAM_INT);
+    $stmt->execute();
+
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function obtenerPerfilUsuario(int $usuarioId): array
+{
+    $stmt = getAuthPdo()->prepare('SELECT email, telefono, cargo, area FROM usuario_perfil WHERE usuario_id = ?');
+    $stmt->execute([$usuarioId]);
+
+    return $stmt->fetch(PDO::FETCH_ASSOC) ?: ['email' => '', 'telefono' => '', 'cargo' => '', 'area' => ''];
 }
 
 function obtenerModulosCatalogo(): array

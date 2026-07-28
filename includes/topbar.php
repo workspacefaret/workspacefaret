@@ -13,6 +13,10 @@
 
         <?php if ($usuarioActual): ?>
             <span><?= htmlspecialchars($usuarioActual['nombre']) ?></span>
+            <a href="/modules/perfil/" class="btn-secondary">
+                <i class="bi bi-person-circle"></i>
+                Mi perfil
+            </a>
             <a href="/auth/logout.php" class="btn-secondary">
                 <i class="bi bi-box-arrow-right"></i>
                 Salir

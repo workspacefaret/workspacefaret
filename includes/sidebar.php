@@ -96,6 +96,11 @@
                     <i class="bi bi-person-gear"></i>
                     Usuarios
                 </a>
+
+                <a href="/modules/admin/novedades/">
+                    <i class="bi bi-megaphone-fill"></i>
+                    Novedades
+                </a>
             <?php endif; ?>
 
         <?php else: ?>
