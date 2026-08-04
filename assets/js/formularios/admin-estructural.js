@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const filtroCodigo = document.getElementById('filtroCodigo');
     const filtroCliente = document.getElementById('filtroCliente');
     const filtroEstado = document.getElementById('filtroEstado');
+    const filtroPrioridad = document.getElementById('filtroPrioridad');
     const filtroFechaDesde = document.getElementById('filtroFechaDesde');
     const filtroFechaHasta = document.getElementById('filtroFechaHasta');
 
@@ -20,12 +21,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnLimpiarFiltros')?.addEventListener('click', limpiarFiltros);
     document.getElementById('btnExportarExcel')?.addEventListener('click', exportarExcel);
 
-    [filtroCodigo, filtroCliente, filtroEstado, filtroFechaDesde, filtroFechaHasta].forEach(control => {
+    [filtroCodigo, filtroCliente, filtroEstado, filtroPrioridad, filtroFechaDesde, filtroFechaHasta].forEach(control => {
         control?.addEventListener('input', aplicarFiltros);
         control?.addEventListener('change', aplicarFiltros);
     });
 
     cargarSolicitudes();
+    setInterval(cargarSolicitudes, 5 * 60 * 1000);
 
     async function cargarSolicitudes() {
         mostrarCargando();
@@ -35,16 +37,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error('No se pudieron cargar las solicitudes.');
 
             solicitudes = await response.json();
-            solicitudesFiltradas = [...solicitudes];
-            paginaActual = 1;
 
             cargarOpcionesFiltros();
-            actualizarKpis();
-            renderTabla();
-            renderPaginacion();
+            aplicarFiltros();
 
         } catch (error) {
-            tablaBody.innerHTML = `<tr><td colspan="12" class="admin-empty">${escapeHtml(error.message)}</td></tr>`;
+            tablaBody.innerHTML = `<tr><td colspan="13" class="admin-empty">${escapeHtml(error.message)}</td></tr>`;
         }
     }
 
@@ -52,6 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const codigo = normalizar(filtroCodigo.value);
         const cliente = normalizar(filtroCliente.value);
         const estado = filtroEstado.value;
+        const prioridad = filtroPrioridad.value;
         const desde = filtroFechaDesde.value ? new Date(filtroFechaDesde.value) : null;
         const hasta = filtroFechaHasta.value ? new Date(filtroFechaHasta.value) : null;
 
@@ -61,6 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (codigo && !normalizar(item.codigo).includes(codigo)) return false;
             if (cliente && !normalizar(item.clienteNombre).includes(cliente)) return false;
             if (estado && item.estado !== estado) return false;
+            if (prioridad && item.prioridad !== prioridad) return false;
             if (desde && fechaRegistro && fechaRegistro < desde) return false;
             if (hasta && fechaRegistro && fechaRegistro > hasta) return false;
 
@@ -77,6 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
         filtroCodigo.value = '';
         filtroCliente.value = '';
         filtroEstado.value = '';
+        filtroPrioridad.value = '';
         filtroFechaDesde.value = '';
         filtroFechaHasta.value = '';
         aplicarFiltros();
@@ -84,20 +85,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function cargarOpcionesFiltros() {
         cargarSelectUnico(filtroEstado, solicitudes.map(x => x.estado), 'Todos');
+        cargarSelectUnico(filtroPrioridad, solicitudes.map(x => x.prioridad), 'Todas');
     }
 
     function cargarSelectUnico(select, valores, textoInicial) {
         const valorActual = select.value;
         select.innerHTML = `<option value="">${textoInicial}</option>`;
         [...new Set(valores.filter(Boolean))].sort().forEach(valor => {
-            select.innerHTML += `<option value="${escapeHtml(valor)}">${escapeHtml(valor)}</option>`;
+            select.innerHTML += `<option value="${escapeHtml(valor)}">${escapeHtml(mostrarEstado(valor))}</option>`;
         });
         select.value = valorActual;
     }
 
     function renderTabla() {
         if (!solicitudesFiltradas.length) {
-            tablaBody.innerHTML = `<tr><td colspan="12" class="admin-empty">No hay solicitudes para mostrar.</td></tr>`;
+            tablaBody.innerHTML = `<tr><td colspan="13" class="admin-empty">No hay solicitudes para mostrar.</td></tr>`;
             return;
         }
 
@@ -105,9 +107,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const pagina = solicitudesFiltradas.slice(inicio, inicio + registrosPorPagina);
 
         tablaBody.innerHTML = pagina.map(item => `
-            <tr>
+            <tr class="${claseSemaforo(item.estado)}">
                 <td><strong>${escapeHtml(item.codigo)}</strong></td>
-                <td><span class="admin-status">${escapeHtml(item.estado)}</span></td>
+                <td><span class="admin-status">${escapeHtml(mostrarEstado(item.estado))}</span></td>
+                <td><span class="admin-priority">${escapeHtml(item.prioridad || '-')}</span></td>
                 <td>${formatearFecha(item.fechaRegistro)}</td>
                 <td>${escapeHtml(item.solicitanteNombre)}</td>
                 <td>${escapeHtml(item.operadorEdicion || '-')}</td>
@@ -167,6 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <tr>
                 <td>${escapeHtml(item.codigo)}</td>
                 <td>${escapeHtml(item.estado)}</td>
+                <td>${escapeHtml(item.prioridad || '')}</td>
                 <td>${formatearFecha(item.fechaRegistro)}</td>
                 <td>${escapeHtml(item.solicitanteNombre)}</td>
                 <td>${escapeHtml(item.clienteNombre)}</td>
@@ -197,12 +201,13 @@ document.addEventListener('DOMContentLoaded', () => {
             </head>
             <body>
                 <table>
-                    <tr><td colspan="14" class="title">Exportación Solicitudes Desarrollo Estructural</td></tr>
-                    <tr><td colspan="14" class="subtitle">Workspace Faret - ${new Date().toLocaleString('es-CL')}</td></tr>
+                    <tr><td colspan="15" class="title">Exportación Solicitudes Desarrollo Estructural</td></tr>
+                    <tr><td colspan="15" class="subtitle">Workspace Faret - ${new Date().toLocaleString('es-CL')}</td></tr>
                     <tr></tr>
                     <tr>
                         <th>CÓDIGO</th>
                         <th>ESTADO</th>
+                        <th>PRIORIDAD</th>
                         <th>FECHA CREACIÓN</th>
                         <th>SOLICITANTE</th>
                         <th>CLIENTE</th>
@@ -248,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function mostrarCargando() {
-        tablaBody.innerHTML = `<tr><td colspan="12" class="admin-empty">Cargando solicitudes...</td></tr>`;
+        tablaBody.innerHTML = `<tr><td colspan="13" class="admin-empty">Cargando solicitudes...</td></tr>`;
     }
 
     function formatearFecha(valor) {
@@ -272,6 +277,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function normalizar(valor) {
         return String(valor || '').trim().toLowerCase();
+    }
+
+    function mostrarEstado(estado) {
+        const normalizado = normalizar(estado);
+        if (normalizado === 'en edición' || normalizado === 'en edicion') return 'En Proceso';
+        return estado;
+    }
+
+    function claseSemaforo(estado) {
+        switch (normalizar(estado)) {
+            case 'en edición':
+            case 'en edicion':
+                return 'admin-row-edicion';
+            case 'terminado':
+                return 'admin-row-terminado';
+            case 'rechazado':
+                return 'admin-row-rechazado';
+            case 'anulado':
+                return 'admin-row-anulado';
+            default:
+                return '';
+        }
     }
 
     function escapeHtml(texto) {

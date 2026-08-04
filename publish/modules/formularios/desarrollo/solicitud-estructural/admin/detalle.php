@@ -7,6 +7,7 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/config/api.php';
 ob_start();
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+$usuarioActual = currentUser()['nombre'] ?? 'Desconocido';
 ?>
 
 <link rel="stylesheet" href="/assets/css/formularios/admin-formularios.css">
@@ -58,7 +59,7 @@ $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
                 <select id="nuevoEstado"></select>
 
                 <label for="editorAsignado">Diseñador Estructural Asignado</label>
-                <input type="text" id="editorAsignado" placeholder="Nombre del editor">
+                <input type="text" id="editorAsignado" placeholder="Nombre">
 
                 <label for="nivelComplejidad">Nivel de complejidad</label>
                 <select id="nivelComplejidad">
@@ -76,7 +77,7 @@ $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
                     Guardar cambio
                 </button>
 
-                <button class="admin-btn admin-btn-secondary" id="btnReabrir" style="display:none;">
+                <button class="admin-btn admin-btn-secondary" id="btnReabrir">
                     <i class="bi bi-arrow-counterclockwise"></i>
                     Reabrir solicitud
                 </button>
@@ -111,10 +112,38 @@ $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
     </div>
 </section>
 
+<div class="admin-modal-overlay hidden" id="modalReabrir">
+    <div class="panel admin-panel admin-modal" style="max-width:520px;">
+        <div class="admin-modal-header">
+            <div class="section-title">
+                <h2>Reabrir solicitud</h2>
+                <p>El código de la solicitud se mantiene. La reapertura queda registrada en el historial.</p>
+            </div>
+            <button class="admin-icon-btn" id="btnCerrarModalReabrir" type="button" title="Cerrar">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+
+        <div class="admin-change-state">
+            <label for="observacionReabrir">Observación</label>
+            <textarea id="observacionReabrir" rows="4" placeholder="Motivo de la reapertura (opcional)"></textarea>
+
+            <label for="adjuntoReabrir">Adjuntar documento (opcional)</label>
+            <input type="file" id="adjuntoReabrir">
+
+            <button class="admin-btn admin-btn-primary" id="btnConfirmarReabrir" type="button">
+                <i class="bi bi-arrow-counterclockwise"></i>
+                Confirmar reapertura
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const solicitudId = <?= $id ?>;
     const apiBaseUrl = '<?= htmlspecialchars(API_FORMULARIOS) ?>';
+    const usuarioActual = <?= json_encode($usuarioActual, JSON_UNESCAPED_UNICODE) ?>;
 
     cargarTodo();
 
@@ -140,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
         estados.forEach(estado => {
             const option = document.createElement('option');
             option.value = estado.id;
-            option.textContent = estado.nombre;
+            option.textContent = mostrarEstado(estado.nombre);
             select.appendChild(option);
         });
     }
@@ -151,14 +180,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.getElementById('detalleTitulo').textContent = item.codigo;
         document.getElementById('detalleSubtitulo').textContent = `${item.clienteNombre} · ${item.producto}`;
-        document.getElementById('detalleEstado').textContent = item.estado;
+        document.getElementById('detalleEstado').textContent = mostrarEstado(item.estado);
         document.getElementById('btnPdfDetalle').href = `${apiBaseUrl}solicitudes-estructural/${item.id}/pdf`;
         document.getElementById('nuevoEstado').value = item.estadoId;
         document.getElementById('editorAsignado').value = item.operadorEdicion || '';
         document.getElementById('nivelComplejidad').value = item.nivelComplejidad || '';
-
-        const puedeReabrir = item.estadoId === 4; // Solo Terminado
-        document.getElementById('btnReabrir').style.display = puedeReabrir ? '' : 'none';
 
         const referencia = item.referenciaOtrosTexto
             ? `${item.referencia || ''} (${item.referenciaOtrosTexto})`
@@ -166,7 +192,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.getElementById('detalleContenido').innerHTML = `
             ${campo('Código', item.codigo)}
-            ${campo('Estado', item.estado)}
+            ${campo('Estado', mostrarEstado(item.estado))}
+            ${campo('Prioridad', item.prioridad)}
             ${campo('Editor asignado', item.operadorEdicion)}
             ${campo('Nivel de complejidad', item.nivelComplejidad)}
             ${campo('OC', item.oc)}
@@ -229,7 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <strong>${escapeHtml(h.accion)}</strong>
                     <span>${formatearFecha(h.fechaRegistro)}</span>
                 </div>
-                <p>${escapeHtml(h.estadoAnterior || '-')} → ${escapeHtml(h.estadoNuevo || '-')}</p>
+                <p>${escapeHtml(mostrarEstado(h.estadoAnterior) || '-')} → ${escapeHtml(mostrarEstado(h.estadoNuevo) || '-')}</p>
                 <small>${escapeHtml(h.usuario || '-')}</small>
                 ${h.observacion ? `<div class="admin-history-note">${escapeHtml(h.observacion)}</div>` : ''}
             </div>
@@ -247,7 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 estadoId,
-                usuario: 'Administrador Workspace',
+                usuario: usuarioActual,
                 observacion,
                 operadorEdicion,
                 nivelComplejidad
@@ -263,22 +290,35 @@ document.addEventListener('DOMContentLoaded', () => {
         location.reload();
     });
 
-    document.getElementById('btnReabrir').addEventListener('click', async () => {
-        const observacion = document
-            .getElementById('observacionEstado')
-            .value
-            .trim();
+    const modalReabrir = document.getElementById('modalReabrir');
+    const observacionReabrirInput = document.getElementById('observacionReabrir');
+    const adjuntoReabrirInput = document.getElementById('adjuntoReabrir');
 
-        const confirmar = confirm(
-            '¿Confirma que desea reabrir esta solicitud?\n\n' +
-            'Los datos anteriores se conservarán y la reapertura quedará registrada en el historial.'
-        );
+    document.getElementById('btnReabrir').addEventListener('click', () => {
+        observacionReabrirInput.value = '';
+        adjuntoReabrirInput.value = '';
+        modalReabrir.classList.remove('hidden');
+    });
 
-        if (!confirmar) {
-            return;
-        }
+    document.getElementById('btnCerrarModalReabrir').addEventListener('click', cerrarModalReabrir);
 
-        const boton = document.getElementById('btnReabrir');
+    modalReabrir.addEventListener('click', (evento) => {
+        if (evento.target === modalReabrir) cerrarModalReabrir();
+    });
+
+    document.addEventListener('keydown', (evento) => {
+        if (evento.key === 'Escape' && !modalReabrir.classList.contains('hidden')) cerrarModalReabrir();
+    });
+
+    function cerrarModalReabrir() {
+        modalReabrir.classList.add('hidden');
+    }
+
+    document.getElementById('btnConfirmarReabrir').addEventListener('click', async () => {
+        const observacion = observacionReabrirInput.value.trim();
+        const archivo = adjuntoReabrirInput.files[0] || null;
+
+        const boton = document.getElementById('btnConfirmarReabrir');
         boton.disabled = true;
 
         try {
@@ -286,11 +326,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 `${apiBaseUrl}solicitudes-estructural/${solicitudId}/reabrir`,
                 {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        usuario: 'Administrador Workspace',
+                        usuario: usuarioActual,
                         observacion
                     })
                 }
@@ -298,16 +336,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!response.ok) {
                 const mensaje = await response.text();
-
-                alert(
-                    mensaje ||
-                    'No se pudo reabrir la solicitud.'
-                );
-
+                alert(mensaje || 'No se pudo reabrir la solicitud.');
                 return;
             }
 
+            if (archivo) {
+                const formData = new FormData();
+                formData.append('archivo', archivo);
+
+                const respuestaAdjunto = await fetch(
+                    `${apiBaseUrl}solicitudes-estructural/${solicitudId}/adjuntos`,
+                    { method: 'POST', body: formData }
+                );
+
+                if (!respuestaAdjunto.ok) {
+                    alert('La solicitud fue reabierta, pero no se pudo subir el adjunto.');
+                    cerrarModalReabrir();
+                    location.reload();
+                    return;
+                }
+            }
+
             alert('Solicitud reabierta correctamente.');
+            cerrarModalReabrir();
             location.reload();
         } catch (error) {
             console.error('Error al reabrir la solicitud:', error);
@@ -346,6 +397,12 @@ document.addEventListener('DOMContentLoaded', () => {
             .replaceAll('>', '&gt;')
             .replaceAll('"', '&quot;')
             .replaceAll("'", '&#039;');
+    }
+
+    function mostrarEstado(estado) {
+        const normalizado = String(estado || '').trim().toLowerCase();
+        if (normalizado === 'en edición' || normalizado === 'en edicion') return 'En Proceso';
+        return estado;
     }
 });
 </script>

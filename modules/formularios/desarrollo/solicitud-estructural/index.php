@@ -36,6 +36,13 @@ ob_start();
 
         <div class="form-grid-mobile">
             <div class="field">
+                <label for="prioridadId">Prioridad</label>
+                <select id="prioridadId" name="prioridadId" required>
+                    <option value="">Cargando...</option>
+                </select>
+            </div>
+
+            <div class="field">
                 <label for="solicitanteId">Solicitante</label>
                 <select id="solicitanteId" name="solicitanteId" required>
                     <option value="">Cargando...</option>
@@ -188,6 +195,7 @@ ob_start();
 
 </section>
 
+<script src="/assets/js/formularios/upload-dropzone.js"></script>
 <script src="/assets/js/formularios/solicitud-estructural.js"></script>
 
 <?php

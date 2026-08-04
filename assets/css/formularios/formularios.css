@@ -399,6 +399,11 @@
     color: #fff;
 }
 
+.upload-card.is-dragover {
+    border-color: rgba(96, 165, 250, .9);
+    background: rgba(96, 165, 250, .12);
+}
+
 .adjuntos-preview {
     margin-top: 14px;
     display: flex;
@@ -608,4 +613,8 @@
 [data-theme="light"] .btn-clear-firma {
     border-color: #cbd5e1;
     color: #475569;
+}
+
+[data-theme="light"] .upload-card.is-dragover {
+    background: rgba(96, 165, 250, .1);
 }

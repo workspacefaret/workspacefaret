@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     cargarSolicitudes();
+    setInterval(cargarSolicitudes, 5 * 60 * 1000);
 
     async function cargarSolicitudes() {
         mostrarCargando();
@@ -92,7 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const pagina = solicitudesFiltradas.slice(inicio, inicio + registrosPorPagina);
 
         tablaBody.innerHTML = pagina.map(item => `
-            <tr>
+            <tr class="${claseSemaforo(item.estado)}">
                 <td><strong>${escapeHtml(item.codigo)}</strong></td>
                 <td><span class="admin-status">${escapeHtml(item.estado)}</span></td>
                 <td><span class="admin-priority">${escapeHtml(item.prioridad)}</span></td>
@@ -286,6 +287,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function normalizar(valor) {
         return String(valor || '').trim().toLowerCase();
+    }
+
+    function claseSemaforo(estado) {
+        switch (normalizar(estado)) {
+            case 'en edición':
+            case 'en edicion':
+                return 'admin-row-edicion';
+            case 'terminado':
+                return 'admin-row-terminado';
+            case 'rechazado':
+                return 'admin-row-rechazado';
+            case 'anulado':
+                return 'admin-row-anulado';
+            default:
+                return '';
+        }
     }
 
     function escapeHtml(texto) {

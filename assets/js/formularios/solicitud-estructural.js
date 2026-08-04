@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('solicitudEstructuralForm');
     const formAlert = document.getElementById('formAlert');
 
+    const prioridadSelect = document.getElementById('prioridadId');
     const solicitanteSelect = document.getElementById('solicitanteId');
 
     const clienteSearchInput = document.getElementById('clienteSearch');
@@ -21,10 +22,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const adjuntosInput = document.getElementById('adjuntos');
     const adjuntosPreview = document.getElementById('adjuntosPreview');
 
+    let prioridades = [];
     let solicitantes = [];
     let clienteSeleccionado = null;
     let clienteTimer = null;
 
+    cargarPrioridades();
     cargarSolicitantes();
     actualizarVisibilidadOtros();
 
@@ -45,6 +48,40 @@ document.addEventListener('DOMContentLoaded', () => {
             adjuntosPreview.appendChild(item);
         });
     });
+
+    async function cargarPrioridades() {
+        try {
+            const response = await fetch(`${apiBaseUrl}catalogos/prioridades`);
+
+            if (!response.ok) {
+                throw new Error('No fue posible cargar las prioridades.');
+            }
+
+            prioridades = await response.json();
+
+            prioridadSelect.innerHTML = '';
+
+            const optionDefault = document.createElement('option');
+            optionDefault.value = '';
+            optionDefault.textContent = 'Seleccione prioridad';
+            prioridadSelect.appendChild(optionDefault);
+
+            prioridades.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.id;
+                option.textContent = item.nombre;
+                prioridadSelect.appendChild(option);
+            });
+
+            const prioridadMedia = prioridades.find(x => x.nombre === 'MEDIA');
+            if (prioridadMedia) {
+                prioridadSelect.value = prioridadMedia.id;
+            }
+
+        } catch (error) {
+            mostrarAlerta('error', error.message);
+        }
+    }
 
     async function cargarSolicitantes() {
         try {
@@ -227,10 +264,11 @@ document.addEventListener('DOMContentLoaded', () => {
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
 
+        const prioridad = prioridades.find(x => String(x.id) === prioridadSelect.value);
         const solicitante = solicitantes.find(x => String(x.id) === solicitanteSelect.value);
 
-        if (!solicitante) {
-            mostrarAlerta('error', 'Selecciona un solicitante.');
+        if (!prioridad || !solicitante) {
+            mostrarAlerta('error', 'Completa prioridad y solicitante.');
             return;
         }
 
@@ -274,6 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const otrosCheckbox = document.querySelector('input[name="referencia"][value="OTROS"]');
 
         const payload = {
+            prioridad: prioridad.nombre,
             solicitanteId: Number(solicitante.id),
             solicitanteNombre: solicitante.nombre,
             clienteId: clienteIdInput.value ? Number(clienteIdInput.value) : null,
@@ -360,6 +399,11 @@ document.addEventListener('DOMContentLoaded', () => {
             clienteSeleccionado = null;
             clienteIdInput.value = '';
             actualizarVisibilidadOtros();
+
+            const prioridadMedia = prioridades.find(x => x.nombre === 'MEDIA');
+            if (prioridadMedia) {
+                prioridadSelect.value = prioridadMedia.id;
+            }
 
             mostrarAlerta('success', 'Solicitud registrada y notificación enviada correctamente.');
 

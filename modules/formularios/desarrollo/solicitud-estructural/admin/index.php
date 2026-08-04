@@ -88,6 +88,13 @@ ob_start();
             </div>
 
             <div class="admin-filter-field">
+                <label for="filtroPrioridad">Prioridad</label>
+                <select id="filtroPrioridad">
+                    <option value="">Todas</option>
+                </select>
+            </div>
+
+            <div class="admin-filter-field">
                 <label for="filtroFechaDesde">Desde</label>
                 <input type="date" id="filtroFechaDesde">
             </div>
@@ -111,6 +118,7 @@ ob_start();
                     <tr>
                         <th>Código</th>
                         <th>Estado</th>
+                        <th>Prioridad</th>
                         <th>Fecha creación</th>
                         <th>Solicitante</th>
                         <th>Editor asignado</th>
@@ -125,7 +133,7 @@ ob_start();
                 </thead>
                 <tbody id="tablaSolicitudesBody">
                     <tr>
-                        <td colspan="12" class="admin-empty">Cargando solicitudes...</td>
+                        <td colspan="13" class="admin-empty">Cargando solicitudes...</td>
                     </tr>
                 </tbody>
             </table>

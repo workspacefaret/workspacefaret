@@ -180,6 +180,7 @@ ob_start();
 
 </section>
 
+<script src="/assets/js/formularios/upload-dropzone.js"></script>
 <script src="/assets/js/formularios/desarrollo-grafico.js"></script>
 
 <?php
