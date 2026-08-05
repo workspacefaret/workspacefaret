@@ -1,5 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
     const apiBaseUrl = window.API_FORMULARIOS || 'https://api.faret.cl/formularios/api/';
+    const filtrosStorageKey = 'wsfaret-filtros-desarrollo-grafico';
+    const esAdminTi = window.esAdminTi === true;
+    const adminDeleteKey = window.API_ADMIN_DELETE_KEY || '';
 
     let solicitudes = [];
     let solicitudesFiltradas = [];
@@ -39,6 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
             paginaActual = 1;
 
             cargarOpcionesFiltros();
+            restaurarFiltros();
             aplicarFiltrosDesdeUrl();
             aplicarFiltros();
 
@@ -56,6 +60,33 @@ document.addEventListener('DOMContentLoaded', () => {
         if (prioridad) filtroPrioridad.value = prioridad;
     }
 
+    function restaurarFiltros() {
+        try {
+            const guardado = JSON.parse(localStorage.getItem(filtrosStorageKey));
+            if (!guardado) return;
+
+            filtroCodigo.value = guardado.codigo || '';
+            filtroCliente.value = guardado.cliente || '';
+            filtroEstado.value = guardado.estado || '';
+            filtroPrioridad.value = guardado.prioridad || '';
+        } catch {
+            // localStorage no disponible o dato corrupto: se ignora y se sigue sin filtros guardados.
+        }
+    }
+
+    function guardarFiltros() {
+        try {
+            localStorage.setItem(filtrosStorageKey, JSON.stringify({
+                codigo: filtroCodigo.value,
+                cliente: filtroCliente.value,
+                estado: filtroEstado.value,
+                prioridad: filtroPrioridad.value
+            }));
+        } catch {
+            // localStorage no disponible: se ignora, el filtrado sigue funcionando en memoria.
+        }
+    }
+
     function aplicarFiltros() {
         const codigo = normalizar(filtroCodigo.value);
         const cliente = normalizar(filtroCliente.value);
@@ -69,6 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 && (!prioridad || item.prioridad === prioridad);
         });
 
+        guardarFiltros();
         paginaActual = 1;
         actualizarKpis();
         renderTabla();
@@ -112,10 +144,45 @@ document.addEventListener('DOMContentLoaded', () => {
                         <a class="admin-icon-btn" href="${apiBaseUrl}solicitudes/${item.id}/pdf" target="_blank" title="PDF">
                             <i class="bi bi-file-earmark-pdf"></i>
                         </a>
+                        ${esAdminTi ? `
+                        <button class="admin-icon-btn admin-icon-btn-danger" type="button" data-eliminar-id="${item.id}" data-eliminar-codigo="${escapeHtml(item.codigo)}" title="Eliminar solicitud">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                        ` : ''}
                     </div>
                 </td>
             </tr>
         `).join('');
+
+        if (esAdminTi) {
+            tablaBody.querySelectorAll('button[data-eliminar-id]').forEach(btn => {
+                btn.addEventListener('click', () => eliminarSolicitud(btn.dataset.eliminarId, btn.dataset.eliminarCodigo));
+            });
+        }
+    }
+
+    async function eliminarSolicitud(id, codigo) {
+        const confirmado = confirm(
+            `¿Eliminar definitivamente la solicitud ${codigo}?\n\nSe borrará la fila, su historial y sus adjuntos. Esta acción NO se puede deshacer.`
+        );
+        if (!confirmado) return;
+
+        try {
+            const response = await fetch(`${apiBaseUrl}solicitudes/${id}`, {
+                method: 'DELETE',
+                headers: { 'X-Admin-Key': adminDeleteKey }
+            });
+
+            if (!response.ok) {
+                const mensaje = await response.text();
+                throw new Error(mensaje || 'No se pudo eliminar la solicitud.');
+            }
+
+            solicitudes = solicitudes.filter(item => item.id !== Number(id));
+            aplicarFiltros();
+        } catch (error) {
+            alert(error.message);
+        }
     }
 
     function renderPaginacion() {

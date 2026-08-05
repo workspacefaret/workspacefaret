@@ -32,6 +32,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->prepare('UPDATE novedades SET activo = 1 - activo WHERE id = ?')->execute([$id]);
         $mensaje = 'Estado de la novedad actualizado.';
     }
+
+    if ($accion === 'eliminar') {
+        $id = (int) ($_POST['id'] ?? 0);
+        $pdo->prepare('DELETE FROM novedades WHERE id = ?')->execute([$id]);
+        $mensaje = 'Novedad eliminada correctamente.';
+    }
 }
 
 $novedades = $pdo->query('SELECT * FROM novedades ORDER BY creado_en DESC')->fetchAll(PDO::FETCH_ASSOC);
@@ -123,6 +129,13 @@ $novedades = $pdo->query('SELECT * FROM novedades ORDER BY creado_en DESC')->fet
                                 <input type="hidden" name="id" value="<?= (int) $n['id'] ?>">
                                 <button type="submit" class="btn-secondary">
                                     <?= $activo ? 'Ocultar' : 'Activar' ?>
+                                </button>
+                            </form>
+                            <form method="POST" style="display:inline;" onsubmit="return confirm('¿Eliminar definitivamente esta novedad? Esta acción no se puede deshacer.');">
+                                <input type="hidden" name="accion" value="eliminar">
+                                <input type="hidden" name="id" value="<?= (int) $n['id'] ?>">
+                                <button type="submit" class="btn-secondary" style="color:#dc2626;">
+                                    Eliminar
                                 </button>
                             </form>
                         </td>
