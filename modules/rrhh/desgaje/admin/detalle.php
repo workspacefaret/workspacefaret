@@ -72,7 +72,7 @@ $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
         <div class="admin-table-wrap">
             <table class="admin-table">
-                <thead>
+                <thead id="detalleTrabajosHead">
                     <tr>
                         <th>NP</th>
                         <th>Cliente</th>
@@ -275,11 +275,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderTrabajos(detalles) {
         const contenedor = document.getElementById('detalleTrabajosBody');
+        const encabezado = document.getElementById('detalleTrabajosHead');
+        const modoManual = detalles && detalles.length > 0 && !detalles[0].tipoDesgajeId;
 
         if (!detalles || !detalles.length) {
+            encabezado.innerHTML = `
+                <tr>
+                    <th>NP</th><th>Cliente</th><th>N&deg; Pliego</th><th>Tipo</th><th>Pliegos</th>
+                    <th>Moldes</th><th>Estuches</th><th>Precio</th><th>Valor</th><th>Observaciones</th>
+                </tr>
+            `;
             contenedor.innerHTML = '<tr><td colspan="10" class="admin-empty">Sin trabajos registrados.</td></tr>';
             return;
         }
+
+        if (modoManual) {
+            encabezado.innerHTML = `
+                <tr>
+                    <th>NP</th><th>Cliente</th><th>Descripción producto</th><th>Cantidad procesada</th>
+                    <th>Precio</th><th>Valor</th><th>Descripción trabajo</th>
+                </tr>
+            `;
+
+            contenedor.innerHTML = detalles.map(d => `
+                <tr>
+                    <td>${escapeHtml(d.np)}</td>
+                    <td>${escapeHtml(d.clienteNombreSnapshot)}</td>
+                    <td>${escapeHtml(d.descripcionProducto || '-')}</td>
+                    <td>${d.cantidadEstuches}</td>
+                    <td>${formatearMoneda(d.precioAplicado)}</td>
+                    <td>${formatearMoneda(d.valorCalculado)}</td>
+                    <td>${escapeHtml(d.descripcionTrabajo || '-')}</td>
+                </tr>
+            `).join('');
+            return;
+        }
+
+        encabezado.innerHTML = `
+            <tr>
+                <th>NP</th><th>Cliente</th><th>N&deg; Pliego</th><th>Tipo</th><th>Pliegos</th>
+                <th>Moldes</th><th>Estuches</th><th>Precio</th><th>Valor</th><th>Observaciones</th>
+            </tr>
+        `;
 
         contenedor.innerHTML = detalles.map(d => `
             <tr>

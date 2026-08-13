@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const trabajosContainer = document.getElementById('trabajosContainer');
     const btnAgregarTrabajo = document.getElementById('btnAgregarTrabajo');
     const trabajoRowTemplate = document.getElementById('trabajoRowTemplate').innerHTML;
+    const trabajoRowTemplateManual = document.getElementById('trabajoRowTemplateManual').innerHTML;
 
     const btnGuardar = document.getElementById('btnGuardarRegistro');
 
@@ -23,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let catalogos = { tipos: [], talleres: [], operadores: [] };
     let clienteTimerPorFila = new WeakMap();
     let firmaTieneTrazo = false;
+    let modoActual = 'CATALOGO';
 
     fechaRegistroInput.value = new Date().toISOString().slice(0, 10);
 
@@ -59,6 +61,17 @@ document.addEventListener('DOMContentLoaded', () => {
             mostrarAlerta('error', error.message);
         }
     }
+
+    tallerSelect.addEventListener('change', () => {
+        const taller = (catalogos.talleres || []).find(t => String(t.id) === String(tallerSelect.value));
+        const nuevoModo = taller && taller.modoRegistro === 'MANUAL' ? 'MANUAL' : 'CATALOGO';
+
+        if (nuevoModo !== modoActual) {
+            modoActual = nuevoModo;
+            trabajosContainer.innerHTML = '';
+            agregarFilaTrabajo();
+        }
+    });
 
     operadorSearchInput.addEventListener('focus', () => mostrarSugerenciasOperador(operadorSearchInput.value));
 
@@ -110,7 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function agregarFilaTrabajo() {
         const wrapper = document.createElement('div');
-        wrapper.innerHTML = trabajoRowTemplate.trim();
+        wrapper.innerHTML = (modoActual === 'MANUAL' ? trabajoRowTemplateManual : trabajoRowTemplate).trim();
         const fila = wrapper.firstElementChild;
 
         trabajosContainer.appendChild(fila);
@@ -219,6 +232,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function actualizarSelectTipoEnFila(fila) {
         const select = fila.querySelector('[data-field="tipoDesgajeId"]');
+        if (!select) return;
+
         const valorActual = select.value;
 
         select.innerHTML = '';
@@ -329,13 +344,48 @@ document.addEventListener('DOMContentLoaded', () => {
             const np = fila.querySelector('[data-field="np"]').value.trim();
             const clienteId = fila.querySelector('[data-field="clienteId"]').value;
             const clienteNombre = fila.querySelector('[data-field="clienteSearch"]').value.trim();
+
+            if (!np || !clienteNombre) {
+                mostrarAlerta('error', `Completa todos los campos obligatorios del trabajo ${numeroFila}.`);
+                return;
+            }
+
+            if (fila.dataset.modo === 'MANUAL') {
+                const descripcionProducto = fila.querySelector('[data-field="descripcionProducto"]').value.trim();
+                const cantidadProcesada = Number(fila.querySelector('[data-field="cantidadProcesada"]').value || 0);
+                const precioTrabajo = Number(fila.querySelector('[data-field="precioTrabajo"]').value || 0);
+                const descripcionTrabajo = fila.querySelector('[data-field="descripcionTrabajo"]').value.trim();
+
+                if (!descripcionProducto || !descripcionTrabajo) {
+                    mostrarAlerta('error', `Completa todos los campos obligatorios del trabajo ${numeroFila}.`);
+                    return;
+                }
+
+                if (cantidadProcesada <= 0 || precioTrabajo <= 0) {
+                    mostrarAlerta('error', `La cantidad procesada y el precio del trabajo deben ser mayores a 0 (trabajo ${numeroFila}).`);
+                    return;
+                }
+
+                detalles.push({
+                    np,
+                    clienteId: clienteId ? Number(clienteId) : null,
+                    clienteNombre,
+                    descripcionProducto,
+                    cantidadProcesada,
+                    precioTrabajo,
+                    descripcionTrabajo
+                });
+
+                continue;
+            }
+
             const numeroPliego = fila.querySelector('[data-field="numeroPliego"]').value.trim();
             const tipoDesgajeId = fila.querySelector('[data-field="tipoDesgajeId"]').value;
             const cantidadPliegos = Number(fila.querySelector('[data-field="cantidadPliegos"]').value || 0);
             const numeroMoldes = Number(fila.querySelector('[data-field="numeroMoldes"]').value || 0);
             const observaciones = fila.querySelector('[data-field="observaciones"]').value.trim();
 
-            if (!np || !clienteNombre || !numeroPliego || !tipoDesgajeId) {
+            if (!numeroPliego || !tipoDesgajeId) {
                 mostrarAlerta('error', `Completa todos los campos obligatorios del trabajo ${numeroFila}.`);
                 return;
             }
@@ -370,12 +420,6 @@ document.addEventListener('DOMContentLoaded', () => {
             operadorNombre: usuarioCreador,
             tallerId: Number(tallerSelect.value),
             observacionesGenerales: document.getElementById('observacionesGenerales').value.trim() || null,
-            checklistEntradaCumple: document.getElementById('checklistEntradaCumple').checked,
-            checklistEntradaObservacion: document.getElementById('checklistEntradaObservacion').value.trim() || null,
-            checklistInicioCumple: document.getElementById('checklistInicioCumple').checked,
-            checklistInicioObservacion: document.getElementById('checklistInicioObservacion').value.trim() || null,
-            checklistSalidaCumple: document.getElementById('checklistSalidaCumple').checked,
-            checklistSalidaObservacion: document.getElementById('checklistSalidaObservacion').value.trim() || null,
             usuarioCreador,
             detalles
         };
@@ -438,6 +482,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function reiniciarFormulario() {
         form.reset();
         fechaRegistroInput.value = new Date().toISOString().slice(0, 10);
+        modoActual = 'CATALOGO';
         trabajosContainer.innerHTML = '';
         agregarFilaTrabajo();
         operadorIdInput.value = '';

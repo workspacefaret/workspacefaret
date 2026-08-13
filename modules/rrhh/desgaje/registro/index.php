@@ -16,7 +16,7 @@ ob_start();
         <div>
             <span class="form-eyebrow">RRHH</span>
             <h1>Registro de Desgaje</h1>
-            <p>Completa el registro de producción de desgaje, revisa el checklist y firma para finalizar.</p>
+            <p>Completa el registro de producción de desgaje y firma para finalizar.</p>
         </div>
     </div>
 
@@ -65,42 +65,6 @@ ob_start();
         <div class="form-section-title">
             <span>2</span>
             <div>
-                <h2>Checklist</h2>
-                <p>Marca cada punto revisado antes y después de producir.</p>
-            </div>
-        </div>
-
-        <div class="checklist-box">
-
-            <div class="checklist-item">
-                <label class="chip-check">
-                    <input type="checkbox" id="checklistEntradaCumple">
-                    <span>Limpieza de área de entrada - Cumple</span>
-                </label>
-                <input type="text" id="checklistEntradaObservacion" placeholder="Observación (opcional)">
-            </div>
-
-            <div class="checklist-item">
-                <label class="chip-check">
-                    <input type="checkbox" id="checklistInicioCumple">
-                    <span>Inicio de producción - Cumple</span>
-                </label>
-                <input type="text" id="checklistInicioObservacion" placeholder="Observación (opcional)">
-            </div>
-
-            <div class="checklist-item">
-                <label class="chip-check">
-                    <input type="checkbox" id="checklistSalidaCumple">
-                    <span>Limpieza de área de salida - Cumple</span>
-                </label>
-                <input type="text" id="checklistSalidaObservacion" placeholder="Observación (opcional)">
-            </div>
-
-        </div>
-
-        <div class="form-section-title">
-            <span>3</span>
-            <div>
                 <h2>Trabajos registrados</h2>
                 <p>Agrega una fila por cada trabajo de desgaje realizado.</p>
             </div>
@@ -114,7 +78,7 @@ ob_start();
         </button>
 
         <div class="form-section-title">
-            <span>4</span>
+            <span>3</span>
             <div>
                 <h2>Firma</h2>
                 <p>El operador debe firmar para finalizar el registro.</p>
@@ -142,7 +106,7 @@ ob_start();
 </section>
 
 <script id="trabajoRowTemplate" type="text/x-template">
-    <div class="trabajo-card" data-row>
+    <div class="trabajo-card" data-row data-modo="CATALOGO">
         <div class="trabajo-card-header">
             <strong>Trabajo <span data-row-numero></span></strong>
             <button type="button" class="btn-remove-trabajo" data-remove-row>
@@ -188,6 +152,51 @@ ob_start();
             <div class="field field-full">
                 <label>Observaciones</label>
                 <input type="text" data-field="observaciones" placeholder="Observaciones (opcional)">
+            </div>
+        </div>
+    </div>
+</script>
+
+<script id="trabajoRowTemplateManual" type="text/x-template">
+    <div class="trabajo-card" data-row data-modo="MANUAL">
+        <div class="trabajo-card-header">
+            <strong>Trabajo <span data-row-numero></span></strong>
+            <button type="button" class="btn-remove-trabajo" data-remove-row>
+                <i class="bi bi-trash"></i>
+            </button>
+        </div>
+
+        <div class="form-grid-mobile">
+            <div class="field">
+                <label>NP</label>
+                <input type="text" data-field="np" required>
+            </div>
+
+            <div class="field autocomplete-field">
+                <label>Cliente</label>
+                <input type="text" data-field="clienteSearch" placeholder="Buscar o escribir cliente..." required>
+                <input type="hidden" data-field="clienteId">
+                <div class="autocomplete-results" data-clientes-results></div>
+            </div>
+
+            <div class="field field-full">
+                <label>Descripción del producto</label>
+                <input type="text" data-field="descripcionProducto" required>
+            </div>
+
+            <div class="field">
+                <label>Cantidad procesada</label>
+                <input type="number" data-field="cantidadProcesada" min="1" required>
+            </div>
+
+            <div class="field">
+                <label>Precio del trabajo</label>
+                <input type="number" data-field="precioTrabajo" min="0" step="0.0001" required>
+            </div>
+
+            <div class="field field-full">
+                <label>Descripción del trabajo realizado</label>
+                <input type="text" data-field="descripcionTrabajo" required>
             </div>
         </div>
     </div>

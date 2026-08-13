@@ -148,16 +148,17 @@ ob_start();
                         <th>Fecha</th>
                         <th>Taller</th>
                         <th>Operador</th>
-                        <th>Estado</th>
-                        <th>Trabajos</th>
-                        <th>Estuches</th>
+                        <th>Cliente</th>
+                        <th>Detalle trabajo</th>
+                        <th>Cantidad</th>
                         <th>Valor</th>
+                        <th>Estado</th>
                         <th class="admin-table-actions">Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="tablaRegistrosBody">
                     <tr>
-                        <td colspan="10" class="admin-empty">Cargando registros...</td>
+                        <td colspan="11" class="admin-empty">Cargando registros...</td>
                     </tr>
                 </tbody>
             </table>
