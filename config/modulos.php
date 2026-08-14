@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'planificacion' => ['label' => 'Planificación', 'icono' => 'bi-rulers'],
     'logistica' => ['label' => 'Logística', 'icono' => 'bi-truck'],
     'desarrollo' => ['label' => 'Desarrollo', 'icono' => 'bi-palette-fill'],
     'rrhh' => ['label' => 'RRHH', 'icono' => 'bi-people-fill'],

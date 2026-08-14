@@ -1,3 +1,6 @@
 resumen-*.txt
 /data/
 /config/secrets.php
+__pycache__/
+/tools/migracion-perfiles-moldes/cpm_perfiles.json
+/tools/migracion-perfiles-moldes/cpm_moldes.json

@@ -1119,3 +1119,218 @@
 [data-theme="light"] .admin-row-anulado {
     background: rgba(148, 163, 184, .10);
 }
+
+/* ================================
+   CPM (Correlativos Perfiles y Moldes)
+================================ */
+
+.admin-tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid rgba(148, 163, 184, .18);
+    padding-bottom: 2px;
+}
+
+.admin-tab {
+    border: 0;
+    background: transparent;
+    color: #94a3b8;
+    font-weight: 800;
+    padding: 12px 18px;
+    border-radius: 12px 12px 0 0;
+    cursor: pointer;
+}
+
+.admin-tab.is-active {
+    background: rgba(37, 99, 235, .16);
+    color: #fff;
+    box-shadow: inset 0 -3px 0 #2563eb;
+}
+
+.admin-tab-panel {
+    display: none;
+}
+
+.admin-tab-panel.is-active {
+    display: block;
+}
+
+.admin-alert {
+    border-radius: 14px;
+    padding: 12px 16px;
+    margin-bottom: 18px;
+    font-weight: 700;
+}
+
+.admin-alert.hidden {
+    display: none;
+}
+
+.admin-alert-success {
+    background: rgba(34, 197, 94, .14);
+    color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, .28);
+}
+
+.admin-alert-error {
+    background: rgba(220, 38, 38, .14);
+    color: #fca5a5;
+    border: 1px solid rgba(220, 38, 38, .28);
+}
+
+.admin-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px;
+    align-items: end;
+}
+
+.admin-form-field-full {
+    grid-column: 1 / -1;
+}
+
+.admin-form-field label {
+    display: block;
+    color: #cbd5e1;
+    font-size: 13px;
+    font-weight: 800;
+    margin-bottom: 6px;
+}
+
+.admin-form-field input,
+.admin-form-field select,
+.admin-form-field textarea {
+    width: 100%;
+    min-height: 42px;
+    border-radius: 12px;
+    border: 1px solid rgba(148, 163, 184, .25);
+    background: rgba(255,255,255,.08);
+    color: #fff;
+    padding: 10px 12px;
+    outline: none;
+    font-family: inherit;
+}
+
+.admin-form-field textarea {
+    min-height: 64px;
+    resize: vertical;
+}
+
+.admin-form-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 4px;
+}
+
+.admin-filters-cpm {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+}
+
+.admin-filter-checkbox {
+    display: flex;
+    align-items: flex-end;
+}
+
+.admin-filter-checkbox label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #cbd5e1;
+    font-size: 13px;
+    font-weight: 800;
+    min-height: 42px;
+}
+
+.admin-filter-checkbox input {
+    width: 16px;
+    height: 16px;
+}
+
+@media (max-width: 900px) {
+    .admin-tabs {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+    }
+
+    .admin-tab {
+        white-space: nowrap;
+    }
+
+    .admin-table-cpm-perfiles td:nth-child(1)::before { content: "N° Perfil"; }
+    .admin-table-cpm-perfiles td:nth-child(2)::before { content: "Cliente"; }
+    .admin-table-cpm-perfiles td:nth-child(3)::before { content: "Medidas"; }
+    .admin-table-cpm-perfiles td:nth-child(4)::before { content: "Descripción"; }
+    .admin-table-cpm-perfiles td:nth-child(5)::before { content: "N° Desarrollo"; }
+    .admin-table-cpm-perfiles td:nth-child(6)::before { content: "Fecha"; }
+    .admin-table-cpm-perfiles td:nth-child(7)::before { content: "Rubro"; }
+    .admin-table-cpm-perfiles td:nth-child(8)::before { content: "Operador"; }
+    .admin-table-cpm-perfiles td:nth-child(9)::before { content: "N° Caja"; }
+    .admin-table-cpm-perfiles td:nth-child(10)::before { content: "Unid/Caja"; }
+    .admin-table-cpm-perfiles td:nth-child(11)::before { content: "Status"; }
+    .admin-table-cpm-perfiles td:nth-child(12)::before { content: "Estado"; }
+    .admin-table-cpm-perfiles td:nth-child(13)::before { content: "Perfil nuevo"; }
+    .admin-table-cpm-perfiles td:nth-child(14)::before { content: "Acciones"; }
+
+    .admin-table-cpm-moldes td:nth-child(1)::before,
+    .admin-table-cpm-moldes-nr td:nth-child(1)::before { content: "Código"; }
+    .admin-table-cpm-moldes td:nth-child(2)::before,
+    .admin-table-cpm-moldes-nr td:nth-child(2)::before { content: "Cliente"; }
+    .admin-table-cpm-moldes td:nth-child(3)::before,
+    .admin-table-cpm-moldes-nr td:nth-child(3)::before { content: "Rubro"; }
+    .admin-table-cpm-moldes td:nth-child(4)::before,
+    .admin-table-cpm-moldes-nr td:nth-child(4)::before { content: "Producto"; }
+    .admin-table-cpm-moldes td:nth-child(5)::before,
+    .admin-table-cpm-moldes-nr td:nth-child(5)::before { content: "NP"; }
+    .admin-table-cpm-moldes td:nth-child(6)::before,
+    .admin-table-cpm-moldes-nr td:nth-child(6)::before { content: "Perfil"; }
+    .admin-table-cpm-moldes td:nth-child(7)::before,
+    .admin-table-cpm-moldes-nr td:nth-child(7)::before { content: "Ingreso"; }
+    .admin-table-cpm-moldes td:nth-child(8)::before,
+    .admin-table-cpm-moldes-nr td:nth-child(8)::before { content: "Listo/Estado"; }
+    .admin-table-cpm-moldes td:nth-child(9)::before { content: "Operador"; }
+    .admin-table-cpm-moldes td:nth-child(10)::before { content: "Comentarios"; }
+    .admin-table-cpm-moldes td:nth-child(11)::before { content: "Acciones"; }
+    .admin-table-cpm-moldes-nr td:nth-child(9)::before { content: "Entrega"; }
+    .admin-table-cpm-moldes-nr td:nth-child(10)::before { content: "Operador"; }
+    .admin-table-cpm-moldes-nr td:nth-child(11)::before { content: "Comentarios"; }
+    .admin-table-cpm-moldes-nr td:nth-child(12)::before { content: "Acciones"; }
+}
+
+[data-theme="light"] .admin-tab {
+    color: #64748b;
+}
+
+[data-theme="light"] .admin-tab.is-active {
+    background: rgba(37, 99, 235, .10);
+    color: #1d4ed8;
+}
+
+[data-theme="light"] .admin-alert-success {
+    background: rgba(22, 163, 74, .10);
+    color: #15803d;
+    border-color: rgba(22, 163, 74, .25);
+}
+
+[data-theme="light"] .admin-alert-error {
+    background: rgba(220, 38, 38, .10);
+    color: #b91c1c;
+    border-color: rgba(220, 38, 38, .25);
+}
+
+[data-theme="light"] .admin-form-field label {
+    color: #475569;
+}
+
+[data-theme="light"] .admin-form-field input,
+[data-theme="light"] .admin-form-field select,
+[data-theme="light"] .admin-form-field textarea {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    color: #0f172a;
+}
+
+[data-theme="light"] .admin-filter-checkbox label {
+    color: #475569;
+}

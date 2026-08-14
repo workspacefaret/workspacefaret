@@ -29,6 +29,13 @@
 
             <div class="menu-section">Áreas de trabajo</div>
 
+            <?php if (hasModuleAccess('planificacion')): ?>
+                <a href="/modules/planificacion/">
+                    <i class="bi bi-rulers"></i>
+                    Perfiles y Moldes
+                </a>
+            <?php endif; ?>
+
             <?php if (hasModuleAccess('logistica')): ?>
                 <a href="/modules/operacion/logistica/">
                     <i class="bi bi-truck"></i>
