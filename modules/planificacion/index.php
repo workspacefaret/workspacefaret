@@ -21,6 +21,10 @@ ob_start();
             <i class="bi bi-clipboard-check"></i>
             Registro de Molde
         </a>
+        <a href="/modules/planificacion/control-moldes/" class="admin-btn admin-btn-secondary">
+            <i class="bi bi-diagram-3"></i>
+            Control de Moldes
+        </a>
     </div>
 </section>
 

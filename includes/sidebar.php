@@ -38,6 +38,10 @@
                     <i class="bi bi-clipboard-check"></i>
                     Registro de Molde
                 </a>
+                <a href="/modules/planificacion/control-moldes/">
+                    <i class="bi bi-diagram-3"></i>
+                    Control de Moldes
+                </a>
             <?php endif; ?>
 
             <?php if (hasModuleAccess('logistica')): ?>

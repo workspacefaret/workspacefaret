@@ -21,6 +21,10 @@ ob_start();
             <i class="bi bi-arrow-left"></i>
             Volver a Perfiles y Moldes
         </a>
+        <a href="/modules/planificacion/control-moldes/" class="admin-btn admin-btn-secondary">
+            <i class="bi bi-diagram-3"></i>
+            Control de Moldes
+        </a>
     </div>
 </section>
 

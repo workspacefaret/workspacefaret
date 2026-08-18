@@ -1232,6 +1232,42 @@
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
 }
 
+.admin-section-toggle {
+    border: 1px solid rgba(148, 163, 184, .25);
+    border-radius: 12px;
+    margin-bottom: 14px;
+    overflow: hidden;
+}
+
+.admin-section-toggle > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 12px 16px;
+    font-weight: 800;
+    color: #fff;
+    background: rgba(255, 255, 255, .04);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.admin-section-toggle > summary::-webkit-details-marker {
+    display: none;
+}
+
+.admin-section-toggle > summary::before {
+    content: "\25B8";
+    transition: transform .15s ease;
+}
+
+.admin-section-toggle[open] > summary::before {
+    transform: rotate(90deg);
+}
+
+.admin-section-toggle-body {
+    padding: 16px;
+}
+
 .admin-filter-checkbox {
     display: flex;
     align-items: flex-end;
@@ -1328,4 +1364,13 @@
 
 [data-theme="light"] .admin-filter-checkbox label {
     color: #475569;
+}
+
+[data-theme="light"] .admin-section-toggle {
+    border-color: #e2e8f0;
+}
+
+[data-theme="light"] .admin-section-toggle > summary {
+    color: #0f172a;
+    background: rgba(15, 23, 42, .03);
 }
