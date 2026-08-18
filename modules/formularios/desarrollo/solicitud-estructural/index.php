@@ -108,6 +108,19 @@ ob_start();
         </div>
 
         <div class="form-grid-mobile">
+            <div class="field">
+                <label for="esMultiProducto">¿Es más de un producto?</label>
+                <select id="esMultiProducto" name="esMultiProducto">
+                    <option value="NO">No</option>
+                    <option value="SI">Sí</option>
+                </select>
+            </div>
+
+            <div class="field" id="cantidadProductosField" style="display:none;">
+                <label for="cantidadProductos">Indicar cantidad</label>
+                <input type="number" id="cantidadProductos" name="cantidadProductos" min="2" max="50" placeholder="Máx. 50">
+            </div>
+
             <div class="field field-full">
                 <label for="producto">Producto</label>
                 <textarea id="producto" name="producto" rows="3" required></textarea>

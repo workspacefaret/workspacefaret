@@ -18,6 +18,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const referenciaOtrosField = document.getElementById('referenciaOtrosField');
     const referenciaOtrosTexto = document.getElementById('referenciaOtrosTexto');
 
+    const esMultiProductoSelect = document.getElementById('esMultiProducto');
+    const cantidadProductosField = document.getElementById('cantidadProductosField');
+    const cantidadProductosInput = document.getElementById('cantidadProductos');
+
     const btnEnviar = document.getElementById('btnEnviarSolicitud');
     const adjuntosInput = document.getElementById('adjuntos');
     const adjuntosPreview = document.getElementById('adjuntosPreview');
@@ -30,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
     cargarPrioridades();
     cargarSolicitantes();
     actualizarVisibilidadOtros();
+    actualizarVisibilidadCantidadProductos();
 
     adjuntosInput?.addEventListener('change', () => {
         const archivos = Array.from(adjuntosInput.files);
@@ -249,6 +254,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    esMultiProductoSelect.addEventListener('change', actualizarVisibilidadCantidadProductos);
+
+    function actualizarVisibilidadCantidadProductos() {
+        const visible = esMultiProductoSelect.value === 'SI';
+
+        cantidadProductosField.style.display = visible ? '' : 'none';
+
+        if (!visible) {
+            cantidadProductosInput.value = '';
+        }
+    }
+
     cantidadMuestrasInput.addEventListener('input', () => {
         const valor = Number(cantidadMuestrasInput.value || 0);
 
@@ -301,6 +318,14 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        const esMultiProducto = esMultiProductoSelect.value === 'SI';
+        const cantidadProductos = Number(cantidadProductosInput.value || 0);
+
+        if (esMultiProducto && (!Number.isInteger(cantidadProductos) || cantidadProductos < 2 || cantidadProductos > 50)) {
+            mostrarAlerta('error', 'Indica una cantidad de productos entre 2 y 50.');
+            return;
+        }
+
         const referenciaSeleccionada = Array.from(
             document.querySelectorAll('input[name="referencia"]:checked')
         ).map(x => x.value);
@@ -330,7 +355,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 : null
         };
 
-        await enviarSolicitud(payload);
+        if (esMultiProducto) {
+            await enviarSolicitudesMultiples(payload, cantidadProductos);
+        } else {
+            await enviarSolicitud(payload);
+        }
     });
 
     async function subirAdjuntos(solicitudId) {
@@ -358,57 +387,96 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    async function crearUnaSolicitud(payload) {
+        const response = await fetch(`${apiBaseUrl}solicitudes-estructural`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json().catch(() => null);
+
+        if (!response.ok) {
+            throw new Error((data && (data.message || data.error)) || 'No fue posible crear la solicitud.');
+        }
+
+        if (data.id) {
+            await subirAdjuntos(data.id);
+        }
+
+        return data;
+    }
+
+    async function notificarSolicitud(solicitudId) {
+        const response = await fetch(
+            `${apiBaseUrl}solicitudes-estructural/${solicitudId}/notificar`,
+            { method: 'POST' }
+        );
+
+        if (!response.ok) {
+            throw new Error('La solicitud fue creada, pero no fue posible enviar la notificación.');
+        }
+    }
+
+    function resetearFormularioTrasEnvio() {
+        form.reset();
+        adjuntosPreview.innerHTML = '<span class="muted">No hay archivos seleccionados</span>';
+        clienteSeleccionado = null;
+        clienteIdInput.value = '';
+        actualizarVisibilidadOtros();
+        actualizarVisibilidadCantidadProductos();
+
+        const prioridadMedia = prioridades.find(x => x.nombre === 'MEDIA');
+        if (prioridadMedia) {
+            prioridadSelect.value = prioridadMedia.id;
+        }
+    }
+
     async function enviarSolicitud(payload) {
         try {
             bloquearFormulario(true);
             mostrarAlerta('success', 'Enviando solicitud...');
 
-            const response = await fetch(`${apiBaseUrl}solicitudes-estructural`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+            const data = await crearUnaSolicitud(payload);
 
-            const data = await response.json().catch(() => null);
-
-            if (!response.ok) {
-                throw new Error((data && (data.message || data.error)) || 'No fue posible crear la solicitud.');
+            if (data.id) {
+                mostrarAlerta('success', 'Solicitud creada. Enviando notificación...');
+                await notificarSolicitud(data.id);
             }
 
-            const solicitudId = data.id;
-
-            if (solicitudId) {
-                mostrarAlerta('success', 'Solicitud creada. Subiendo adjuntos...');
-
-                await subirAdjuntos(solicitudId);
-
-                mostrarAlerta('success', 'Adjuntos registrados. Enviando notificación...');
-
-                const notificarResponse = await fetch(
-                    `${apiBaseUrl}solicitudes-estructural/${solicitudId}/notificar`,
-                    { method: 'POST' }
-                );
-
-                if (!notificarResponse.ok) {
-                    throw new Error('La solicitud fue creada, pero no fue posible enviar la notificación.');
-                }
-            }
-
-            form.reset();
-            adjuntosPreview.innerHTML = '<span class="muted">No hay archivos seleccionados</span>';
-            clienteSeleccionado = null;
-            clienteIdInput.value = '';
-            actualizarVisibilidadOtros();
-
-            const prioridadMedia = prioridades.find(x => x.nombre === 'MEDIA');
-            if (prioridadMedia) {
-                prioridadSelect.value = prioridadMedia.id;
-            }
-
+            resetearFormularioTrasEnvio();
             mostrarAlerta('success', 'Solicitud registrada y notificación enviada correctamente.');
 
         } catch (error) {
             mostrarAlerta('error', error.message);
+        } finally {
+            bloquearFormulario(false);
+        }
+    }
+
+    async function enviarSolicitudesMultiples(payload, cantidad) {
+        const codigos = [];
+
+        try {
+            bloquearFormulario(true);
+
+            for (let i = 1; i <= cantidad; i++) {
+                mostrarAlerta('success', `Creando solicitud ${i} de ${cantidad}...`);
+                const data = await crearUnaSolicitud(payload);
+                if (data.codigo) codigos.push(data.codigo);
+            }
+
+            resetearFormularioTrasEnvio();
+            mostrarAlerta(
+                'success',
+                `Se crearon ${cantidad} solicitudes: ${codigos.join(', ')}. No se enviaron notificaciones automáticas por tratarse de una carga múltiple.`
+            );
+
+        } catch (error) {
+            mostrarAlerta(
+                'error',
+                `${error.message} (se alcanzaron a crear ${codigos.length} de ${cantidad}: ${codigos.join(', ') || 'ninguna'})`
+            );
         } finally {
             bloquearFormulario(false);
         }
