@@ -62,6 +62,37 @@
         return div.innerHTML;
     }
 
+    // ---------------- Sugerencias de Operador (localStorage, texto libre, solo desplegable nativo) ----------------
+
+    const OPERADORES_SUGERIDOS_DEFECTO = ['Heber Ibarra', 'Sergio Herrera', 'Ricardo Muñoz'];
+    const CLAVE_OPERADORES_PERFILES = 'cpm_sugerencias_operador_perfiles';
+
+    function obtenerSugerenciasOperador(clave) {
+        try {
+            const guardado = localStorage.getItem(clave);
+            if (guardado) return JSON.parse(guardado);
+        } catch (error) {
+            // localStorage no disponible o dato corrupto: se reinicia con los valores por defecto.
+        }
+        localStorage.setItem(clave, JSON.stringify(OPERADORES_SUGERIDOS_DEFECTO));
+        return OPERADORES_SUGERIDOS_DEFECTO.slice();
+    }
+
+    function poblarDatalistOperador(idDatalist, clave) {
+        llenarDatalist(idDatalist, obtenerSugerenciasOperador(clave));
+    }
+
+    function agregarSugerenciaOperador(clave, nombre, idDatalist) {
+        if (!nombre) return;
+        const lista = obtenerSugerenciasOperador(clave);
+        const yaExiste = lista.some(function (n) { return n.toLowerCase() === nombre.toLowerCase(); });
+        if (!yaExiste) {
+            lista.push(nombre);
+            localStorage.setItem(clave, JSON.stringify(lista));
+        }
+        if (idDatalist) poblarDatalistOperador(idDatalist, clave);
+    }
+
     function formatearFecha(valor) {
         if (!valor) return '-';
         return valor.substring(0, 10).split('-').reverse().join('-');
@@ -73,9 +104,6 @@
         const catalogos = await response.json();
 
         llenarDatalist('listaPerfilRubros', catalogos.perfilesRubros || []);
-        llenarDatalist('listaPerfilOperadores', catalogos.perfilesOperadores || []);
-        llenarDatalist('listaPerfilStatus', catalogos.perfilesStatus || []);
-        llenarDatalist('listaPerfilEstados', catalogos.perfilesEstados || []);
     }
 
     function construirQueryFiltros(pagina) {
@@ -87,8 +115,6 @@
         const cliente = document.getElementById('filtroPerfilCliente').value.trim();
         const rubro = document.getElementById('filtroPerfilRubro').value.trim();
         const operador = document.getElementById('filtroPerfilOperador').value.trim();
-        const estado = document.getElementById('filtroPerfilEstado').value.trim();
-        const status = document.getElementById('filtroPerfilStatus').value.trim();
         const fechaDesde = document.getElementById('filtroPerfilFechaDesde').value;
         const fechaHasta = document.getElementById('filtroPerfilFechaHasta').value;
 
@@ -96,8 +122,6 @@
         if (cliente) params.set('cliente', cliente);
         if (rubro) params.set('rubro', rubro);
         if (operador) params.set('operador', operador);
-        if (estado) params.set('estado', estado);
-        if (status) params.set('status', status);
         if (fechaDesde) params.set('fechaDesde', fechaDesde);
         if (fechaHasta) params.set('fechaHasta', fechaHasta);
 
@@ -107,13 +131,13 @@
     async function cargarPerfiles(pagina) {
         paginaActual = pagina || 1;
         const tbody = document.getElementById('tablaPerfilesBody');
-        tbody.innerHTML = '<tr><td colspan="14" class="admin-empty">Cargando...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="admin-empty">Cargando...</td></tr>';
 
         const query = construirQueryFiltros(paginaActual);
         const response = await fetch(apiBaseUrl + 'cpm/perfiles?' + query);
 
         if (!response.ok) {
-            tbody.innerHTML = '<tr><td colspan="14" class="admin-empty">No fue posible cargar los perfiles.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" class="admin-empty">No fue posible cargar los perfiles.</td></tr>';
             return;
         }
 
@@ -121,7 +145,7 @@
         document.getElementById('badgeCantidadPerfiles').textContent = resultado.total + ' registros';
 
         if (!resultado.items.length) {
-            tbody.innerHTML = '<tr><td colspan="14" class="admin-empty">Sin resultados.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" class="admin-empty">Sin resultados.</td></tr>';
         } else {
             tbody.innerHTML = resultado.items.map(renderFilaPerfil).join('');
         }
@@ -139,11 +163,6 @@
             '<td>' + formatearFecha(item.fecha) + '</td>' +
             '<td>' + escaparHtml(item.rubro) + '</td>' +
             '<td>' + escaparHtml(item.operador) + '</td>' +
-            '<td>' + escaparHtml(item.numeroCaja) + '</td>' +
-            '<td>' + escaparHtml(item.unidadesPorCaja) + '</td>' +
-            '<td>' + escaparHtml(item.status) + '</td>' +
-            '<td>' + escaparHtml(item.estado) + '</td>' +
-            '<td>' + escaparHtml(item.perfilNuevo) + '</td>' +
             '<td class="admin-table-actions">' +
                 '<div class="admin-row-actions">' +
                     '<button type="button" class="admin-icon-btn" data-editar-perfil="' + item.id + '" title="Editar"><i class="bi bi-pencil"></i></button>' +
@@ -175,7 +194,7 @@
     }
 
     function inicializarFiltrosPerfil() {
-        ['filtroPerfilBuscar', 'filtroPerfilCliente', 'filtroPerfilRubro', 'filtroPerfilOperador', 'filtroPerfilEstado', 'filtroPerfilStatus'].forEach(function (id) {
+        ['filtroPerfilBuscar', 'filtroPerfilCliente', 'filtroPerfilRubro', 'filtroPerfilOperador'].forEach(function (id) {
             document.getElementById(id).addEventListener('input', refiltrarConDebounce);
         });
         ['filtroPerfilFechaDesde', 'filtroPerfilFechaHasta'].forEach(function (id) {
@@ -183,7 +202,7 @@
         });
 
         document.getElementById('btnLimpiarFiltrosPerfil').addEventListener('click', function () {
-            ['filtroPerfilBuscar', 'filtroPerfilCliente', 'filtroPerfilRubro', 'filtroPerfilOperador', 'filtroPerfilEstado', 'filtroPerfilStatus', 'filtroPerfilFechaDesde', 'filtroPerfilFechaHasta'].forEach(function (id) {
+            ['filtroPerfilBuscar', 'filtroPerfilCliente', 'filtroPerfilRubro', 'filtroPerfilOperador', 'filtroPerfilFechaDesde', 'filtroPerfilFechaHasta'].forEach(function (id) {
                 document.getElementById(id).value = '';
             });
             cargarPerfiles(1);
@@ -235,6 +254,7 @@
 
                 const creado = JSON.parse(texto);
                 mostrarAlerta('alertaPerfil', 'Perfil ' + creado.numeroPerfil + ' creado correctamente.', 'success');
+                agregarSugerenciaOperador(CLAVE_OPERADORES_PERFILES, payload.operador, 'listaPerfilOperadores');
                 document.getElementById('formPerfil').reset();
                 cargarPerfiles(1);
             } catch (error) {
@@ -370,6 +390,7 @@
     document.addEventListener('DOMContentLoaded', function () {
         inicializarTabs();
         cargarCatalogos();
+        poblarDatalistOperador('listaPerfilOperadores', CLAVE_OPERADORES_PERFILES);
         inicializarFiltrosPerfil();
         inicializarFormularioCrear();
         inicializarEdicionPerfil();
@@ -380,5 +401,15 @@
         });
     });
 
-    window.CpmPerfiles = { abrirHistorial: abrirHistorial, escaparHtml: escaparHtml, formatearFecha: formatearFecha, renderPaginacion: renderPaginacion, mostrarAlerta: mostrarAlerta, ocultarAlerta: ocultarAlerta, llenarDatalist: llenarDatalist };
+    window.CpmPerfiles = {
+        abrirHistorial: abrirHistorial,
+        escaparHtml: escaparHtml,
+        formatearFecha: formatearFecha,
+        renderPaginacion: renderPaginacion,
+        mostrarAlerta: mostrarAlerta,
+        ocultarAlerta: ocultarAlerta,
+        llenarDatalist: llenarDatalist,
+        poblarDatalistOperador: poblarDatalistOperador,
+        agregarSugerenciaOperador: agregarSugerenciaOperador
+    };
 })();

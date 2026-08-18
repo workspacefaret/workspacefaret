@@ -16,6 +16,12 @@ ob_start();
         <h1>Correlativos Perfiles y Moldes</h1>
         <p>Reemplaza el Excel de correlativos de Perfiles y Moldes: asigna correlativos, registra y consulta el histórico.</p>
     </div>
+    <div class="admin-hero-actions">
+        <a href="/modules/planificacion/registro-molde/" class="admin-btn admin-btn-secondary">
+            <i class="bi bi-clipboard-check"></i>
+            Registro de Molde
+        </a>
+    </div>
 </section>
 
 <section class="section">
@@ -69,28 +75,6 @@ ob_start();
                 <input type="text" id="perfilOperador" list="listaPerfilOperadores">
                 <datalist id="listaPerfilOperadores"></datalist>
             </div>
-            <div class="admin-form-field">
-                <label for="perfilNumeroCaja">N° de Caja</label>
-                <input type="text" id="perfilNumeroCaja">
-            </div>
-            <div class="admin-form-field">
-                <label for="perfilUnidadesPorCaja">Unid. por Caja</label>
-                <input type="text" id="perfilUnidadesPorCaja">
-            </div>
-            <div class="admin-form-field">
-                <label for="perfilStatus">Status</label>
-                <input type="text" id="perfilStatus" list="listaPerfilStatus">
-                <datalist id="listaPerfilStatus"></datalist>
-            </div>
-            <div class="admin-form-field">
-                <label for="perfilEstado">Estado</label>
-                <input type="text" id="perfilEstado" list="listaPerfilEstados">
-                <datalist id="listaPerfilEstados"></datalist>
-            </div>
-            <div class="admin-form-field">
-                <label for="perfilPerfilNuevo">Perfil nuevo</label>
-                <input type="text" id="perfilPerfilNuevo">
-            </div>
 
             <div class="admin-form-actions">
                 <button type="submit" class="admin-btn admin-btn-primary" id="btnGuardarPerfil">
@@ -130,14 +114,6 @@ ob_start();
                 <input type="text" id="filtroPerfilOperador" list="listaPerfilOperadores">
             </div>
             <div class="admin-filter-field">
-                <label for="filtroPerfilEstado">Estado</label>
-                <input type="text" id="filtroPerfilEstado" list="listaPerfilEstados">
-            </div>
-            <div class="admin-filter-field">
-                <label for="filtroPerfilStatus">Status</label>
-                <input type="text" id="filtroPerfilStatus" list="listaPerfilStatus">
-            </div>
-            <div class="admin-filter-field">
                 <label for="filtroPerfilFechaDesde">Fecha desde</label>
                 <input type="date" id="filtroPerfilFechaDesde">
             </div>
@@ -162,16 +138,11 @@ ob_start();
                         <th>Fecha</th>
                         <th>Rubro</th>
                         <th>Operador</th>
-                        <th>N° Caja</th>
-                        <th>Unid/Caja</th>
-                        <th>Status</th>
-                        <th>Estado</th>
-                        <th>Perfil nuevo</th>
                         <th class="admin-table-actions">Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="tablaPerfilesBody">
-                    <tr><td colspan="14" class="admin-empty">Cargando...</td></tr>
+                    <tr><td colspan="9" class="admin-empty">Cargando...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -217,11 +188,6 @@ ob_start();
             <div class="admin-form-field">
                 <label for="moldeIngreso">Ingreso</label>
                 <input type="date" id="moldeIngreso">
-            </div>
-            <div class="admin-form-field">
-                <label for="moldeListoEstado">Listo / Estado</label>
-                <input type="text" id="moldeListoEstado" list="listaMoldeListoEstados">
-                <datalist id="listaMoldeListoEstados"></datalist>
             </div>
             <div class="admin-form-field">
                 <label for="moldeOperador">Operador</label>
@@ -271,10 +237,6 @@ ob_start();
                 <input type="text" id="filtroMoldeOperador" list="listaMoldeOperadores">
             </div>
             <div class="admin-filter-field">
-                <label for="filtroMoldeListoEstado">Listo / Estado</label>
-                <input type="text" id="filtroMoldeListoEstado" list="listaMoldeListoEstados">
-            </div>
-            <div class="admin-filter-field">
                 <label for="filtroMoldeFechaDesde">Ingreso desde</label>
                 <input type="date" id="filtroMoldeFechaDesde">
             </div>
@@ -304,14 +266,13 @@ ob_start();
                         <th>NP</th>
                         <th>Perfil</th>
                         <th>Ingreso</th>
-                        <th>Listo/Estado</th>
                         <th>Operador</th>
                         <th>Comentarios</th>
                         <th class="admin-table-actions">Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="tablaMoldeBody">
-                    <tr><td colspan="11" class="admin-empty">Cargando...</td></tr>
+                    <tr><td colspan="10" class="admin-empty">Cargando...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -341,29 +302,13 @@ ob_start();
                 <label for="moldeNrRubro">Rubro</label>
                 <input type="text" id="moldeNrRubro" list="listaMoldeRubros">
             </div>
-            <div class="admin-form-field admin-form-field-full">
-                <label for="moldeNrProducto">Producto</label>
-                <input type="text" id="moldeNrProducto">
-            </div>
             <div class="admin-form-field">
                 <label for="moldeNrNp">NP (1ra entrada)</label>
                 <input type="text" id="moldeNrNp">
             </div>
             <div class="admin-form-field">
-                <label for="moldeNrPerfil">Perfil</label>
-                <input type="text" id="moldeNrPerfil">
-            </div>
-            <div class="admin-form-field">
                 <label for="moldeNrIngreso">Ingreso</label>
                 <input type="date" id="moldeNrIngreso">
-            </div>
-            <div class="admin-form-field">
-                <label for="moldeNrListoEstado">Listo / Estado</label>
-                <input type="text" id="moldeNrListoEstado" list="listaMoldeListoEstados">
-            </div>
-            <div class="admin-form-field">
-                <label for="moldeNrEntrega">Entrega</label>
-                <input type="date" id="moldeNrEntrega">
             </div>
             <div class="admin-form-field">
                 <label for="moldeNrOperador">Operador</label>
@@ -412,10 +357,6 @@ ob_start();
                 <input type="text" id="filtroMoldeNrOperador" list="listaMoldeOperadores">
             </div>
             <div class="admin-filter-field">
-                <label for="filtroMoldeNrListoEstado">Listo / Estado</label>
-                <input type="text" id="filtroMoldeNrListoEstado" list="listaMoldeListoEstados">
-            </div>
-            <div class="admin-filter-field">
                 <label for="filtroMoldeNrFechaDesde">Ingreso desde</label>
                 <input type="date" id="filtroMoldeNrFechaDesde">
             </div>
@@ -441,19 +382,15 @@ ob_start();
                         <th>Código</th>
                         <th>Cliente</th>
                         <th>Rubro</th>
-                        <th>Producto</th>
                         <th>NP</th>
-                        <th>Perfil</th>
                         <th>Ingreso</th>
-                        <th>Listo/Estado</th>
-                        <th>Entrega</th>
                         <th>Operador</th>
                         <th>Comentarios</th>
                         <th class="admin-table-actions">Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="tablaMoldeNrBody">
-                    <tr><td colspan="12" class="admin-empty">Cargando...</td></tr>
+                    <tr><td colspan="8" class="admin-empty">Cargando...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -507,26 +444,13 @@ ob_start();
                 <label for="editarPerfilOperador">Operador</label>
                 <input type="text" id="editarPerfilOperador" list="listaPerfilOperadores">
             </div>
-            <div class="admin-form-field">
-                <label for="editarPerfilNumeroCaja">N° de Caja</label>
-                <input type="text" id="editarPerfilNumeroCaja">
-            </div>
-            <div class="admin-form-field">
-                <label for="editarPerfilUnidadesPorCaja">Unid. por Caja</label>
-                <input type="text" id="editarPerfilUnidadesPorCaja">
-            </div>
-            <div class="admin-form-field">
-                <label for="editarPerfilStatus">Status</label>
-                <input type="text" id="editarPerfilStatus" list="listaPerfilStatus">
-            </div>
-            <div class="admin-form-field">
-                <label for="editarPerfilEstado">Estado</label>
-                <input type="text" id="editarPerfilEstado" list="listaPerfilEstados">
-            </div>
-            <div class="admin-form-field">
-                <label for="editarPerfilPerfilNuevo">Perfil nuevo</label>
-                <input type="text" id="editarPerfilPerfilNuevo">
-            </div>
+            <!-- Campos retirados de la UI (N° Caja, Unid. por Caja, Status, Estado, Perfil nuevo): se preservan
+                 ocultos para no perder el histórico migrado del Excel al guardar una edición. -->
+            <input type="hidden" id="editarPerfilNumeroCaja">
+            <input type="hidden" id="editarPerfilUnidadesPorCaja">
+            <input type="hidden" id="editarPerfilStatus">
+            <input type="hidden" id="editarPerfilEstado">
+            <input type="hidden" id="editarPerfilPerfilNuevo">
 
             <div class="admin-form-actions">
                 <button type="submit" class="admin-btn admin-btn-primary" id="btnGuardarEdicionPerfil">
@@ -564,7 +488,7 @@ ob_start();
                 <label for="editarMoldeRubro">Rubro</label>
                 <input type="text" id="editarMoldeRubro" list="listaMoldeRubros">
             </div>
-            <div class="admin-form-field admin-form-field-full">
+            <div class="admin-form-field admin-form-field-full" id="editarMoldeProductoWrap">
                 <label for="editarMoldeProducto">Producto</label>
                 <input type="text" id="editarMoldeProducto">
             </div>
@@ -572,7 +496,7 @@ ob_start();
                 <label for="editarMoldeNp">NP (1ra entrada)</label>
                 <input type="text" id="editarMoldeNp">
             </div>
-            <div class="admin-form-field">
+            <div class="admin-form-field" id="editarMoldePerfilWrap">
                 <label for="editarMoldePerfil">Perfil</label>
                 <input type="text" id="editarMoldePerfil">
             </div>
@@ -580,14 +504,9 @@ ob_start();
                 <label for="editarMoldeIngreso">Ingreso</label>
                 <input type="date" id="editarMoldeIngreso">
             </div>
-            <div class="admin-form-field">
-                <label for="editarMoldeListoEstado">Listo / Estado</label>
-                <input type="text" id="editarMoldeListoEstado" list="listaMoldeListoEstados">
-            </div>
-            <div class="admin-form-field" id="editarMoldeEntregaWrap">
-                <label for="editarMoldeEntrega">Entrega</label>
-                <input type="date" id="editarMoldeEntrega">
-            </div>
+            <!-- Listo/Estado y Entrega: retirados de la UI, se preservan ocultos para no perder el histórico. -->
+            <input type="hidden" id="editarMoldeListoEstado">
+            <input type="hidden" id="editarMoldeEntrega">
             <div class="admin-form-field">
                 <label for="editarMoldeOperador">Operador</label>
                 <input type="text" id="editarMoldeOperador" list="listaMoldeOperadores">

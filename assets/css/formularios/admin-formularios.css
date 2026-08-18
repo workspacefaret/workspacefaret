@@ -1217,6 +1217,10 @@
     resize: vertical;
 }
 
+.admin-form-field option {
+    color: #111827;
+}
+
 .admin-form-actions {
     grid-column: 1 / -1;
     display: flex;
@@ -1266,36 +1270,27 @@
     .admin-table-cpm-perfiles td:nth-child(6)::before { content: "Fecha"; }
     .admin-table-cpm-perfiles td:nth-child(7)::before { content: "Rubro"; }
     .admin-table-cpm-perfiles td:nth-child(8)::before { content: "Operador"; }
-    .admin-table-cpm-perfiles td:nth-child(9)::before { content: "N° Caja"; }
-    .admin-table-cpm-perfiles td:nth-child(10)::before { content: "Unid/Caja"; }
-    .admin-table-cpm-perfiles td:nth-child(11)::before { content: "Status"; }
-    .admin-table-cpm-perfiles td:nth-child(12)::before { content: "Estado"; }
-    .admin-table-cpm-perfiles td:nth-child(13)::before { content: "Perfil nuevo"; }
-    .admin-table-cpm-perfiles td:nth-child(14)::before { content: "Acciones"; }
+    .admin-table-cpm-perfiles td:nth-child(9)::before { content: "Acciones"; }
 
-    .admin-table-cpm-moldes td:nth-child(1)::before,
+    .admin-table-cpm-moldes td:nth-child(1)::before { content: "Código"; }
+    .admin-table-cpm-moldes td:nth-child(2)::before { content: "Cliente"; }
+    .admin-table-cpm-moldes td:nth-child(3)::before { content: "Rubro"; }
+    .admin-table-cpm-moldes td:nth-child(4)::before { content: "Producto"; }
+    .admin-table-cpm-moldes td:nth-child(5)::before { content: "NP"; }
+    .admin-table-cpm-moldes td:nth-child(6)::before { content: "Perfil"; }
+    .admin-table-cpm-moldes td:nth-child(7)::before { content: "Ingreso"; }
+    .admin-table-cpm-moldes td:nth-child(8)::before { content: "Operador"; }
+    .admin-table-cpm-moldes td:nth-child(9)::before { content: "Comentarios"; }
+    .admin-table-cpm-moldes td:nth-child(10)::before { content: "Acciones"; }
+
     .admin-table-cpm-moldes-nr td:nth-child(1)::before { content: "Código"; }
-    .admin-table-cpm-moldes td:nth-child(2)::before,
     .admin-table-cpm-moldes-nr td:nth-child(2)::before { content: "Cliente"; }
-    .admin-table-cpm-moldes td:nth-child(3)::before,
     .admin-table-cpm-moldes-nr td:nth-child(3)::before { content: "Rubro"; }
-    .admin-table-cpm-moldes td:nth-child(4)::before,
-    .admin-table-cpm-moldes-nr td:nth-child(4)::before { content: "Producto"; }
-    .admin-table-cpm-moldes td:nth-child(5)::before,
-    .admin-table-cpm-moldes-nr td:nth-child(5)::before { content: "NP"; }
-    .admin-table-cpm-moldes td:nth-child(6)::before,
-    .admin-table-cpm-moldes-nr td:nth-child(6)::before { content: "Perfil"; }
-    .admin-table-cpm-moldes td:nth-child(7)::before,
-    .admin-table-cpm-moldes-nr td:nth-child(7)::before { content: "Ingreso"; }
-    .admin-table-cpm-moldes td:nth-child(8)::before,
-    .admin-table-cpm-moldes-nr td:nth-child(8)::before { content: "Listo/Estado"; }
-    .admin-table-cpm-moldes td:nth-child(9)::before { content: "Operador"; }
-    .admin-table-cpm-moldes td:nth-child(10)::before { content: "Comentarios"; }
-    .admin-table-cpm-moldes td:nth-child(11)::before { content: "Acciones"; }
-    .admin-table-cpm-moldes-nr td:nth-child(9)::before { content: "Entrega"; }
-    .admin-table-cpm-moldes-nr td:nth-child(10)::before { content: "Operador"; }
-    .admin-table-cpm-moldes-nr td:nth-child(11)::before { content: "Comentarios"; }
-    .admin-table-cpm-moldes-nr td:nth-child(12)::before { content: "Acciones"; }
+    .admin-table-cpm-moldes-nr td:nth-child(4)::before { content: "NP"; }
+    .admin-table-cpm-moldes-nr td:nth-child(5)::before { content: "Ingreso"; }
+    .admin-table-cpm-moldes-nr td:nth-child(6)::before { content: "Operador"; }
+    .admin-table-cpm-moldes-nr td:nth-child(7)::before { content: "Comentarios"; }
+    .admin-table-cpm-moldes-nr td:nth-child(8)::before { content: "Acciones"; }
 }
 
 [data-theme="light"] .admin-tab {

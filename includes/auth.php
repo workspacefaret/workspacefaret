@@ -107,6 +107,7 @@ function obtenerRolesCatalogo(): array
         'admin_ti' => 'Admin TI',
         'rrhh' => 'RRHH',
         'diseno' => 'Diseño',
+        'planificacion' => 'Planificación',
         'logistica' => 'Logística',
         'calidad' => 'Calidad',
         'administrativo' => 'Administrativo',

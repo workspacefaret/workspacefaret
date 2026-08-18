@@ -34,6 +34,10 @@
                     <i class="bi bi-rulers"></i>
                     Perfiles y Moldes
                 </a>
+                <a href="/modules/planificacion/registro-molde/">
+                    <i class="bi bi-clipboard-check"></i>
+                    Registro de Molde
+                </a>
             <?php endif; ?>
 
             <?php if (hasModuleAccess('logistica')): ?>

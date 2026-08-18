@@ -3,9 +3,11 @@
     const usuarioActual = window.currentUserNombre || '';
 
     const TABS = [
-        { tipo: 'REPETITIVO', prefijo: 'molde', tieneEntrega: false, colspan: 11 },
-        { tipo: 'NO_REPETITIVO', prefijo: 'moldeNr', tieneEntrega: true, colspan: 12 }
+        { tipo: 'REPETITIVO', prefijo: 'molde', tieneProductoPerfil: true, colspan: 10 },
+        { tipo: 'NO_REPETITIVO', prefijo: 'moldeNr', tieneProductoPerfil: false, colspan: 8 }
     ];
+
+    const CLAVE_OPERADORES_MOLDES = 'cpm_sugerencias_operador_moldes';
 
     const paginaActualPorTab = {};
     const porPagina = 50;
@@ -22,8 +24,6 @@
 
         const util = esperarUtilidadesPerfiles();
         util.llenarDatalist('listaMoldeRubros', catalogos.moldesRubros || []);
-        util.llenarDatalist('listaMoldeOperadores', catalogos.moldesOperadores || []);
-        util.llenarDatalist('listaMoldeListoEstados', catalogos.moldesListoEstados || []);
     }
 
     function valor(id) {
@@ -41,7 +41,6 @@
         const cliente = valor('filtro' + capitalizar(tab.prefijo) + 'Cliente');
         const rubro = valor('filtro' + capitalizar(tab.prefijo) + 'Rubro');
         const operador = valor('filtro' + capitalizar(tab.prefijo) + 'Operador');
-        const listoEstado = valor('filtro' + capitalizar(tab.prefijo) + 'ListoEstado');
         const fechaDesde = document.getElementById('filtro' + capitalizar(tab.prefijo) + 'FechaDesde').value;
         const fechaHasta = document.getElementById('filtro' + capitalizar(tab.prefijo) + 'FechaHasta').value;
         const incluirObsoletos = document.getElementById('filtro' + capitalizar(tab.prefijo) + 'Obsoletos').checked;
@@ -50,7 +49,6 @@
         if (cliente) params.set('cliente', cliente);
         if (rubro) params.set('rubro', rubro);
         if (operador) params.set('operador', operador);
-        if (listoEstado) params.set('listoEstado', listoEstado);
         if (fechaDesde) params.set('fechaDesde', fechaDesde);
         if (fechaHasta) params.set('fechaHasta', fechaHasta);
         if (incluirObsoletos) params.set('incluirObsoletos', 'true');
@@ -98,18 +96,20 @@
         let fila = '<tr' + (item.esObsoleto ? ' class="admin-row-anulado"' : '') + '>' +
             '<td>' + esc(item.codigo) + '</td>' +
             '<td>' + esc(item.cliente) + '</td>' +
-            '<td>' + esc(item.rubro) + '</td>' +
-            '<td>' + esc(item.producto) + '</td>' +
-            '<td>' + esc(item.npPrimeraEntrada) + '</td>' +
-            '<td>' + esc(item.perfil) + '</td>' +
-            '<td>' + fmtFecha(item.fechaIngreso) + '</td>' +
-            '<td>' + esc(item.listoEstado) + '</td>';
+            '<td>' + esc(item.rubro) + '</td>';
 
-        if (tab.tieneEntrega) {
-            fila += '<td>' + fmtFecha(item.fechaEntrega) + '</td>';
+        if (tab.tieneProductoPerfil) {
+            fila += '<td>' + esc(item.producto) + '</td>';
         }
 
-        fila += '<td>' + esc(item.operador) + '</td>' +
+        fila += '<td>' + esc(item.npPrimeraEntrada) + '</td>';
+
+        if (tab.tieneProductoPerfil) {
+            fila += '<td>' + esc(item.perfil) + '</td>';
+        }
+
+        fila += '<td>' + fmtFecha(item.fechaIngreso) + '</td>' +
+            '<td>' + esc(item.operador) + '</td>' +
             '<td>' + esc(item.comentarios) + '</td>' +
             '<td class="admin-table-actions">' +
                 '<div class="admin-row-actions">' +
@@ -129,7 +129,7 @@
 
     function inicializarFiltros(tab) {
         const p = capitalizar(tab.prefijo);
-        ['Buscar', 'Cliente', 'Rubro', 'Operador', 'ListoEstado'].forEach(function (campo) {
+        ['Buscar', 'Cliente', 'Rubro', 'Operador'].forEach(function (campo) {
             document.getElementById('filtro' + p + campo).addEventListener('input', function () { refiltrarConDebounce(tab); });
         });
         ['FechaDesde', 'FechaHasta'].forEach(function (campo) {
@@ -138,7 +138,7 @@
         document.getElementById('filtro' + p + 'Obsoletos').addEventListener('change', function () { cargarMoldes(tab, 1); });
 
         document.getElementById('btnLimpiarFiltros' + p).addEventListener('click', function () {
-            ['Buscar', 'Cliente', 'Rubro', 'Operador', 'ListoEstado', 'FechaDesde', 'FechaHasta'].forEach(function (campo) {
+            ['Buscar', 'Cliente', 'Rubro', 'Operador', 'FechaDesde', 'FechaHasta'].forEach(function (campo) {
                 document.getElementById('filtro' + p + campo).value = '';
             });
             document.getElementById('filtro' + p + 'Obsoletos').checked = false;
@@ -147,7 +147,7 @@
     }
 
     function leerFormularioMolde(tab, prefijoCampos) {
-        const datos = {
+        return {
             tipoMolde: tab.tipo,
             cliente: valor(prefijoCampos + 'Cliente'),
             rubro: valor(prefijoCampos + 'Rubro'),
@@ -155,18 +155,14 @@
             npPrimeraEntrada: valor(prefijoCampos + 'Np'),
             perfil: valor(prefijoCampos + 'Perfil'),
             fechaIngreso: valor(prefijoCampos + 'Ingreso'),
+            // Listo/Estado y Entrega ya no se capturan en el formulario: si el id existe (input oculto
+            // del modal de edición) se preserva el valor histórico; si no existe (formularios "Nuevo"), queda null.
             listoEstado: valor(prefijoCampos + 'ListoEstado'),
-            fechaEntrega: null,
+            fechaEntrega: valor(prefijoCampos + 'Entrega'),
             operador: valor(prefijoCampos + 'Operador'),
             comentarios: valor(prefijoCampos + 'Comentarios'),
             usuario: usuarioActual
         };
-
-        if (tab.tieneEntrega) {
-            datos.fechaEntrega = valor(prefijoCampos + 'Entrega');
-        }
-
-        return datos;
     }
 
     function inicializarFormularioCrear(tab) {
@@ -194,6 +190,7 @@
 
                 const creado = JSON.parse(texto);
                 util.mostrarAlerta('alerta' + p, 'Molde ' + creado.codigo + ' creado correctamente.', 'success');
+                util.agregarSugerenciaOperador(CLAVE_OPERADORES_MOLDES, payload.operador, 'listaMoldeOperadores');
                 document.getElementById('form' + p).reset();
                 cargarMoldes(tab, 1);
             } catch (error) {
@@ -246,7 +243,9 @@
         document.getElementById('editarMoldeOperador').value = item.operador || '';
         document.getElementById('editarMoldeComentarios').value = item.comentarios || '';
 
-        document.getElementById('editarMoldeEntregaWrap').style.display = item.tipoMolde === 'NO_REPETITIVO' ? '' : 'none';
+        const esRepetitivo = item.tipoMolde === 'REPETITIVO';
+        document.getElementById('editarMoldeProductoWrap').style.display = esRepetitivo ? '' : 'none';
+        document.getElementById('editarMoldePerfilWrap').style.display = esRepetitivo ? '' : 'none';
 
         util.ocultarAlerta('alertaEditarMolde');
         document.getElementById('modalEditarMolde').classList.remove('hidden');
@@ -271,7 +270,7 @@
             boton.disabled = true;
 
             try {
-                const payload = leerFormularioMolde({ tipo: tipoMolde, tieneEntrega: tipoMolde === 'NO_REPETITIVO' }, 'editarMolde');
+                const payload = leerFormularioMolde({ tipo: tipoMolde }, 'editarMolde');
 
                 const response = await fetch(apiBaseUrl + 'cpm/moldes/' + id, {
                     method: 'PUT',
@@ -297,6 +296,9 @@
     document.addEventListener('DOMContentLoaded', function () {
         cargarCatalogos();
         inicializarEdicionMolde();
+
+        const util = esperarUtilidadesPerfiles();
+        util.poblarDatalistOperador('listaMoldeOperadores', CLAVE_OPERADORES_MOLDES);
 
         TABS.forEach(function (tab) {
             inicializarFiltros(tab);
