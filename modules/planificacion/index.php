@@ -21,10 +21,18 @@ ob_start();
             <i class="bi bi-clipboard-check"></i>
             Registro de Molde
         </a>
-        <a href="/modules/planificacion/control-moldes/" class="admin-btn admin-btn-secondary">
-            <i class="bi bi-diagram-3"></i>
-            Control de Moldes
-        </a>
+        <?php if (hasModuleAccess('control_moldes')): ?>
+            <a href="/modules/planificacion/control-moldes/" class="admin-btn admin-btn-secondary">
+                <i class="bi bi-diagram-3"></i>
+                Control de Moldes
+            </a>
+        <?php endif; ?>
+        <?php if (hasModuleAccess('stock_moldes')): ?>
+            <a href="/modules/planificacion/stock-moldes/" class="admin-btn admin-btn-secondary">
+                <i class="bi bi-archive"></i>
+                Stock de Moldes
+            </a>
+        <?php endif; ?>
     </div>
 </section>
 
@@ -97,7 +105,13 @@ ob_start();
                 <h2>Perfiles</h2>
                 <p>Filtra, busca y edita los perfiles registrados.</p>
             </div>
-            <span class="badge badge-primary" id="badgeCantidadPerfiles">0 registros</span>
+            <div class="admin-hero-actions">
+                <span class="badge badge-primary" id="badgeCantidadPerfiles">0 registros</span>
+                <button type="button" class="admin-btn admin-btn-secondary" id="btnImprimirPerfiles">
+                    <i class="bi bi-printer"></i>
+                    Imprimir
+                </button>
+            </div>
         </div>
 
         <div class="admin-filters admin-filters-cpm">
@@ -130,7 +144,7 @@ ob_start();
             </div>
         </div>
 
-        <div class="admin-table-wrap">
+        <div class="admin-table-wrap admin-table-wrap-sticky">
             <table class="admin-table admin-table-cpm-perfiles">
                 <thead>
                     <tr>
@@ -220,7 +234,13 @@ ob_start();
                 <h2>Moldes (repetitivos)</h2>
                 <p>Filtra, busca y edita los moldes registrados.</p>
             </div>
-            <span class="badge badge-primary" id="badgeCantidadMolde">0 registros</span>
+            <div class="admin-hero-actions">
+                <span class="badge badge-primary" id="badgeCantidadMolde">0 registros</span>
+                <button type="button" class="admin-btn admin-btn-secondary" id="btnImprimirMolde">
+                    <i class="bi bi-printer"></i>
+                    Imprimir
+                </button>
+            </div>
         </div>
 
         <div class="admin-filters admin-filters-cpm">
@@ -259,7 +279,7 @@ ob_start();
             </div>
         </div>
 
-        <div class="admin-table-wrap">
+        <div class="admin-table-wrap admin-table-wrap-sticky">
             <table class="admin-table admin-table-cpm-moldes">
                 <thead>
                     <tr>
@@ -340,7 +360,13 @@ ob_start();
                 <h2>Moldes no repetitivos</h2>
                 <p>Filtra, busca y edita los moldes no repetitivos registrados.</p>
             </div>
-            <span class="badge badge-primary" id="badgeCantidadMoldeNr">0 registros</span>
+            <div class="admin-hero-actions">
+                <span class="badge badge-primary" id="badgeCantidadMoldeNr">0 registros</span>
+                <button type="button" class="admin-btn admin-btn-secondary" id="btnImprimirMoldeNr">
+                    <i class="bi bi-printer"></i>
+                    Imprimir
+                </button>
+            </div>
         </div>
 
         <div class="admin-filters admin-filters-cpm">
@@ -379,7 +405,7 @@ ob_start();
             </div>
         </div>
 
-        <div class="admin-table-wrap">
+        <div class="admin-table-wrap admin-table-wrap-sticky">
             <table class="admin-table admin-table-cpm-moldes-nr">
                 <thead>
                     <tr>
@@ -551,6 +577,7 @@ ob_start();
     window.API_FORMULARIOS = '<?= htmlspecialchars(API_FORMULARIOS) ?>';
     window.currentUserNombre = <?= json_encode($nombreUsuarioActual) ?>;
 </script>
+<script src="/assets/js/planificacion/print-tabla.js"></script>
 <script src="/assets/js/planificacion/cpm-perfiles.js"></script>
 <script src="/assets/js/planificacion/cpm-moldes.js"></script>
 

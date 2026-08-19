@@ -193,6 +193,46 @@
         debounceTimer = setTimeout(function () { cargarPerfiles(1); }, 350);
     }
 
+    async function imprimirPerfiles() {
+        const boton = document.getElementById('btnImprimirPerfiles');
+        boton.disabled = true;
+
+        try {
+            const params = new URLSearchParams(construirQueryFiltros(1));
+            params.set('porPagina', '100000');
+
+            const response = await fetch(apiBaseUrl + 'cpm/perfiles?' + params.toString());
+            if (!response.ok) throw new Error('No fue posible obtener los perfiles para imprimir.');
+            const resultado = await response.json();
+
+            const filas = resultado.items.map(function (item) {
+                return [
+                    item.numeroPerfil, item.cliente, item.medidas, item.descripcion,
+                    item.numeroDesarrollo, formatearFecha(item.fecha), item.rubro, item.operador
+                ];
+            });
+
+            window.PlanificacionPrint.imprimir({
+                tituloModulo: 'Perfiles y Moldes — Perfiles',
+                subtitulo: 'Listado de perfiles (Correlativos Perfiles y Moldes)',
+                encabezados: ['N° Perfil', 'Cliente', 'Medidas', 'Descripción', 'N° Desarrollo', 'Fecha', 'Rubro', 'Operador'],
+                filas: filas,
+                filtrosTexto: window.PlanificacionPrint.resumenFiltros([
+                    ['Buscar', document.getElementById('filtroPerfilBuscar').value.trim()],
+                    ['Cliente', document.getElementById('filtroPerfilCliente').value.trim()],
+                    ['Rubro', document.getElementById('filtroPerfilRubro').value.trim()],
+                    ['Operador', document.getElementById('filtroPerfilOperador').value.trim()],
+                    ['Fecha desde', document.getElementById('filtroPerfilFechaDesde').value],
+                    ['Fecha hasta', document.getElementById('filtroPerfilFechaHasta').value]
+                ])
+            });
+        } catch (error) {
+            alert(error.message);
+        } finally {
+            boton.disabled = false;
+        }
+    }
+
     function inicializarFiltrosPerfil() {
         ['filtroPerfilBuscar', 'filtroPerfilCliente', 'filtroPerfilRubro', 'filtroPerfilOperador'].forEach(function (id) {
             document.getElementById(id).addEventListener('input', refiltrarConDebounce);
@@ -395,6 +435,8 @@
         inicializarFormularioCrear();
         inicializarEdicionPerfil();
         cargarPerfiles(1);
+
+        document.getElementById('btnImprimirPerfiles').addEventListener('click', imprimirPerfiles);
 
         document.getElementById('btnCerrarModalHistorial').addEventListener('click', function () {
             document.getElementById('modalHistorial').classList.add('hidden');

@@ -146,6 +146,57 @@
         });
     }
 
+    async function imprimirMoldes(tab) {
+        const p = capitalizar(tab.prefijo);
+        const boton = document.getElementById('btnImprimir' + p);
+        boton.disabled = true;
+
+        try {
+            const params = new URLSearchParams(construirQueryFiltros(tab, 1));
+            params.set('porPagina', '100000');
+
+            const response = await fetch(apiBaseUrl + 'cpm/moldes?' + params.toString());
+            if (!response.ok) throw new Error('No fue posible obtener los moldes para imprimir.');
+            const resultado = await response.json();
+            const util = esperarUtilidadesPerfiles();
+
+            const encabezados = ['Código', 'Cliente', 'Rubro'];
+            if (tab.tieneProductoPerfil) encabezados.push('Producto');
+            encabezados.push('NP');
+            if (tab.tieneProductoPerfil) encabezados.push('Perfil');
+            encabezados.push('Ingreso', 'Operador', 'Comentarios');
+
+            const filas = resultado.items.map(function (item) {
+                const fila = [item.codigo, item.cliente, item.rubro];
+                if (tab.tieneProductoPerfil) fila.push(item.producto);
+                fila.push(item.npPrimeraEntrada);
+                if (tab.tieneProductoPerfil) fila.push(item.perfil);
+                fila.push(util.formatearFecha(item.fechaIngreso), item.operador, item.comentarios);
+                return fila;
+            });
+
+            window.PlanificacionPrint.imprimir({
+                tituloModulo: 'Perfiles y Moldes — ' + (tab.tipo === 'NO_REPETITIVO' ? 'Moldes no repetitivos' : 'Moldes'),
+                subtitulo: 'Listado de moldes (Correlativos Perfiles y Moldes)',
+                encabezados: encabezados,
+                filas: filas,
+                filtrosTexto: window.PlanificacionPrint.resumenFiltros([
+                    ['Buscar', valor('filtro' + p + 'Buscar')],
+                    ['Cliente', valor('filtro' + p + 'Cliente')],
+                    ['Rubro', valor('filtro' + p + 'Rubro')],
+                    ['Operador', valor('filtro' + p + 'Operador')],
+                    ['Ingreso desde', document.getElementById('filtro' + p + 'FechaDesde').value],
+                    ['Ingreso hasta', document.getElementById('filtro' + p + 'FechaHasta').value],
+                    ['Incluir obsoletos', document.getElementById('filtro' + p + 'Obsoletos').checked ? 'Sí' : '']
+                ])
+            });
+        } catch (error) {
+            alert(error.message);
+        } finally {
+            boton.disabled = false;
+        }
+    }
+
     function leerFormularioMolde(tab, prefijoCampos) {
         return {
             tipoMolde: tab.tipo,
@@ -305,6 +356,10 @@
             inicializarFormularioCrear(tab);
             inicializarTablaAcciones(tab);
             cargarMoldes(tab, 1);
+
+            document.getElementById('btnImprimir' + capitalizar(tab.prefijo)).addEventListener('click', function () {
+                imprimirMoldes(tab);
+            });
         });
     });
 })();

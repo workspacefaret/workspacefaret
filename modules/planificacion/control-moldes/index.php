@@ -1,6 +1,6 @@
 <?php
 require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/auth.php';
-requireModuleAccess('planificacion');
+requireModuleAccess('control_moldes');
 
 require_once $_SERVER['DOCUMENT_ROOT'] . '/config/api.php';
 
@@ -25,6 +25,12 @@ ob_start();
             <i class="bi bi-clipboard-check"></i>
             Registro de Molde
         </a>
+        <?php if (hasModuleAccess('stock_moldes')): ?>
+            <a href="/modules/planificacion/stock-moldes/" class="admin-btn admin-btn-secondary">
+                <i class="bi bi-archive"></i>
+                Stock de Moldes
+            </a>
+        <?php endif; ?>
     </div>
 </section>
 
@@ -49,8 +55,10 @@ ob_start();
                     </div>
                     <div class="admin-form-field">
                         <label for="comNombreOperador">Nombre del Operador</label>
-                        <input type="text" id="comNombreOperador" list="listaComOperadores">
-                        <datalist id="listaComOperadores"></datalist>
+                        <input type="text" id="comNombreOperador" list="listaComOperadoresSugeridos">
+                        <datalist id="listaComOperadoresSugeridos">
+                            <option value="Sergio Herrera"></option>
+                        </datalist>
                     </div>
                     <div class="admin-form-field">
                         <label for="comNp">NP</label>
@@ -232,6 +240,16 @@ ob_start();
                 </div>
             </details>
 
+            <div class="admin-form-grid">
+                <div class="admin-form-field">
+                    <label for="comEnviarCorreo">¿Desea enviar correo?</label>
+                    <select id="comEnviarCorreo">
+                        <option value="NO">No</option>
+                        <option value="SI">Sí</option>
+                    </select>
+                </div>
+            </div>
+
             <div class="admin-form-actions">
                 <button type="submit" class="admin-btn admin-btn-primary" id="btnGuardarRegistro">
                     <i class="bi bi-save"></i>
@@ -249,7 +267,13 @@ ob_start();
                 <h2>Registros</h2>
                 <p>Filtra, busca y edita los registros de control de moldes.</p>
             </div>
-            <span class="badge badge-primary" id="badgeCantidadRegistros">0 registros</span>
+            <div class="admin-hero-actions">
+                <span class="badge badge-primary" id="badgeCantidadRegistros">0 registros</span>
+                <button type="button" class="admin-btn admin-btn-secondary" id="btnImprimirRegistros">
+                    <i class="bi bi-printer"></i>
+                    Imprimir
+                </button>
+            </div>
         </div>
 
         <div class="admin-filters admin-filters-cpm">
@@ -266,10 +290,6 @@ ob_start();
                 <input type="text" id="filtroComNp">
             </div>
             <div class="admin-filter-field">
-                <label for="filtroComOperador">Operador</label>
-                <input type="text" id="filtroComOperador" list="listaComOperadores">
-            </div>
-            <div class="admin-filter-field">
                 <label for="filtroComCodigoMolde">Código Molde</label>
                 <input type="text" id="filtroComCodigoMolde" list="listaComCodigosMolde">
             </div>
@@ -281,6 +301,24 @@ ob_start();
                     <option value="HAY MOLDE">HAY MOLDE</option>
                     <option value="MOLDE CON CAMBIOS">MOLDE CON CAMBIOS</option>
                     <option value="POR CONFIRMAR">POR CONFIRMAR</option>
+                </select>
+            </div>
+            <div class="admin-filter-field">
+                <label for="filtroComLayoutEstado">Estado Layout</label>
+                <select id="filtroComLayoutEstado">
+                    <option value="">Todos</option>
+                    <option value="OK">OK</option>
+                    <option value="EN PROCESO">EN PROCESO</option>
+                    <option value="ANULADA">ANULADA</option>
+                </select>
+            </div>
+            <div class="admin-filter-field">
+                <label for="filtroComMoldeEstado">Estado Molde</label>
+                <select id="filtroComMoldeEstado">
+                    <option value="">Todos</option>
+                    <option value="OK">OK</option>
+                    <option value="EN PROCESO">EN PROCESO</option>
+                    <option value="ANULADA">ANULADA</option>
                 </select>
             </div>
             <div class="admin-filter-field">
@@ -296,24 +334,39 @@ ob_start();
             </div>
         </div>
 
-        <div class="admin-table-wrap">
-            <table class="admin-table admin-table-cpm-moldes">
+        <div class="admin-table-wrap admin-table-wrap-sticky">
+            <table class="admin-table admin-table-com-registros">
                 <thead>
                     <tr>
+                        <th>Ingreso Layout</th>
+                        <th>Operador</th>
                         <th>NP</th>
                         <th>Cliente</th>
-                        <th>Operador</th>
-                        <th>Status</th>
+                        <th>Rubro</th>
+                        <th>Solicitud</th>
                         <th>Fecha Entrega</th>
+                        <th>Formato</th>
+                        <th>Tiraje</th>
+                        <th>Status</th>
+                        <th>NP Antigua</th>
+                        <th>NP Origen</th>
                         <th>Código Molde</th>
+                        <th>Sustrato</th>
+                        <th>Gramaje</th>
+                        <th>Emplacado</th>
+                        <th>Laminado</th>
                         <th>Troquelado</th>
+                        <th>Pinza</th>
+                        <th>Separación</th>
+                        <th>Extras</th>
+                        <th>Comentarios</th>
                         <th>Layout</th>
                         <th>Molde</th>
                         <th class="admin-table-actions">Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="tablaRegistrosBody">
-                    <tr><td colspan="10" class="admin-empty">Cargando...</td></tr>
+                    <tr><td colspan="25" class="admin-empty">Cargando...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -349,7 +402,7 @@ ob_start();
                     </div>
                     <div class="admin-form-field">
                         <label for="editarComNombreOperador">Nombre del Operador</label>
-                        <input type="text" id="editarComNombreOperador" list="listaComOperadores">
+                        <input type="text" id="editarComNombreOperador" list="listaComOperadoresSugeridos">
                     </div>
                     <div class="admin-form-field">
                         <label for="editarComNp">NP</label>
@@ -560,6 +613,7 @@ ob_start();
     window.API_FORMULARIOS = '<?= htmlspecialchars(API_FORMULARIOS) ?>';
     window.currentUserNombre = <?= json_encode($nombreUsuarioActual) ?>;
 </script>
+<script src="/assets/js/planificacion/print-tabla.js"></script>
 <script src="/assets/js/planificacion/com-registros.js"></script>
 
 <?php

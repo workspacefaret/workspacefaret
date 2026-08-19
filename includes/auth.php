@@ -81,7 +81,14 @@ function getAuthPdo(): PDO
 
 function obtenerNovedadesActivas(int $limite = 5): array
 {
-    $stmt = getAuthPdo()->prepare('SELECT titulo, cuerpo, creado_en FROM novedades WHERE activo = 1 ORDER BY creado_en DESC LIMIT ?');
+    $stmt = getAuthPdo()->prepare('
+        SELECT n.titulo, n.cuerpo, n.creado_en, u.nombre AS autor
+        FROM novedades n
+        LEFT JOIN usuarios u ON u.id = n.creado_por
+        WHERE n.activo = 1
+        ORDER BY n.creado_en DESC
+        LIMIT ?
+    ');
     $stmt->bindValue(1, $limite, PDO::PARAM_INT);
     $stmt->execute();
 
@@ -175,6 +182,7 @@ function mostrarAccesoDenegado(string $mensaje): void
     http_response_code(403);
     echo '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'
         . '<title>Acceso no autorizado</title>'
+        . '<link rel="icon" type="image/png" href="/assets/img/welcome/logo-workspace-faret.png">'
         . '<link rel="stylesheet" href="/assets/css/auth/auth.css"></head><body>'
         . '<div class="auth-card"><h1>Acceso no autorizado</h1>'
         . '<div class="auth-error">' . htmlspecialchars($mensaje) . '</div>'

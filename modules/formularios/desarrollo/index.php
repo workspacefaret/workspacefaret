@@ -43,7 +43,16 @@ ob_start();
 </section>
 
 <section class="section">
-    <div class="panel">
+    <div class="admin-tabs" role="tablist">
+        <button type="button" class="admin-tab is-active" data-dev-tab="grafico">Desarrollo Gráfico</button>
+        <button type="button" class="admin-tab" data-dev-tab="estructural">Desarrollo Estructural</button>
+    </div>
+</section>
+
+<div class="admin-tab-panel is-active" data-dev-panel="grafico">
+
+<section class="section">
+    <div class="panel admin-panel">
         <div class="section-header">
             <div class="section-title">
                 <h2>Resumen Desarrollo Gráfico</h2>
@@ -52,36 +61,29 @@ ob_start();
             <a class="badge badge-primary" href="/modules/formularios/desarrollo/admin/">Ver registros completos</a>
         </div>
 
-        <div class="grid-4">
-            <div class="stat-card">
+        <div class="admin-kpi-grid">
+            <div class="admin-kpi-card">
                 <span>Total solicitudes</span>
                 <strong id="dashTotalSolicitudes">0</strong>
-                <small>Solicitudes registradas en la API.</small>
             </div>
-
-            <div class="stat-card">
+            <div class="admin-kpi-card">
                 <span>Recibidas</span>
                 <strong id="dashRecibidas">0</strong>
-                <small>Solicitudes nuevas pendientes de gestión.</small>
             </div>
-
-            <div class="stat-card">
+            <div class="admin-kpi-card">
                 <span>Urgentes</span>
                 <strong id="dashUrgentes">0</strong>
-                <small>Registros con prioridad URGENTE.</small>
             </div>
-
-            <div class="stat-card">
+            <div class="admin-kpi-card">
                 <span>Terminadas</span>
                 <strong id="dashTerminadas">0</strong>
-                <small>Solicitudes finalizadas.</small>
             </div>
         </div>
     </div>
 </section>
 
 <section class="section">
-    <div class="dashboard-charts-grid">
+    <div class="dashboard-charts-grid dashboard-charts-grid-3">
         <div class="chart-card">
             <h3>Estados</h3>
             <div id="chartEstados">Cargando...</div>
@@ -96,16 +98,29 @@ ob_start();
             <h3>Procesos</h3>
             <div id="chartProcesos">Cargando...</div>
         </div>
-
-        <div class="chart-card">
-            <h3>Solicitantes</h3>
-            <div id="chartSolicitantes">Cargando...</div>
-        </div>
     </div>
 </section>
 
 <section class="section">
-    <div class="panel">
+    <div class="chart-card">
+        <h3>Solicitantes</h3>
+        <div id="chartSolicitantes">Cargando...</div>
+    </div>
+</section>
+
+<section class="section" id="seccionEvolucion">
+    <div class="chart-card">
+        <h3>Evolución de solicitudes</h3>
+        <div id="chartEvolucion">Cargando...</div>
+    </div>
+</section>
+
+</div>
+
+<div class="admin-tab-panel" data-dev-panel="estructural">
+
+<section class="section">
+    <div class="panel admin-panel">
         <div class="section-header">
             <div class="section-title">
                 <h2>Resumen Desarrollo Estructural</h2>
@@ -114,29 +129,22 @@ ob_start();
             <a class="badge badge-primary" href="/modules/formularios/desarrollo/solicitud-estructural/admin/">Ver registros completos</a>
         </div>
 
-        <div class="grid-4">
-            <div class="stat-card">
+        <div class="admin-kpi-grid">
+            <div class="admin-kpi-card">
                 <span>Total solicitudes</span>
                 <strong id="dashEstructuralTotal">0</strong>
-                <small>Solicitudes registradas en la API.</small>
             </div>
-
-            <div class="stat-card">
+            <div class="admin-kpi-card">
                 <span>Con archivo adjunto</span>
                 <strong id="dashEstructuralAdjunto">0</strong>
-                <small>Solicitudes con al menos un adjunto.</small>
             </div>
-
-            <div class="stat-card">
+            <div class="admin-kpi-card">
                 <span>Cliente nuevo</span>
                 <strong id="dashEstructuralClienteNuevo">0</strong>
-                <small>Solicitudes con cliente nuevo indicado.</small>
             </div>
-
-            <div class="stat-card">
+            <div class="admin-kpi-card">
                 <span>Últimos 7 días</span>
                 <strong id="dashEstructuralRecientes">0</strong>
-                <small>Solicitudes registradas la última semana.</small>
             </div>
         </div>
     </div>
@@ -145,15 +153,19 @@ ob_start();
 <section class="section">
     <div class="dashboard-charts-grid">
         <div class="chart-card">
-            <h3>Producto</h3>
+            <h3>Productos más solicitados</h3>
             <div id="chartEstructuralProducto">Cargando...</div>
         </div>
 
         <div class="chart-card">
-            <h3>Sustrato</h3>
+            <h3>Sustratos más utilizados</h3>
             <div id="chartEstructuralSustrato">Cargando...</div>
         </div>
+    </div>
+</section>
 
+<section class="section">
+    <div class="dashboard-charts-grid">
         <div class="chart-card">
             <h3>Destino muestras</h3>
             <div id="chartEstructuralDestino">Cargando...</div>
@@ -166,9 +178,13 @@ ob_start();
     </div>
 </section>
 
+</div>
+
 <script>
     window.API_FORMULARIOS = 'https://api.faret.cl/formularios/api/';
 </script>
+<script src="/assets/js/dashboard-charts.js"></script>
+<script src="/assets/js/formularios/desarrollo-dashboard-utils.js"></script>
 <script src="/assets/js/formularios/desarrollo-dashboard.js"></script>
 <script src="/assets/js/formularios/desarrollo-estructural-dashboard.js"></script>
 

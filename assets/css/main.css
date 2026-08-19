@@ -218,6 +218,23 @@ a {
     text-align: center;
 }
 
+.menu-submenu {
+    margin: -4px 0 8px 30px;
+    padding-left: 12px;
+    border-left: 1px solid var(--border);
+}
+
+.menu-submenu a {
+    padding: 10px 14px;
+    margin-bottom: 2px;
+    font-size: 13.5px;
+    color: var(--muted);
+}
+
+.menu-submenu a:hover {
+    color: #fff;
+}
+
 .main {
 
     flex: 1;

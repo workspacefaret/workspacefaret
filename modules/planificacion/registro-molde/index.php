@@ -21,10 +21,18 @@ ob_start();
             <i class="bi bi-arrow-left"></i>
             Volver a Perfiles y Moldes
         </a>
-        <a href="/modules/planificacion/control-moldes/" class="admin-btn admin-btn-secondary">
-            <i class="bi bi-diagram-3"></i>
-            Control de Moldes
-        </a>
+        <?php if (hasModuleAccess('control_moldes')): ?>
+            <a href="/modules/planificacion/control-moldes/" class="admin-btn admin-btn-secondary">
+                <i class="bi bi-diagram-3"></i>
+                Control de Moldes
+            </a>
+        <?php endif; ?>
+        <?php if (hasModuleAccess('stock_moldes')): ?>
+            <a href="/modules/planificacion/stock-moldes/" class="admin-btn admin-btn-secondary">
+                <i class="bi bi-archive"></i>
+                Stock de Moldes
+            </a>
+        <?php endif; ?>
     </div>
 </section>
 
@@ -154,7 +162,13 @@ ob_start();
                 <h2>Registros</h2>
                 <p>Filtra, busca y edita los registros de control de moldes.</p>
             </div>
-            <span class="badge badge-primary" id="badgeCantidadRegistros">0 registros</span>
+            <div class="admin-hero-actions">
+                <span class="badge badge-primary" id="badgeCantidadRegistros">0 registros</span>
+                <button type="button" class="admin-btn admin-btn-secondary" id="btnImprimirRegistros">
+                    <i class="bi bi-printer"></i>
+                    Imprimir
+                </button>
+            </div>
         </div>
 
         <div class="admin-filters admin-filters-cpm">
@@ -175,20 +189,25 @@ ob_start();
                 <input type="text" id="filtroPrmCodigoMolde" list="listaPrmCodigosMolde">
             </div>
             <div class="admin-filter-field">
-                <label for="filtroPrmTipo">Nuevo / Repetitivo</label>
-                <select id="filtroPrmTipo">
-                    <option value="">Todos</option>
-                    <option value="NUEVO">NUEVO</option>
-                    <option value="REPETITIVO">REPETITIVO</option>
-                </select>
+                <label>Nuevo / Repetitivo</label>
+                <div class="ms-dropdown" id="filtroPrmTipo">
+                    <button type="button" class="ms-dropdown-toggle" data-ms-label="Todos">Todos</button>
+                    <div class="ms-dropdown-panel hidden">
+                        <div class="ms-dropdown-option" data-ms-valor="NUEVO" data-ms-texto="NUEVO">NUEVO</div>
+                        <div class="ms-dropdown-option" data-ms-valor="REPETITIVO" data-ms-texto="REPETITIVO">REPETITIVO</div>
+                    </div>
+                </div>
             </div>
             <div class="admin-filter-field">
-                <label for="filtroPrmEstado">Estado</label>
-                <select id="filtroPrmEstado">
-                    <option value="">Todos</option>
-                    <option value="OK">OK</option>
-                    <option value="EN PROCESO">EN PROCESO</option>
-                </select>
+                <label>Estado</label>
+                <div class="ms-dropdown" id="filtroPrmEstado">
+                    <button type="button" class="ms-dropdown-toggle" data-ms-label="Todos">Todos</button>
+                    <div class="ms-dropdown-panel hidden">
+                        <div class="ms-dropdown-option" data-ms-valor="OK" data-ms-texto="OK">OK</div>
+                        <div class="ms-dropdown-option" data-ms-valor="EN PROCESO" data-ms-texto="EN PROCESO">EN PROCESO</div>
+                        <div class="ms-dropdown-option" data-ms-valor="__VACIO__" data-ms-texto="(celdas vacías)">(celdas vacías)</div>
+                    </div>
+                </div>
             </div>
             <div class="admin-filter-field">
                 <label for="filtroPrmFechaDesde">Fecha desde</label>
@@ -203,7 +222,7 @@ ob_start();
             </div>
         </div>
 
-        <div class="admin-table-wrap">
+        <div class="admin-table-wrap admin-table-wrap-sticky">
             <table class="admin-table admin-table-cpm-moldes">
                 <thead>
                     <tr>
@@ -377,6 +396,8 @@ ob_start();
     window.API_FORMULARIOS = '<?= htmlspecialchars(API_FORMULARIOS) ?>';
     window.currentUserNombre = <?= json_encode($nombreUsuarioActual) ?>;
 </script>
+<script src="/assets/js/planificacion/print-tabla.js"></script>
+<script src="/assets/js/planificacion/multi-select-filtro.js"></script>
 <script src="/assets/js/planificacion/prm-registros.js"></script>
 
 <?php

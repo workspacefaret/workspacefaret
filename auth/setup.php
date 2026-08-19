@@ -46,6 +46,7 @@ if ($totalUsuarios === 0 && $_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Configuración inicial — Workspace Faret</title>
+    <link rel="icon" type="image/png" href="/assets/img/welcome/logo-workspace-faret.png">
     <link rel="stylesheet" href="/assets/css/auth/auth.css">
 </head>
 

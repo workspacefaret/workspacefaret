@@ -1,0 +1,399 @@
+<?php
+require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/auth.php';
+requireModuleAccess('planificacion');
+
+require_once $_SERVER['DOCUMENT_ROOT'] . '/config/api.php';
+
+$nombreUsuarioActual = currentUser()['nombre'];
+
+ob_start();
+?>
+
+<link rel="stylesheet" href="/assets/css/formularios/admin-formularios.css">
+
+<section class="hero admin-hero">
+    <div>
+        <h1>Registro de Molde</h1>
+        <p>Reemplaza la planilla de Control de Moldes: registra y consulta el avance del proceso de fabricación de cada molde por NP.</p>
+    </div>
+    <div class="admin-hero-actions">
+        <a href="/modules/planificacion/" class="admin-btn admin-btn-secondary">
+            <i class="bi bi-arrow-left"></i>
+            Volver a Perfiles y Moldes
+        </a>
+        <?php if (hasModuleAccess('control_moldes')): ?>
+            <a href="/modules/planificacion/control-moldes/" class="admin-btn admin-btn-secondary">
+                <i class="bi bi-diagram-3"></i>
+                Control de Moldes
+            </a>
+        <?php endif; ?>
+        <?php if (hasModuleAccess('stock_moldes')): ?>
+            <a href="/modules/planificacion/stock-moldes/" class="admin-btn admin-btn-secondary">
+                <i class="bi bi-archive"></i>
+                Stock de Moldes
+            </a>
+        <?php endif; ?>
+    </div>
+</section>
+
+<section class="section">
+    <div class="panel admin-panel">
+        <div class="section-header">
+            <div class="section-title">
+                <h2>Nuevo registro</h2>
+                <p>Completa el avance del proceso para un NP. Los campos de proceso quedan en blanco si aún no aplican.</p>
+            </div>
+        </div>
+
+        <div id="alertaRegistro" class="admin-alert hidden"></div>
+
+        <form id="formRegistro" class="admin-form-grid" autocomplete="off">
+            <div class="admin-form-field">
+                <label for="prmFecha">Fecha</label>
+                <input type="date" id="prmFecha">
+            </div>
+            <div class="admin-form-field">
+                <label for="prmCliente">Cliente</label>
+                <input type="text" id="prmCliente" list="listaPrmClientes">
+                <datalist id="listaPrmClientes"></datalist>
+            </div>
+            <div class="admin-form-field">
+                <label for="prmNp">NP</label>
+                <input type="text" id="prmNp">
+            </div>
+            <div class="admin-form-field">
+                <label for="prmNpOrigen">NP Origen</label>
+                <input type="text" id="prmNpOrigen">
+            </div>
+            <div class="admin-form-field">
+                <label for="prmCodigoMolde">Código Molde</label>
+                <input type="text" id="prmCodigoMolde" list="listaPrmCodigosMolde">
+                <datalist id="listaPrmCodigosMolde"></datalist>
+            </div>
+            <div class="admin-form-field">
+                <label for="prmTipo">Nuevo / Repetitivo</label>
+                <select id="prmTipo">
+                    <option value="">-</option>
+                    <option value="NUEVO">NUEVO</option>
+                    <option value="REPETITIVO">REPETITIVO</option>
+                </select>
+            </div>
+            <div class="admin-form-field">
+                <label for="prmDiseno">Diseño</label>
+                <select id="prmDiseno">
+                    <option value="">-</option>
+                    <option value="OK">OK</option>
+                    <option value="NA">NA</option>
+                    <option value="PENDIENTE">PENDIENTE</option>
+                </select>
+            </div>
+            <div class="admin-form-field">
+                <label for="prmDesgajeInferior">Desgaje Inferior</label>
+                <select id="prmDesgajeInferior">
+                    <option value="">-</option>
+                    <option value="OK">OK</option>
+                    <option value="NA">NA</option>
+                    <option value="PENDIENTE">PENDIENTE</option>
+                </select>
+            </div>
+            <div class="admin-form-field">
+                <label for="prmDesgajeSuperior">Desgaje Superior</label>
+                <select id="prmDesgajeSuperior">
+                    <option value="">-</option>
+                    <option value="OK">OK</option>
+                    <option value="NA">NA</option>
+                    <option value="PENDIENTE">PENDIENTE</option>
+                </select>
+            </div>
+            <div class="admin-form-field">
+                <label for="prmGoma">Goma</label>
+                <select id="prmGoma">
+                    <option value="">-</option>
+                    <option value="OK">OK</option>
+                    <option value="NA">NA</option>
+                    <option value="PENDIENTE">PENDIENTE</option>
+                </select>
+            </div>
+            <div class="admin-form-field">
+                <label for="prmNivelacion">Nivelación</label>
+                <select id="prmNivelacion">
+                    <option value="">-</option>
+                    <option value="OK">OK</option>
+                    <option value="NA">NA</option>
+                    <option value="PENDIENTE">PENDIENTE</option>
+                </select>
+            </div>
+            <div class="admin-form-field">
+                <label for="prmAcrilico">Acrílico</label>
+                <select id="prmAcrilico">
+                    <option value="">-</option>
+                    <option value="OK">OK</option>
+                    <option value="NA">NA</option>
+                    <option value="PENDIENTE">PENDIENTE</option>
+                </select>
+            </div>
+            <div class="admin-form-field">
+                <label for="prmEstado">Estado</label>
+                <select id="prmEstado">
+                    <option value="">-</option>
+                    <option value="OK">OK</option>
+                    <option value="EN PROCESO">EN PROCESO</option>
+                </select>
+            </div>
+            <div class="admin-form-field admin-form-field-full">
+                <label for="prmObservacion">Observación</label>
+                <textarea id="prmObservacion" rows="2"></textarea>
+            </div>
+
+            <div class="admin-form-actions">
+                <button type="submit" class="admin-btn admin-btn-primary" id="btnGuardarRegistro">
+                    <i class="bi bi-save"></i>
+                    Guardar registro
+                </button>
+            </div>
+        </form>
+    </div>
+</section>
+
+<section class="section">
+    <div class="panel admin-panel">
+        <div class="section-header">
+            <div class="section-title">
+                <h2>Registros</h2>
+                <p>Filtra, busca y edita los registros de control de moldes.</p>
+            </div>
+            <div class="admin-hero-actions">
+                <span class="badge badge-primary" id="badgeCantidadRegistros">0 registros</span>
+                <button type="button" class="admin-btn admin-btn-secondary" id="btnImprimirRegistros">
+                    <i class="bi bi-printer"></i>
+                    Imprimir
+                </button>
+            </div>
+        </div>
+
+        <div class="admin-filters admin-filters-cpm">
+            <div class="admin-filter-field">
+                <label for="filtroPrmBuscar">Buscar</label>
+                <input type="text" id="filtroPrmBuscar" placeholder="NP, cliente, código molde...">
+            </div>
+            <div class="admin-filter-field">
+                <label for="filtroPrmCliente">Cliente</label>
+                <input type="text" id="filtroPrmCliente" list="listaPrmClientes">
+            </div>
+            <div class="admin-filter-field">
+                <label for="filtroPrmNp">NP</label>
+                <input type="text" id="filtroPrmNp">
+            </div>
+            <div class="admin-filter-field">
+                <label for="filtroPrmCodigoMolde">Código Molde</label>
+                <input type="text" id="filtroPrmCodigoMolde" list="listaPrmCodigosMolde">
+            </div>
+            <div class="admin-filter-field">
+                <label for="filtroPrmTipo">Nuevo / Repetitivo</label>
+                <select id="filtroPrmTipo">
+                    <option value="">Todos</option>
+                    <option value="NUEVO">NUEVO</option>
+                    <option value="REPETITIVO">REPETITIVO</option>
+                </select>
+            </div>
+            <div class="admin-filter-field">
+                <label for="filtroPrmEstado">Estado</label>
+                <select id="filtroPrmEstado">
+                    <option value="">Todos</option>
+                    <option value="OK">OK</option>
+                    <option value="EN PROCESO">EN PROCESO</option>
+                </select>
+            </div>
+            <div class="admin-filter-field">
+                <label for="filtroPrmFechaDesde">Fecha desde</label>
+                <input type="date" id="filtroPrmFechaDesde">
+            </div>
+            <div class="admin-filter-field">
+                <label for="filtroPrmFechaHasta">Fecha hasta</label>
+                <input type="date" id="filtroPrmFechaHasta">
+            </div>
+            <div class="admin-filter-field admin-filter-actions">
+                <button type="button" class="admin-btn admin-btn-secondary" id="btnLimpiarFiltrosRegistro">Limpiar</button>
+            </div>
+        </div>
+
+        <div class="admin-table-wrap admin-table-wrap-sticky">
+            <table class="admin-table admin-table-cpm-moldes">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Cliente</th>
+                        <th>NP</th>
+                        <th>NP Origen</th>
+                        <th>Código Molde</th>
+                        <th>Tipo</th>
+                        <th>Diseño</th>
+                        <th>Desg. Inf.</th>
+                        <th>Desg. Sup.</th>
+                        <th>Goma</th>
+                        <th>Nivelación</th>
+                        <th>Acrílico</th>
+                        <th>Estado</th>
+                        <th>Observación</th>
+                        <th class="admin-table-actions">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaRegistrosBody">
+                    <tr><td colspan="15" class="admin-empty">Cargando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="admin-pagination" id="paginacionRegistros"></div>
+    </div>
+</section>
+
+<!-- ================= MODAL EDITAR REGISTRO ================= -->
+<div class="admin-modal-overlay hidden" id="modalEditarRegistro">
+    <div class="panel admin-panel admin-modal">
+        <div class="admin-modal-header">
+            <div class="section-title">
+                <h2>Editar registro <span id="modalEditarRegistroCodigo"></span></h2>
+                <p>Actualiza el avance del proceso de este NP.</p>
+            </div>
+            <button class="admin-icon-btn" id="btnCerrarModalEditarRegistro" type="button" title="Cerrar">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+
+        <div id="alertaEditarRegistro" class="admin-alert hidden"></div>
+
+        <form id="formEditarRegistro" class="admin-form-grid" autocomplete="off">
+            <input type="hidden" id="editarPrmId">
+            <div class="admin-form-field">
+                <label for="editarPrmFecha">Fecha</label>
+                <input type="date" id="editarPrmFecha">
+            </div>
+            <div class="admin-form-field">
+                <label for="editarPrmCliente">Cliente</label>
+                <input type="text" id="editarPrmCliente" list="listaPrmClientes">
+            </div>
+            <div class="admin-form-field">
+                <label for="editarPrmNp">NP</label>
+                <input type="text" id="editarPrmNp">
+            </div>
+            <div class="admin-form-field">
+                <label for="editarPrmNpOrigen">NP Origen</label>
+                <input type="text" id="editarPrmNpOrigen">
+            </div>
+            <div class="admin-form-field">
+                <label for="editarPrmCodigoMolde">Código Molde</label>
+                <input type="text" id="editarPrmCodigoMolde" list="listaPrmCodigosMolde">
+            </div>
+            <div class="admin-form-field">
+                <label for="editarPrmTipo">Nuevo / Repetitivo</label>
+                <select id="editarPrmTipo">
+                    <option value="">-</option>
+                    <option value="NUEVO">NUEVO</option>
+                    <option value="REPETITIVO">REPETITIVO</option>
+                </select>
+            </div>
+            <div class="admin-form-field">
+                <label for="editarPrmDiseno">Diseño</label>
+                <select id="editarPrmDiseno">
+                    <option value="">-</option>
+                    <option value="OK">OK</option>
+                    <option value="NA">NA</option>
+                    <option value="PENDIENTE">PENDIENTE</option>
+                </select>
+            </div>
+            <div class="admin-form-field">
+                <label for="editarPrmDesgajeInferior">Desgaje Inferior</label>
+                <select id="editarPrmDesgajeInferior">
+                    <option value="">-</option>
+                    <option value="OK">OK</option>
+                    <option value="NA">NA</option>
+                    <option value="PENDIENTE">PENDIENTE</option>
+                </select>
+            </div>
+            <div class="admin-form-field">
+                <label for="editarPrmDesgajeSuperior">Desgaje Superior</label>
+                <select id="editarPrmDesgajeSuperior">
+                    <option value="">-</option>
+                    <option value="OK">OK</option>
+                    <option value="NA">NA</option>
+                    <option value="PENDIENTE">PENDIENTE</option>
+                </select>
+            </div>
+            <div class="admin-form-field">
+                <label for="editarPrmGoma">Goma</label>
+                <select id="editarPrmGoma">
+                    <option value="">-</option>
+                    <option value="OK">OK</option>
+                    <option value="NA">NA</option>
+                    <option value="PENDIENTE">PENDIENTE</option>
+                </select>
+            </div>
+            <div class="admin-form-field">
+                <label for="editarPrmNivelacion">Nivelación</label>
+                <select id="editarPrmNivelacion">
+                    <option value="">-</option>
+                    <option value="OK">OK</option>
+                    <option value="NA">NA</option>
+                    <option value="PENDIENTE">PENDIENTE</option>
+                </select>
+            </div>
+            <div class="admin-form-field">
+                <label for="editarPrmAcrilico">Acrílico</label>
+                <select id="editarPrmAcrilico">
+                    <option value="">-</option>
+                    <option value="OK">OK</option>
+                    <option value="NA">NA</option>
+                    <option value="PENDIENTE">PENDIENTE</option>
+                </select>
+            </div>
+            <div class="admin-form-field">
+                <label for="editarPrmEstado">Estado</label>
+                <select id="editarPrmEstado">
+                    <option value="">-</option>
+                    <option value="OK">OK</option>
+                    <option value="EN PROCESO">EN PROCESO</option>
+                </select>
+            </div>
+            <div class="admin-form-field admin-form-field-full">
+                <label for="editarPrmObservacion">Observación</label>
+                <textarea id="editarPrmObservacion" rows="2"></textarea>
+            </div>
+
+            <div class="admin-form-actions">
+                <button type="submit" class="admin-btn admin-btn-primary" id="btnGuardarEdicionRegistro">
+                    <i class="bi bi-save"></i>
+                    Guardar cambios
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ================= MODAL HISTORIAL ================= -->
+<div class="admin-modal-overlay hidden" id="modalHistorial">
+    <div class="panel admin-panel admin-modal">
+        <div class="admin-modal-header">
+            <div class="section-title">
+                <h2>Historial <span id="modalHistorialCodigo"></span></h2>
+                <p>Registro de creación y ediciones, con el usuario responsable de cada cambio.</p>
+            </div>
+            <button class="admin-icon-btn" id="btnCerrarModalHistorial" type="button" title="Cerrar">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+
+        <div class="admin-list-box" id="historialLista"></div>
+    </div>
+</div>
+
+<script>
+    window.API_FORMULARIOS = '<?= htmlspecialchars(API_FORMULARIOS) ?>';
+    window.currentUserNombre = <?= json_encode($nombreUsuarioActual) ?>;
+</script>
+<script src="/assets/js/planificacion/print-tabla.js"></script>
+<script src="/assets/js/planificacion/prm-registros.js"></script>
+
+<?php
+$contenido = ob_get_clean();
+include $_SERVER['DOCUMENT_ROOT'] . '/layouts/app.php';

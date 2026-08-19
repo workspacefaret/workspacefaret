@@ -1,0 +1,612 @@
+<?php
+require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/auth.php';
+requireModuleAccess('stock_moldes');
+
+require_once $_SERVER['DOCUMENT_ROOT'] . '/config/api.php';
+
+$nombreUsuarioActual = currentUser()['nombre'];
+
+ob_start();
+?>
+
+<link rel="stylesheet" href="/assets/css/formularios/admin-formularios.css">
+
+<section class="hero admin-hero">
+    <div>
+        <h1>Stock de Moldes</h1>
+        <p>Reemplaza el Excel "Control de Moldes Repetitivos" (PLA-MOL-MRE): inventario de moldes por rack físico, organizado en 4 categorías.</p>
+    </div>
+    <div class="admin-hero-actions">
+        <a href="/modules/planificacion/" class="admin-btn admin-btn-secondary">
+            <i class="bi bi-arrow-left"></i>
+            Volver a Perfiles y Moldes
+        </a>
+        <a href="/modules/planificacion/registro-molde/" class="admin-btn admin-btn-secondary">
+            <i class="bi bi-clipboard-check"></i>
+            Registro de Molde
+        </a>
+        <?php if (hasModuleAccess('control_moldes')): ?>
+            <a href="/modules/planificacion/control-moldes/" class="admin-btn admin-btn-secondary">
+                <i class="bi bi-diagram-3"></i>
+                Control de Moldes
+            </a>
+        <?php endif; ?>
+    </div>
+</section>
+
+<section class="section">
+    <div class="admin-tabs" role="tablist">
+        <button type="button" class="admin-tab is-active" data-tab="treq">Troquel General</button>
+        <button type="button" class="admin-tab" data-tab="farm">Farmacéutico</button>
+        <button type="button" class="admin-tab" data-tab="indu">Industrial</button>
+        <button type="button" class="admin-tab" data-tab="corr">Corrugado</button>
+        <button type="button" class="admin-tab" data-tab="todo">TODOS</button>
+    </div>
+</section>
+
+<!-- ================= TROQUEL GENERAL ================= -->
+<section class="section admin-tab-panel is-active" id="panelTreq">
+    <div class="panel admin-panel">
+        <div class="section-header">
+            <div class="section-title">
+                <h2>Nuevo registro — Troquel General</h2>
+                <p>Agrega un molde al stock de esta categoría.</p>
+            </div>
+        </div>
+
+        <div id="alertaTreq" class="admin-alert hidden"></div>
+
+        <form id="formTreq" class="admin-form-grid" autocomplete="off">
+            <div class="admin-form-field">
+                <label for="treqNpMolde">NP / Molde</label>
+                <input type="text" id="treqNpMolde">
+            </div>
+            <div class="admin-form-field">
+                <label for="treqCliente">Cliente</label>
+                <input type="text" id="treqCliente" list="listaMreClientes">
+                <datalist id="listaMreClientes"></datalist>
+            </div>
+            <div class="admin-form-field">
+                <label for="treqRack">Rack</label>
+                <input type="text" id="treqRack">
+            </div>
+            <div class="admin-form-field">
+                <label for="treqPerfil">Perfil</label>
+                <input type="text" id="treqPerfil">
+            </div>
+            <div class="admin-form-field admin-form-field-full">
+                <label for="treqObservaciones">Observaciones</label>
+                <textarea id="treqObservaciones" rows="2"></textarea>
+            </div>
+
+            <div class="admin-form-actions">
+                <button type="submit" class="admin-btn admin-btn-primary" id="btnGuardarTreq">
+                    <i class="bi bi-save"></i>
+                    Guardar registro
+                </button>
+            </div>
+        </form>
+    </div>
+</section>
+
+<section class="section admin-tab-panel is-active" id="panelTreqTabla">
+    <div class="panel admin-panel">
+        <div class="section-header">
+            <div class="section-title">
+                <h2>Troquel General</h2>
+                <p>Filtra, busca y edita los registros de esta categoría.</p>
+            </div>
+            <div class="admin-hero-actions">
+                <span class="badge badge-primary" id="badgeCantidadTreq">0 registros</span>
+                <button type="button" class="admin-btn admin-btn-secondary" id="btnImprimirTreq">
+                    <i class="bi bi-printer"></i>
+                    Imprimir
+                </button>
+            </div>
+        </div>
+
+        <div class="admin-filters admin-filters-cpm">
+            <div class="admin-filter-field">
+                <label for="filtroTreqBuscar">Buscar</label>
+                <input type="text" id="filtroTreqBuscar" placeholder="NP/Molde, cliente, rack, perfil...">
+            </div>
+            <div class="admin-filter-field">
+                <label for="filtroTreqCliente">Cliente</label>
+                <input type="text" id="filtroTreqCliente" list="listaMreClientes">
+            </div>
+            <div class="admin-filter-field">
+                <label for="filtroTreqRack">Rack</label>
+                <input type="text" id="filtroTreqRack">
+            </div>
+            <div class="admin-filter-field">
+                <label for="filtroTreqPerfil">Perfil</label>
+                <input type="text" id="filtroTreqPerfil">
+            </div>
+            <div class="admin-filter-field admin-filter-actions">
+                <button type="button" class="admin-btn admin-btn-secondary" id="btnLimpiarFiltrosTreq">Limpiar</button>
+            </div>
+        </div>
+
+        <div class="admin-table-wrap admin-table-wrap-sticky">
+            <table class="admin-table admin-table-mre">
+                <thead>
+                    <tr>
+                        <th>NP / Molde</th>
+                        <th>Cliente</th>
+                        <th>Rack</th>
+                        <th>Perfil</th>
+                        <th>Observaciones</th>
+                        <th class="admin-table-actions">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaTreqBody">
+                    <tr><td colspan="6" class="admin-empty">Cargando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="admin-pagination" id="paginacionTreq"></div>
+    </div>
+</section>
+
+<!-- ================= FARMACÉUTICO ================= -->
+<section class="section admin-tab-panel" id="panelFarm">
+    <div class="panel admin-panel">
+        <div class="section-header">
+            <div class="section-title">
+                <h2>Nuevo registro — Farmacéutico</h2>
+                <p>Agrega un molde al stock de esta categoría.</p>
+            </div>
+        </div>
+
+        <div id="alertaFarm" class="admin-alert hidden"></div>
+
+        <form id="formFarm" class="admin-form-grid" autocomplete="off">
+            <div class="admin-form-field">
+                <label for="farmNpMolde">NP / Molde</label>
+                <input type="text" id="farmNpMolde">
+            </div>
+            <div class="admin-form-field">
+                <label for="farmCliente">Cliente</label>
+                <input type="text" id="farmCliente" list="listaMreClientes">
+            </div>
+            <div class="admin-form-field">
+                <label for="farmRack">Rack</label>
+                <input type="text" id="farmRack">
+            </div>
+            <div class="admin-form-field">
+                <label for="farmPerfil">Perfil</label>
+                <input type="text" id="farmPerfil">
+            </div>
+            <div class="admin-form-field admin-form-field-full">
+                <label for="farmObservaciones">Observaciones</label>
+                <textarea id="farmObservaciones" rows="2"></textarea>
+            </div>
+
+            <div class="admin-form-actions">
+                <button type="submit" class="admin-btn admin-btn-primary" id="btnGuardarFarm">
+                    <i class="bi bi-save"></i>
+                    Guardar registro
+                </button>
+            </div>
+        </form>
+    </div>
+</section>
+
+<section class="section admin-tab-panel" id="panelFarmTabla">
+    <div class="panel admin-panel">
+        <div class="section-header">
+            <div class="section-title">
+                <h2>Farmacéutico</h2>
+                <p>Filtra, busca y edita los registros de esta categoría.</p>
+            </div>
+            <div class="admin-hero-actions">
+                <span class="badge badge-primary" id="badgeCantidadFarm">0 registros</span>
+                <button type="button" class="admin-btn admin-btn-secondary" id="btnImprimirFarm">
+                    <i class="bi bi-printer"></i>
+                    Imprimir
+                </button>
+            </div>
+        </div>
+
+        <div class="admin-filters admin-filters-cpm">
+            <div class="admin-filter-field">
+                <label for="filtroFarmBuscar">Buscar</label>
+                <input type="text" id="filtroFarmBuscar" placeholder="NP/Molde, cliente, rack, perfil...">
+            </div>
+            <div class="admin-filter-field">
+                <label for="filtroFarmCliente">Cliente</label>
+                <input type="text" id="filtroFarmCliente" list="listaMreClientes">
+            </div>
+            <div class="admin-filter-field">
+                <label for="filtroFarmRack">Rack</label>
+                <input type="text" id="filtroFarmRack">
+            </div>
+            <div class="admin-filter-field">
+                <label for="filtroFarmPerfil">Perfil</label>
+                <input type="text" id="filtroFarmPerfil">
+            </div>
+            <div class="admin-filter-field admin-filter-actions">
+                <button type="button" class="admin-btn admin-btn-secondary" id="btnLimpiarFiltrosFarm">Limpiar</button>
+            </div>
+        </div>
+
+        <div class="admin-table-wrap admin-table-wrap-sticky">
+            <table class="admin-table admin-table-mre">
+                <thead>
+                    <tr>
+                        <th>NP / Molde</th>
+                        <th>Cliente</th>
+                        <th>Rack</th>
+                        <th>Perfil</th>
+                        <th>Observaciones</th>
+                        <th class="admin-table-actions">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaFarmBody">
+                    <tr><td colspan="6" class="admin-empty">Cargando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="admin-pagination" id="paginacionFarm"></div>
+    </div>
+</section>
+
+<!-- ================= INDUSTRIAL ================= -->
+<section class="section admin-tab-panel" id="panelIndu">
+    <div class="panel admin-panel">
+        <div class="section-header">
+            <div class="section-title">
+                <h2>Nuevo registro — Industrial</h2>
+                <p>Agrega un molde al stock de esta categoría.</p>
+            </div>
+        </div>
+
+        <div id="alertaIndu" class="admin-alert hidden"></div>
+
+        <form id="formIndu" class="admin-form-grid" autocomplete="off">
+            <div class="admin-form-field">
+                <label for="induNpMolde">NP / Molde</label>
+                <input type="text" id="induNpMolde">
+            </div>
+            <div class="admin-form-field">
+                <label for="induCliente">Cliente</label>
+                <input type="text" id="induCliente" list="listaMreClientes">
+            </div>
+            <div class="admin-form-field">
+                <label for="induRack">Rack</label>
+                <input type="text" id="induRack">
+            </div>
+            <div class="admin-form-field">
+                <label for="induPerfil">Perfil</label>
+                <input type="text" id="induPerfil">
+            </div>
+            <div class="admin-form-field admin-form-field-full">
+                <label for="induObservaciones">Observaciones</label>
+                <textarea id="induObservaciones" rows="2"></textarea>
+            </div>
+
+            <div class="admin-form-actions">
+                <button type="submit" class="admin-btn admin-btn-primary" id="btnGuardarIndu">
+                    <i class="bi bi-save"></i>
+                    Guardar registro
+                </button>
+            </div>
+        </form>
+    </div>
+</section>
+
+<section class="section admin-tab-panel" id="panelInduTabla">
+    <div class="panel admin-panel">
+        <div class="section-header">
+            <div class="section-title">
+                <h2>Industrial</h2>
+                <p>Filtra, busca y edita los registros de esta categoría.</p>
+            </div>
+            <div class="admin-hero-actions">
+                <span class="badge badge-primary" id="badgeCantidadIndu">0 registros</span>
+                <button type="button" class="admin-btn admin-btn-secondary" id="btnImprimirIndu">
+                    <i class="bi bi-printer"></i>
+                    Imprimir
+                </button>
+            </div>
+        </div>
+
+        <div class="admin-filters admin-filters-cpm">
+            <div class="admin-filter-field">
+                <label for="filtroInduBuscar">Buscar</label>
+                <input type="text" id="filtroInduBuscar" placeholder="NP/Molde, cliente, rack, perfil...">
+            </div>
+            <div class="admin-filter-field">
+                <label for="filtroInduCliente">Cliente</label>
+                <input type="text" id="filtroInduCliente" list="listaMreClientes">
+            </div>
+            <div class="admin-filter-field">
+                <label for="filtroInduRack">Rack</label>
+                <input type="text" id="filtroInduRack">
+            </div>
+            <div class="admin-filter-field">
+                <label for="filtroInduPerfil">Perfil</label>
+                <input type="text" id="filtroInduPerfil">
+            </div>
+            <div class="admin-filter-field admin-filter-actions">
+                <button type="button" class="admin-btn admin-btn-secondary" id="btnLimpiarFiltrosIndu">Limpiar</button>
+            </div>
+        </div>
+
+        <div class="admin-table-wrap admin-table-wrap-sticky">
+            <table class="admin-table admin-table-mre">
+                <thead>
+                    <tr>
+                        <th>NP / Molde</th>
+                        <th>Cliente</th>
+                        <th>Rack</th>
+                        <th>Perfil</th>
+                        <th>Observaciones</th>
+                        <th class="admin-table-actions">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaInduBody">
+                    <tr><td colspan="6" class="admin-empty">Cargando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="admin-pagination" id="paginacionIndu"></div>
+    </div>
+</section>
+
+<!-- ================= CORRUGADO ================= -->
+<section class="section admin-tab-panel" id="panelCorr">
+    <div class="panel admin-panel">
+        <div class="section-header">
+            <div class="section-title">
+                <h2>Nuevo registro — Corrugado</h2>
+                <p>Agrega un molde al stock de esta categoría.</p>
+            </div>
+        </div>
+
+        <div id="alertaCorr" class="admin-alert hidden"></div>
+
+        <form id="formCorr" class="admin-form-grid" autocomplete="off">
+            <div class="admin-form-field">
+                <label for="corrNpMolde">NP / Molde</label>
+                <input type="text" id="corrNpMolde">
+            </div>
+            <div class="admin-form-field">
+                <label for="corrCliente">Cliente</label>
+                <input type="text" id="corrCliente" list="listaMreClientes">
+            </div>
+            <div class="admin-form-field">
+                <label for="corrRack">Rack</label>
+                <input type="text" id="corrRack">
+            </div>
+            <div class="admin-form-field">
+                <label for="corrPerfil">Perfil</label>
+                <input type="text" id="corrPerfil">
+            </div>
+            <div class="admin-form-field admin-form-field-full">
+                <label for="corrObservaciones">Observaciones</label>
+                <textarea id="corrObservaciones" rows="2"></textarea>
+            </div>
+
+            <div class="admin-form-actions">
+                <button type="submit" class="admin-btn admin-btn-primary" id="btnGuardarCorr">
+                    <i class="bi bi-save"></i>
+                    Guardar registro
+                </button>
+            </div>
+        </form>
+    </div>
+</section>
+
+<section class="section admin-tab-panel" id="panelCorrTabla">
+    <div class="panel admin-panel">
+        <div class="section-header">
+            <div class="section-title">
+                <h2>Corrugado</h2>
+                <p>Filtra, busca y edita los registros de esta categoría.</p>
+            </div>
+            <div class="admin-hero-actions">
+                <span class="badge badge-primary" id="badgeCantidadCorr">0 registros</span>
+                <button type="button" class="admin-btn admin-btn-secondary" id="btnImprimirCorr">
+                    <i class="bi bi-printer"></i>
+                    Imprimir
+                </button>
+            </div>
+        </div>
+
+        <div class="admin-filters admin-filters-cpm">
+            <div class="admin-filter-field">
+                <label for="filtroCorrBuscar">Buscar</label>
+                <input type="text" id="filtroCorrBuscar" placeholder="NP/Molde, cliente, rack, perfil...">
+            </div>
+            <div class="admin-filter-field">
+                <label for="filtroCorrCliente">Cliente</label>
+                <input type="text" id="filtroCorrCliente" list="listaMreClientes">
+            </div>
+            <div class="admin-filter-field">
+                <label for="filtroCorrRack">Rack</label>
+                <input type="text" id="filtroCorrRack">
+            </div>
+            <div class="admin-filter-field">
+                <label for="filtroCorrPerfil">Perfil</label>
+                <input type="text" id="filtroCorrPerfil">
+            </div>
+            <div class="admin-filter-field admin-filter-actions">
+                <button type="button" class="admin-btn admin-btn-secondary" id="btnLimpiarFiltrosCorr">Limpiar</button>
+            </div>
+        </div>
+
+        <div class="admin-table-wrap admin-table-wrap-sticky">
+            <table class="admin-table admin-table-mre">
+                <thead>
+                    <tr>
+                        <th>NP / Molde</th>
+                        <th>Cliente</th>
+                        <th>Rack</th>
+                        <th>Perfil</th>
+                        <th>Observaciones</th>
+                        <th class="admin-table-actions">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaCorrBody">
+                    <tr><td colspan="6" class="admin-empty">Cargando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="admin-pagination" id="paginacionCorr"></div>
+    </div>
+</section>
+
+<!-- ================= TODOS (consolidado) ================= -->
+<section class="section admin-tab-panel" id="panelTodoTabla">
+    <div class="panel admin-panel">
+        <div class="section-header">
+            <div class="section-title">
+                <h2>Todos</h2>
+                <p>Vista consolidada de las 4 categorías. Los cambios se reflejan automáticamente en su pestaña de origen.</p>
+            </div>
+            <div class="admin-hero-actions">
+                <span class="badge badge-primary" id="badgeCantidadTodo">0 registros</span>
+                <button type="button" class="admin-btn admin-btn-secondary" id="btnImprimirTodo">
+                    <i class="bi bi-printer"></i>
+                    Imprimir
+                </button>
+            </div>
+        </div>
+
+        <div class="admin-filters admin-filters-cpm">
+            <div class="admin-filter-field">
+                <label for="filtroTodoBuscar">Buscar</label>
+                <input type="text" id="filtroTodoBuscar" placeholder="NP/Molde, cliente, rack, perfil...">
+            </div>
+            <div class="admin-filter-field">
+                <label for="filtroTodoCategoria">Categoría</label>
+                <select id="filtroTodoCategoria">
+                    <option value="">Todas</option>
+                    <option value="TROQUEL">Troquel General</option>
+                    <option value="FARMACEUTICO">Farmacéutico</option>
+                    <option value="INDUSTRIAL">Industrial</option>
+                    <option value="CORRUGADO">Corrugado</option>
+                </select>
+            </div>
+            <div class="admin-filter-field">
+                <label for="filtroTodoCliente">Cliente</label>
+                <input type="text" id="filtroTodoCliente" list="listaMreClientes">
+            </div>
+            <div class="admin-filter-field">
+                <label for="filtroTodoRack">Rack</label>
+                <input type="text" id="filtroTodoRack">
+            </div>
+            <div class="admin-filter-field">
+                <label for="filtroTodoPerfil">Perfil</label>
+                <input type="text" id="filtroTodoPerfil">
+            </div>
+            <div class="admin-filter-field admin-filter-actions">
+                <button type="button" class="admin-btn admin-btn-secondary" id="btnLimpiarFiltrosTodo">Limpiar</button>
+            </div>
+        </div>
+
+        <div class="admin-table-wrap admin-table-wrap-sticky">
+            <table class="admin-table admin-table-mre">
+                <thead>
+                    <tr>
+                        <th>Categoría</th>
+                        <th>NP / Molde</th>
+                        <th>Cliente</th>
+                        <th>Rack</th>
+                        <th>Perfil</th>
+                        <th>Observaciones</th>
+                        <th class="admin-table-actions">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaTodoBody">
+                    <tr><td colspan="7" class="admin-empty">Cargando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="admin-pagination" id="paginacionTodo"></div>
+    </div>
+</section>
+
+<!-- ================= MODAL EDITAR REGISTRO (compartido por las 4 categorías) ================= -->
+<div class="admin-modal-overlay hidden" id="modalEditarRegistro">
+    <div class="panel admin-panel admin-modal">
+        <div class="admin-modal-header">
+            <div class="section-title">
+                <h2>Editar registro <span id="modalEditarRegistroCodigo"></span></h2>
+                <p>Categoría: <strong id="modalEditarRegistroCategoria"></strong></p>
+            </div>
+            <button class="admin-icon-btn" id="btnCerrarModalEditarRegistro" type="button" title="Cerrar">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+
+        <div id="alertaEditarRegistro" class="admin-alert hidden"></div>
+
+        <form id="formEditarRegistro" class="admin-form-grid" autocomplete="off">
+            <input type="hidden" id="editarMreId">
+            <input type="hidden" id="editarMreCategoria">
+
+            <div class="admin-form-field">
+                <label for="editarMreNpMolde">NP / Molde</label>
+                <input type="text" id="editarMreNpMolde">
+            </div>
+            <div class="admin-form-field">
+                <label for="editarMreCliente">Cliente</label>
+                <input type="text" id="editarMreCliente" list="listaMreClientes">
+            </div>
+            <div class="admin-form-field">
+                <label for="editarMreRack">Rack</label>
+                <input type="text" id="editarMreRack">
+            </div>
+            <div class="admin-form-field">
+                <label for="editarMrePerfil">Perfil</label>
+                <input type="text" id="editarMrePerfil">
+            </div>
+            <div class="admin-form-field admin-form-field-full">
+                <label for="editarMreObservaciones">Observaciones</label>
+                <textarea id="editarMreObservaciones" rows="2"></textarea>
+            </div>
+
+            <div class="admin-form-actions">
+                <button type="submit" class="admin-btn admin-btn-primary" id="btnGuardarEdicionRegistro">
+                    <i class="bi bi-save"></i>
+                    Guardar cambios
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ================= MODAL HISTORIAL (compartido) ================= -->
+<div class="admin-modal-overlay hidden" id="modalHistorial">
+    <div class="panel admin-panel admin-modal">
+        <div class="admin-modal-header">
+            <div class="section-title">
+                <h2>Historial <span id="modalHistorialCodigo"></span></h2>
+                <p>Registro de creación y ediciones, con el usuario responsable de cada cambio.</p>
+            </div>
+            <button class="admin-icon-btn" id="btnCerrarModalHistorial" type="button" title="Cerrar">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+
+        <div class="admin-list-box" id="historialLista"></div>
+    </div>
+</div>
+
+<script>
+    window.API_FORMULARIOS = '<?= htmlspecialchars(API_FORMULARIOS) ?>';
+    window.currentUserNombre = <?= json_encode($nombreUsuarioActual) ?>;
+</script>
+<script src="/assets/js/planificacion/print-tabla.js"></script>
+<script src="/assets/js/planificacion/mre-registros.js"></script>
+
+<?php
+$contenido = ob_get_clean();
+include $_SERVER['DOCUMENT_ROOT'] . '/layouts/app.php';

@@ -11,6 +11,8 @@ content="width=device-width, initial-scale=1.0">
 
 <title>Workspace Faret</title>
 
+<link rel="icon" type="image/png" href="/assets/img/welcome/logo-workspace-faret.png">
+
 <script>
 (function () {
     try {

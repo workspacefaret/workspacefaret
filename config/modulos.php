@@ -2,6 +2,8 @@
 
 return [
     'planificacion' => ['label' => 'Planificación', 'icono' => 'bi-rulers'],
+    'control_moldes' => ['label' => 'Control de Moldes', 'icono' => 'bi-diagram-3'],
+    'stock_moldes' => ['label' => 'Stock de Moldes', 'icono' => 'bi-archive'],
     'logistica' => ['label' => 'Logística', 'icono' => 'bi-truck'],
     'desarrollo' => ['label' => 'Desarrollo', 'icono' => 'bi-palette-fill'],
     'rrhh' => ['label' => 'RRHH', 'icono' => 'bi-people-fill'],

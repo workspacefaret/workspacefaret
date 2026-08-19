@@ -55,7 +55,6 @@
         const catalogos = await response.json();
 
         llenarDatalist('listaComClientes', catalogos.clientes || []);
-        llenarDatalist('listaComOperadores', catalogos.operadores || []);
         llenarDatalist('listaComCodigosMolde', catalogos.codigosMolde || []);
     }
 
@@ -67,18 +66,20 @@
         const buscar = document.getElementById('filtroComBuscar').value.trim();
         const cliente = document.getElementById('filtroComCliente').value.trim();
         const np = document.getElementById('filtroComNp').value.trim();
-        const operador = document.getElementById('filtroComOperador').value.trim();
         const codigoMolde = document.getElementById('filtroComCodigoMolde').value.trim();
         const status = document.getElementById('filtroComStatus').value;
+        const layoutEstado = document.getElementById('filtroComLayoutEstado').value;
+        const moldeEstado = document.getElementById('filtroComMoldeEstado').value;
         const fechaDesde = document.getElementById('filtroComFechaDesde').value;
         const fechaHasta = document.getElementById('filtroComFechaHasta').value;
 
         if (buscar) params.set('buscar', buscar);
         if (cliente) params.set('cliente', cliente);
         if (np) params.set('np', np);
-        if (operador) params.set('nombreOperador', operador);
         if (codigoMolde) params.set('codigoMolde', codigoMolde);
         if (status) params.set('status', status);
+        if (layoutEstado) params.set('layoutEstado', layoutEstado);
+        if (moldeEstado) params.set('moldeEstado', moldeEstado);
         if (fechaDesde) params.set('fechaDesde', fechaDesde);
         if (fechaHasta) params.set('fechaHasta', fechaHasta);
 
@@ -88,13 +89,13 @@
     async function cargarRegistros(pagina) {
         paginaActual = pagina || 1;
         const tbody = document.getElementById('tablaRegistrosBody');
-        tbody.innerHTML = '<tr><td colspan="10" class="admin-empty">Cargando...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="25" class="admin-empty">Cargando...</td></tr>';
 
         const query = construirQueryFiltros(paginaActual);
         const response = await fetch(apiBaseUrl + 'com/registros?' + query);
 
         if (!response.ok) {
-            tbody.innerHTML = '<tr><td colspan="10" class="admin-empty">No fue posible cargar los registros.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="25" class="admin-empty">No fue posible cargar los registros.</td></tr>';
             return;
         }
 
@@ -102,7 +103,7 @@
         document.getElementById('badgeCantidadRegistros').textContent = resultado.total + ' registros';
 
         if (!resultado.items.length) {
-            tbody.innerHTML = '<tr><td colspan="10" class="admin-empty">Sin resultados.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="25" class="admin-empty">Sin resultados.</td></tr>';
         } else {
             tbody.innerHTML = resultado.items.map(renderFila).join('');
         }
@@ -111,16 +112,14 @@
     }
 
     function renderFila(item) {
+        const celdas = CAMPOS.map(function (campo) {
+            const prop = campo.charAt(0).toLowerCase() + campo.slice(1);
+            const valor = item[prop];
+            return '<td>' + (CAMPOS_FECHA.indexOf(campo) !== -1 ? formatearFecha(valor) : escaparHtml(valor)) + '</td>';
+        }).join('');
+
         return '<tr>' +
-            '<td>' + escaparHtml(item.np) + '</td>' +
-            '<td>' + escaparHtml(item.cliente) + '</td>' +
-            '<td>' + escaparHtml(item.nombreOperador) + '</td>' +
-            '<td>' + escaparHtml(item.status) + '</td>' +
-            '<td>' + formatearFecha(item.fechaEntrega) + '</td>' +
-            '<td>' + escaparHtml(item.codigoMolde) + '</td>' +
-            '<td>' + escaparHtml(item.troquelado) + '</td>' +
-            '<td>' + escaparHtml(item.layoutEstado) + '</td>' +
-            '<td>' + escaparHtml(item.moldeEstado) + '</td>' +
+            celdas +
             '<td class="admin-table-actions">' +
                 '<div class="admin-row-actions">' +
                     '<button type="button" class="admin-icon-btn" data-editar="' + item.id + '" title="Editar"><i class="bi bi-pencil"></i></button>' +
@@ -151,16 +150,68 @@
         debounceTimer = setTimeout(function () { cargarRegistros(1); }, 350);
     }
 
+    async function imprimirRegistros() {
+        const boton = document.getElementById('btnImprimirRegistros');
+        boton.disabled = true;
+
+        try {
+            const params = new URLSearchParams(construirQueryFiltros(1));
+            params.set('porPagina', '100000');
+
+            const response = await fetch(apiBaseUrl + 'com/registros?' + params.toString());
+            if (!response.ok) throw new Error('No fue posible obtener los registros para imprimir.');
+            const resultado = await response.json();
+
+            const encabezados = [
+                'Ingreso Layout', 'Operador', 'NP', 'Cliente', 'Rubro', 'Solicitud', 'Fecha Entrega',
+                'Formato', 'Tiraje', 'Status', 'NP Antigua', 'NP Origen', 'Código Molde',
+                'Sustrato', 'Gramaje', 'Emplacado', 'Laminado',
+                'Troquelado', 'Pinza', 'Separación', 'Extras',
+                'Comentarios', 'Layout', 'Molde'
+            ];
+
+            const filas = resultado.items.map(function (item) {
+                return CAMPOS.map(function (campo) {
+                    const prop = campo.charAt(0).toLowerCase() + campo.slice(1);
+                    const valorCampo = item[prop];
+                    return CAMPOS_FECHA.indexOf(campo) !== -1 ? formatearFecha(valorCampo) : valorCampo;
+                });
+            });
+
+            window.PlanificacionPrint.imprimir({
+                tituloModulo: 'Control de Moldes',
+                subtitulo: 'Listado de control de avance de fabricación de moldes (PLA-MNF-COM-V2)',
+                encabezados: encabezados,
+                filas: filas,
+                filtrosTexto: window.PlanificacionPrint.resumenFiltros([
+                    ['Buscar', document.getElementById('filtroComBuscar').value.trim()],
+                    ['Cliente', document.getElementById('filtroComCliente').value.trim()],
+                    ['NP', document.getElementById('filtroComNp').value.trim()],
+                    ['Código Molde', document.getElementById('filtroComCodigoMolde').value.trim()],
+                    ['Status', document.getElementById('filtroComStatus').value],
+                    ['Estado Layout', document.getElementById('filtroComLayoutEstado').value],
+                    ['Estado Molde', document.getElementById('filtroComMoldeEstado').value],
+                    ['Ingreso desde', document.getElementById('filtroComFechaDesde').value],
+                    ['Ingreso hasta', document.getElementById('filtroComFechaHasta').value]
+                ])
+            });
+        } catch (error) {
+            alert(error.message);
+        } finally {
+            boton.disabled = false;
+        }
+    }
+
     function inicializarFiltros() {
-        ['filtroComBuscar', 'filtroComCliente', 'filtroComNp', 'filtroComOperador', 'filtroComCodigoMolde'].forEach(function (id) {
+        ['filtroComBuscar', 'filtroComCliente', 'filtroComNp', 'filtroComCodigoMolde'].forEach(function (id) {
             document.getElementById(id).addEventListener('input', refiltrarConDebounce);
         });
-        ['filtroComStatus', 'filtroComFechaDesde', 'filtroComFechaHasta'].forEach(function (id) {
+        ['filtroComStatus', 'filtroComLayoutEstado', 'filtroComMoldeEstado', 'filtroComFechaDesde', 'filtroComFechaHasta'].forEach(function (id) {
             document.getElementById(id).addEventListener('change', function () { cargarRegistros(1); });
         });
 
         document.getElementById('btnLimpiarFiltrosRegistro').addEventListener('click', function () {
-            ['filtroComBuscar', 'filtroComCliente', 'filtroComNp', 'filtroComOperador', 'filtroComCodigoMolde', 'filtroComStatus', 'filtroComFechaDesde', 'filtroComFechaHasta'].forEach(function (id) {
+            ['filtroComBuscar', 'filtroComCliente', 'filtroComNp', 'filtroComCodigoMolde', 'filtroComStatus', 'filtroComLayoutEstado', 'filtroComMoldeEstado', 'filtroComFechaDesde', 'filtroComFechaHasta'].forEach(function (id) {
                 document.getElementById(id).value = '';
             });
             cargarRegistros(1);
@@ -202,7 +253,19 @@
                 if (!response.ok) throw new Error(texto || 'No fue posible crear el registro.');
 
                 const creado = JSON.parse(texto);
-                mostrarAlerta('alertaRegistro', 'Registro NP ' + (creado.np || creado.id) + ' creado correctamente.', 'success');
+                let mensaje = 'Registro NP ' + (creado.np || creado.id) + ' creado correctamente.';
+
+                if (document.getElementById('comEnviarCorreo').value === 'SI') {
+                    try {
+                        const respNotificar = await fetch(apiBaseUrl + 'com/registros/' + creado.id + '/notificar', { method: 'POST' });
+                        if (!respNotificar.ok) throw new Error(await respNotificar.text());
+                        mensaje += ' Correo enviado.';
+                    } catch (errorCorreo) {
+                        mensaje += ' El registro se creó, pero no fue posible enviar el correo.';
+                    }
+                }
+
+                mostrarAlerta('alertaRegistro', mensaje, 'success');
                 document.getElementById('formRegistro').reset();
                 cargarRegistros(1);
             } catch (error) {
@@ -340,6 +403,8 @@
         inicializarFormularioCrear();
         inicializarEdicion();
         cargarRegistros(1);
+
+        document.getElementById('btnImprimirRegistros').addEventListener('click', imprimirRegistros);
 
         document.getElementById('btnCerrarModalHistorial').addEventListener('click', function () {
             document.getElementById('modalHistorial').classList.add('hidden');

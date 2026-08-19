@@ -29,19 +29,37 @@
 
             <div class="menu-section">Áreas de trabajo</div>
 
-            <?php if (hasModuleAccess('planificacion')): ?>
-                <a href="/modules/planificacion/">
-                    <i class="bi bi-rulers"></i>
-                    Perfiles y Moldes
+            <?php if (hasModuleAccess('planificacion') || hasModuleAccess('control_moldes') || hasModuleAccess('stock_moldes')): ?>
+                <a href="/modules/planificacion/moldes/">
+                    <i class="bi bi-box-seam"></i>
+                    Moldes
                 </a>
-                <a href="/modules/planificacion/registro-molde/">
-                    <i class="bi bi-clipboard-check"></i>
-                    Registro de Molde
-                </a>
-                <a href="/modules/planificacion/control-moldes/">
-                    <i class="bi bi-diagram-3"></i>
-                    Control de Moldes
-                </a>
+                <div class="menu-submenu">
+                    <?php if (hasModuleAccess('planificacion')): ?>
+                        <a href="/modules/planificacion/">
+                            <i class="bi bi-rulers"></i>
+                            Perfiles y Moldes
+                        </a>
+                        <a href="/modules/planificacion/registro-molde/">
+                            <i class="bi bi-clipboard-check"></i>
+                            Registro de Molde
+                        </a>
+                    <?php endif; ?>
+
+                    <?php if (hasModuleAccess('control_moldes')): ?>
+                        <a href="/modules/planificacion/control-moldes/">
+                            <i class="bi bi-diagram-3"></i>
+                            Control de Moldes
+                        </a>
+                    <?php endif; ?>
+
+                    <?php if (hasModuleAccess('stock_moldes')): ?>
+                        <a href="/modules/planificacion/stock-moldes/">
+                            <i class="bi bi-archive"></i>
+                            Stock de Moldes
+                        </a>
+                    <?php endif; ?>
+                </div>
             <?php endif; ?>
 
             <?php if (hasModuleAccess('logistica')): ?>
@@ -56,6 +74,24 @@
                     <i class="bi bi-palette-fill"></i>
                     Desarrollo
                 </a>
+                <div class="menu-submenu">
+                    <a href="/modules/formularios/desarrollo/solicitud-grafica/">
+                        <i class="bi bi-file-earmark-plus-fill"></i>
+                        Solicitud Gráfica
+                    </a>
+                    <a href="/modules/formularios/desarrollo/solicitud-estructural/">
+                        <i class="bi bi-bounding-box-circles"></i>
+                        Solicitud Estructural
+                    </a>
+                    <a href="/modules/formularios/desarrollo/admin/">
+                        <i class="bi bi-table"></i>
+                        Registros Gráfico
+                    </a>
+                    <a href="/modules/formularios/desarrollo/solicitud-estructural/admin/">
+                        <i class="bi bi-table"></i>
+                        Registros Estructural
+                    </a>
+                </div>
             <?php endif; ?>
 
             <?php if (hasModuleAccess('rrhh')): ?>
@@ -63,45 +99,24 @@
                     <i class="bi bi-people-fill"></i>
                     RRHH
                 </a>
-            <?php endif; ?>
-
-            <div class="menu-section">Formularios y datos</div>
-
-            <?php if (hasModuleAccess('desarrollo')): ?>
-                <a href="/modules/formularios/">
-                    <i class="bi bi-ui-checks-grid"></i>
-                    Formularios
-                </a>
-            <?php endif; ?>
-
-            <?php if (hasModuleAccess('datos')): ?>
-                <a href="/modules/datos/">
-                    <i class="bi bi-database-fill"></i>
-                    Centro de Control
-                </a>
-            <?php endif; ?>
-
-            <?php if (hasModuleAccess('mejora_continua')): ?>
-                <a href="/modules/datos/mejora-continua/">
-                    <i class="bi bi-clipboard-check-fill"></i>
-                    Mejora Continua
-                </a>
-            <?php endif; ?>
-
-            <div class="menu-section">Sistema</div>
-
-            <?php if (hasModuleAccess('exportaciones')): ?>
-                <a href="/modules/datos/exportaciones/">
-                    <i class="bi bi-file-earmark-spreadsheet-fill"></i>
-                    Exportaciones
-                </a>
-            <?php endif; ?>
-
-            <?php if (hasModuleAccess('reportes')): ?>
-                <a href="/modules/datos/dashboard/">
-                    <i class="bi bi-bar-chart-fill"></i>
-                    Reportes
-                </a>
+                <div class="menu-submenu">
+                    <a href="/modules/rrhh/guardias/registros/">
+                        <i class="bi bi-clipboard-data"></i>
+                        Recorridos Guardias
+                    </a>
+                    <a href="/modules/rrhh/guardias/usuarios/">
+                        <i class="bi bi-person-gear"></i>
+                        Usuarios Guardias
+                    </a>
+                    <a href="/modules/rrhh/desgaje/registro/">
+                        <i class="bi bi-scissors"></i>
+                        Registro de Desgaje
+                    </a>
+                    <a href="/modules/rrhh/desgaje/admin/">
+                        <i class="bi bi-clipboard-data"></i>
+                        Panel Desgaje
+                    </a>
+                </div>
             <?php endif; ?>
 
             <?php if (currentUser()['rol'] === 'admin_ti'): ?>
