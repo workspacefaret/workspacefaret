@@ -39,6 +39,7 @@
 
         const buscar = valor('filtro' + capitalizar(tab.prefijo) + 'Buscar');
         const cliente = valor('filtro' + capitalizar(tab.prefijo) + 'Cliente');
+        const perfil = tab.tieneProductoPerfil ? valor('filtro' + capitalizar(tab.prefijo) + 'Perfil') : null;
         const rubro = valor('filtro' + capitalizar(tab.prefijo) + 'Rubro');
         const operador = valor('filtro' + capitalizar(tab.prefijo) + 'Operador');
         const fechaDesde = document.getElementById('filtro' + capitalizar(tab.prefijo) + 'FechaDesde').value;
@@ -47,6 +48,7 @@
 
         if (buscar) params.set('buscar', buscar);
         if (cliente) params.set('cliente', cliente);
+        if (perfil) params.set('perfil', perfil);
         if (rubro) params.set('rubro', rubro);
         if (operador) params.set('operador', operador);
         if (fechaDesde) params.set('fechaDesde', fechaDesde);
@@ -129,7 +131,10 @@
 
     function inicializarFiltros(tab) {
         const p = capitalizar(tab.prefijo);
-        ['Buscar', 'Cliente', 'Rubro', 'Operador'].forEach(function (campo) {
+        const camposTexto = ['Buscar', 'Cliente', 'Rubro', 'Operador'];
+        if (tab.tieneProductoPerfil) camposTexto.push('Perfil');
+
+        camposTexto.forEach(function (campo) {
             document.getElementById('filtro' + p + campo).addEventListener('input', function () { refiltrarConDebounce(tab); });
         });
         ['FechaDesde', 'FechaHasta'].forEach(function (campo) {
@@ -138,7 +143,10 @@
         document.getElementById('filtro' + p + 'Obsoletos').addEventListener('change', function () { cargarMoldes(tab, 1); });
 
         document.getElementById('btnLimpiarFiltros' + p).addEventListener('click', function () {
-            ['Buscar', 'Cliente', 'Rubro', 'Operador', 'FechaDesde', 'FechaHasta'].forEach(function (campo) {
+            const camposLimpiar = ['Buscar', 'Cliente', 'Rubro', 'Operador', 'FechaDesde', 'FechaHasta'];
+            if (tab.tieneProductoPerfil) camposLimpiar.push('Perfil');
+
+            camposLimpiar.forEach(function (campo) {
                 document.getElementById('filtro' + p + campo).value = '';
             });
             document.getElementById('filtro' + p + 'Obsoletos').checked = false;
@@ -183,6 +191,7 @@
                 filtrosTexto: window.PlanificacionPrint.resumenFiltros([
                     ['Buscar', valor('filtro' + p + 'Buscar')],
                     ['Cliente', valor('filtro' + p + 'Cliente')],
+                    ['Perfil', valor('filtro' + p + 'Perfil')],
                     ['Rubro', valor('filtro' + p + 'Rubro')],
                     ['Operador', valor('filtro' + p + 'Operador')],
                     ['Ingreso desde', document.getElementById('filtro' + p + 'FechaDesde').value],

@@ -253,6 +253,10 @@ ob_start();
                 <input type="text" id="filtroMoldeCliente">
             </div>
             <div class="admin-filter-field">
+                <label for="filtroMoldePerfil">Perfil</label>
+                <input type="text" id="filtroMoldePerfil">
+            </div>
+            <div class="admin-filter-field">
                 <label for="filtroMoldeRubro">Rubro</label>
                 <input type="text" id="filtroMoldeRubro" list="listaMoldeRubros">
             </div>
