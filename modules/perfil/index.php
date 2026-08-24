@@ -20,14 +20,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $pdo->prepare('
             INSERT INTO usuario_perfil (usuario_id, email, telefono, cargo, area, actualizado_en)
-            VALUES (?, ?, ?, ?, ?, datetime(\'now\'))
+            VALUES (?, ?, ?, ?, ?, ?)
             ON CONFLICT(usuario_id) DO UPDATE SET
                 email = excluded.email,
                 telefono = excluded.telefono,
                 cargo = excluded.cargo,
                 area = excluded.area,
                 actualizado_en = excluded.actualizado_en
-        ')->execute([$usuario['id'], $email, $telefono, $cargo, $area]);
+        ')->execute([$usuario['id'], $email, $telefono, $cargo, $area, nowLocal()]);
 
         $mensaje = 'Perfil actualizado correctamente.';
     }

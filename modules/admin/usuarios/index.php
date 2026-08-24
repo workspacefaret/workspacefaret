@@ -36,10 +36,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $passwordTemporal = generarPasswordTemporal();
 
                 $stmt = $pdo->prepare('
-                    INSERT INTO usuarios (nombre, username, password_hash, rol, activo, debe_cambiar_password)
-                    VALUES (?, ?, ?, ?, 1, 1)
+                    INSERT INTO usuarios (nombre, username, password_hash, rol, activo, debe_cambiar_password, creado_en)
+                    VALUES (?, ?, ?, ?, 1, 1, ?)
                 ');
-                $stmt->execute([$nombre, $username, password_hash($passwordTemporal, PASSWORD_DEFAULT), $rol]);
+                $stmt->execute([$nombre, $username, password_hash($passwordTemporal, PASSWORD_DEFAULT), $rol, nowLocal()]);
 
                 $nuevoId = (int) $pdo->lastInsertId();
 

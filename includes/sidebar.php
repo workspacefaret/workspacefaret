@@ -119,6 +119,13 @@
                 </div>
             <?php endif; ?>
 
+            <?php if (hasModuleAccess('documentacion')): ?>
+                <a href="/modules/documentacion/">
+                    <i class="bi bi-journal-text"></i>
+                    Documentación Técnica
+                </a>
+            <?php endif; ?>
+
             <?php if (currentUser()['rol'] === 'admin_ti'): ?>
                 <div class="menu-section">Administración</div>
 
@@ -130,6 +137,11 @@
                 <a href="/modules/admin/novedades/">
                     <i class="bi bi-megaphone-fill"></i>
                     Novedades
+                </a>
+
+                <a href="/modules/admin/documentacion/">
+                    <i class="bi bi-journals"></i>
+                    Documentación Técnica
                 </a>
             <?php endif; ?>
 

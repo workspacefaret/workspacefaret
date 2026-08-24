@@ -68,6 +68,10 @@ $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
                 <h2>Trabajos registrados</h2>
                 <p>Detalle de cada trabajo de desgaje incluido en este registro.</p>
             </div>
+            <button class="admin-btn admin-btn-secondary" id="btnExportarTrabajos" disabled>
+                <i class="bi bi-file-earmark-excel"></i>
+                Exportar Excel
+            </button>
         </div>
 
         <div class="admin-table-wrap">
@@ -115,6 +119,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const apiBaseUrl = '<?= htmlspecialchars(API_FORMULARIOS) ?>';
     const appRoot = apiBaseUrl.replace(/api\/?$/, '');
 
+    let trabajosActuales = [];
+    let modoManualActual = false;
+    let codigoActual = '';
+
+    document.getElementById('btnExportarTrabajos').addEventListener('click', exportarTrabajosExcel);
+
     cargarDetalle();
 
     async function cargarDetalle() {
@@ -130,6 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const item = await response.json();
 
+            codigoActual = item.codigo;
             document.getElementById('detalleTitulo').textContent = item.codigo;
             document.getElementById('detalleSubtitulo').textContent = `${item.tallerNombreSnapshot} · ${item.operadorNombreSnapshot}`;
             document.getElementById('detalleEstado').textContent = textoEstado(item.estado);
@@ -278,6 +289,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const encabezado = document.getElementById('detalleTrabajosHead');
         const modoManual = detalles && detalles.length > 0 && !detalles[0].tipoDesgajeId;
 
+        trabajosActuales = detalles || [];
+        modoManualActual = modoManual;
+        document.getElementById('btnExportarTrabajos').disabled = trabajosActuales.length === 0;
+
         if (!detalles || !detalles.length) {
             encabezado.innerHTML = `
                 <tr>
@@ -335,6 +350,80 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${escapeHtml(d.observaciones || '-')}</td>
             </tr>
         `).join('');
+    }
+
+    function exportarTrabajosExcel() {
+        if (!trabajosActuales.length) return;
+
+        const columnas = modoManualActual
+            ? ['NP', 'Cliente', 'Descripción producto', 'Cantidad buena', 'Cantidad mala', 'Total procesado', 'Precio', 'Valor', 'Descripción trabajo']
+            : ['NP', 'Cliente', 'N° Pliego', 'Tipo', 'Pliegos', 'Moldes', 'Estuches', 'Precio', 'Valor', 'Observaciones'];
+
+        const filas = trabajosActuales.map(d => {
+            const celdas = modoManualActual
+                ? [
+                    d.np,
+                    d.clienteNombreSnapshot,
+                    d.descripcionProducto || '-',
+                    d.cantidadBuena ?? '-',
+                    d.cantidadMala ?? '-',
+                    d.cantidadEstuches,
+                    formatearMoneda(d.precioAplicado),
+                    formatearMoneda(d.valorCalculado),
+                    d.descripcionTrabajo || '-'
+                ]
+                : [
+                    d.np,
+                    d.clienteNombreSnapshot,
+                    d.numeroPliego,
+                    d.tipoDesgajeNombreSnapshot,
+                    d.cantidadPliegos,
+                    d.numeroMoldes,
+                    d.cantidadEstuches,
+                    formatearMoneda(d.precioAplicado),
+                    formatearMoneda(d.valorCalculado),
+                    d.observaciones || '-'
+                ];
+
+            return `<tr>${celdas.map(c => `<td>${escapeHtml(c)}</td>`).join('')}</tr>`;
+        }).join('');
+
+        const html = `
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <style>
+                    table { border-collapse: collapse; font-family: Arial; font-size: 11px; }
+                    th { background: #0f172a; color: #ffffff; font-weight: bold; border: 1px solid #334155; padding: 8px; }
+                    td { border: 1px solid #cbd5e1; padding: 7px; vertical-align: top; }
+                    tr:nth-child(even) td { background: #f8fafc; }
+                    .title { font-size: 20px; font-weight: bold; color: #0f172a; }
+                    .subtitle { color: #475569; }
+                </style>
+            </head>
+            <body>
+                <table>
+                    <tr><td colspan="${columnas.length}" class="title">Trabajos registrados - ${escapeHtml(codigoActual)}</td></tr>
+                    <tr><td colspan="${columnas.length}" class="subtitle">Workspace Faret - ${new Date().toLocaleString('es-CL')}</td></tr>
+                    <tr></tr>
+                    <tr>${columnas.map(c => `<th>${escapeHtml(c.toUpperCase())}</th>`).join('')}</tr>
+                    ${filas}
+                </table>
+            </body>
+            </html>
+        `;
+
+        const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+
+        link.href = url;
+        link.download = `trabajos-${codigoActual}.xls`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        URL.revokeObjectURL(url);
     }
 
     function renderFirma(firmaRuta) {

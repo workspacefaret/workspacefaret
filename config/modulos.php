@@ -11,4 +11,5 @@ return [
     'mejora_continua' => ['label' => 'Mejora Continua', 'icono' => 'bi-clipboard-check-fill'],
     'exportaciones' => ['label' => 'Exportaciones', 'icono' => 'bi-file-earmark-spreadsheet-fill'],
     'reportes' => ['label' => 'Reportes', 'icono' => 'bi-bar-chart-fill'],
+    'documentacion' => ['label' => 'Documentación Técnica', 'icono' => 'bi-journal-text'],
 ];

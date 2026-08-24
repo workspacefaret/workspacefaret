@@ -20,8 +20,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($titulo === '' || $cuerpo === '') {
             $error = 'Título y contenido son obligatorios.';
         } else {
-            $pdo->prepare('INSERT INTO novedades (titulo, cuerpo, creado_por) VALUES (?, ?, ?)')
-                ->execute([$titulo, $cuerpo, currentUser()['id']]);
+            $pdo->prepare('INSERT INTO novedades (titulo, cuerpo, creado_por, creado_en) VALUES (?, ?, ?, ?)')
+                ->execute([$titulo, $cuerpo, currentUser()['id'], nowLocal()]);
 
             $mensaje = 'Novedad publicada correctamente.';
         }

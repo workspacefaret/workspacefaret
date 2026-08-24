@@ -1,5 +1,7 @@
 <?php
 
+date_default_timezone_set('America/Santiago');
+
 const MAX_INTENTOS_FALLIDOS = 5;
 const BLOQUEO_MINUTOS = 15;
 
@@ -76,6 +78,19 @@ function getAuthPdo(): PDO
         )
     ');
 
+    $pdo->exec('
+        CREATE TABLE IF NOT EXISTS documentos_tecnicos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sistema TEXT NOT NULL,
+            titulo TEXT NOT NULL,
+            contenido TEXT NOT NULL,
+            creado_por INTEGER REFERENCES usuarios(id),
+            creado_en TEXT NOT NULL DEFAULT (datetime(\'now\')),
+            actualizado_en TEXT NULL,
+            activo INTEGER NOT NULL DEFAULT 1
+        )
+    ');
+
     return $pdo;
 }
 
@@ -101,6 +116,18 @@ function obtenerPerfilUsuario(int $usuarioId): array
     $stmt->execute([$usuarioId]);
 
     return $stmt->fetch(PDO::FETCH_ASSOC) ?: ['email' => '', 'telefono' => '', 'cargo' => '', 'area' => ''];
+}
+
+function nowLocal(): string
+{
+    return date('Y-m-d H:i:s');
+}
+
+function obtenerSistemasDocumentacion(): array
+{
+    return getAuthPdo()
+        ->query('SELECT DISTINCT sistema FROM documentos_tecnicos WHERE activo = 1 ORDER BY sistema')
+        ->fetchAll(PDO::FETCH_COLUMN);
 }
 
 function obtenerModulosCatalogo(): array
