@@ -130,6 +130,112 @@ function obtenerSistemasDocumentacion(): array
         ->fetchAll(PDO::FETCH_COLUMN);
 }
 
+function sanitizarHtmlDocumentacion(string $html): string
+{
+    $tagsPermitidas = [
+        'section', 'h2', 'h3', 'h4', 'p', 'strong', 'em', 'b', 'i',
+        'ul', 'ol', 'li', 'br', 'hr', 'code', 'pre', 'div', 'span',
+        'table', 'thead', 'tbody', 'tr', 'th', 'td', 'a',
+    ];
+
+    $clasesPermitidas = [
+        'callout', 'warn', 'callout-label',
+        'table-wrap',
+        'pill', 'status-pill', 'pill-ok', 'pill-warn', 'pill-info', 'status-ok', 'status-warn', 'status-info',
+        'grid-2', 'card',
+        'kpi-row', 'kpi', 'k', 'v',
+        'stack-list', 'stack-item',
+        'flow', 'node', 'arrow',
+        'example-preview', 'example-label',
+        'lead', 'muted', 'plain',
+    ];
+
+    $dom = new DOMDocument();
+    libxml_use_internal_errors(true);
+    $dom->loadHTML(
+        '<?xml encoding="utf-8"?><div id="__root_sanitizar__">' . $html . '</div>',
+        LIBXML_NOERROR | LIBXML_NOWARNING | LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
+    );
+    libxml_clear_errors();
+
+    $root = $dom->getElementById('__root_sanitizar__');
+
+    if ($root === null) {
+        return '';
+    }
+
+    limpiarNodoDocumentacion($root, $tagsPermitidas, $clasesPermitidas);
+
+    $resultado = '';
+    foreach (iterator_to_array($root->childNodes) as $hijo) {
+        $resultado .= $dom->saveHTML($hijo);
+    }
+
+    return $resultado;
+}
+
+function limpiarNodoDocumentacion(DOMNode $nodo, array $tagsPermitidas, array $clasesPermitidas): void
+{
+    foreach (iterator_to_array($nodo->childNodes) as $hijo) {
+        if ($hijo->nodeType === XML_TEXT_NODE) {
+            continue;
+        }
+
+        if ($hijo->nodeType !== XML_ELEMENT_NODE) {
+            $nodo->removeChild($hijo);
+            continue;
+        }
+
+        $tag = strtolower($hijo->nodeName);
+
+        if (!in_array($tag, $tagsPermitidas, true)) {
+            $nodo->removeChild($hijo);
+            continue;
+        }
+
+        if ($hijo->hasAttributes()) {
+            foreach (iterator_to_array($hijo->attributes) as $attr) {
+                $nombreAttr = strtolower($attr->name);
+
+                if ($nombreAttr === 'class') {
+                    $clasesLimpias = array_values(array_intersect(
+                        preg_split('/\s+/', trim($attr->value)),
+                        $clasesPermitidas
+                    ));
+
+                    if ($clasesLimpias) {
+                        $hijo->setAttribute('class', implode(' ', $clasesLimpias));
+                    } else {
+                        $hijo->removeAttribute('class');
+                    }
+
+                    continue;
+                }
+
+                if ($tag === 'a' && $nombreAttr === 'href' && preg_match('/^(https?:|mailto:)/i', trim($attr->value))) {
+                    continue;
+                }
+
+                if ($tag === 'a' && $nombreAttr === 'target' && $attr->value === '_blank') {
+                    continue;
+                }
+
+                if (in_array($nombreAttr, ['colspan', 'rowspan'], true) && in_array($tag, ['td', 'th'], true)) {
+                    continue;
+                }
+
+                $hijo->removeAttribute($attr->name);
+            }
+
+            if ($tag === 'a' && $hijo->getAttribute('target') === '_blank') {
+                $hijo->setAttribute('rel', 'noopener noreferrer');
+            }
+        }
+
+        limpiarNodoDocumentacion($hijo, $tagsPermitidas, $clasesPermitidas);
+    }
+}
+
 function obtenerModulosCatalogo(): array
 {
     return require $_SERVER['DOCUMENT_ROOT'] . '/config/modulos.php';

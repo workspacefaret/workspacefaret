@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($accion === 'crear') {
         $sistema = trim($_POST['sistema'] ?? '');
         $titulo = trim($_POST['titulo'] ?? '');
-        $contenido = trim($_POST['contenido'] ?? '');
+        $contenido = sanitizarHtmlDocumentacion(trim($_POST['contenido'] ?? ''));
 
         if ($sistema === '' || $titulo === '' || $contenido === '') {
             $error = 'Sistema, título y contenido son obligatorios.';
@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = (int) ($_POST['id'] ?? 0);
         $sistema = trim($_POST['sistema'] ?? '');
         $titulo = trim($_POST['titulo'] ?? '');
-        $contenido = trim($_POST['contenido'] ?? '');
+        $contenido = sanitizarHtmlDocumentacion(trim($_POST['contenido'] ?? ''));
 
         if ($sistema === '' || $titulo === '' || $contenido === '') {
             $error = 'Sistema, título y contenido son obligatorios.';

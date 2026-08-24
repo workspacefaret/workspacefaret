@@ -30,6 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $resultado = intentarLogin($username, $password);
 
         if ($resultado['ok']) {
+    session_regenerate_id(true);
     $usuario = currentUser();
 
     if (!empty($usuario['debe_cambiar_password'])) {

@@ -37,6 +37,8 @@ if (!$doc) {
     exit;
 }
 
+$nonce = base64_encode(random_bytes(16));
+
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -45,12 +47,13 @@ if (!$doc) {
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'nonce-<?= $nonce ?>'; style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none';">
 
 <title><?= htmlspecialchars($doc['titulo']) ?> — Documentación Técnica</title>
 
 <link rel="icon" type="image/png" href="/assets/img/welcome/logo-workspace-faret.png">
 
-<script>
+<script nonce="<?= $nonce ?>">
 (function () {
     try {
         var tema = localStorage.getItem('workspace-theme');
