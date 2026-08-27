@@ -143,22 +143,20 @@ ob_start();
             <table class="admin-table admin-table-desgaje">
                 <thead>
                     <tr>
-                        <th>Código</th>
                         <th>NP</th>
                         <th>Fecha</th>
-                        <th>Taller</th>
                         <th>Operador</th>
                         <th>Cliente</th>
                         <th>Detalle trabajo</th>
+                        <th>Cantidad de pliegos</th>
+                        <th>Moldes</th>
                         <th>Cantidad</th>
                         <th>Valor</th>
-                        <th>Estado</th>
-                        <th class="admin-table-actions">Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="tablaRegistrosBody">
                     <tr>
-                        <td colspan="11" class="admin-empty">Cargando registros...</td>
+                        <td colspan="9" class="admin-empty">Cargando registros...</td>
                     </tr>
                 </tbody>
             </table>

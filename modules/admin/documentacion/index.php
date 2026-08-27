@@ -49,6 +49,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->prepare('UPDATE documentos_tecnicos SET activo = 1 - activo WHERE id = ?')->execute([$id]);
         $mensaje = 'Estado del documento actualizado.';
     }
+
+    if ($accion === 'eliminar') {
+        $id = (int) ($_POST['id'] ?? 0);
+        $pdo->prepare('DELETE FROM documentos_tecnicos WHERE id = ?')->execute([$id]);
+        $mensaje = 'Documento eliminado permanentemente.';
+    }
 }
 
 $editando = null;
@@ -127,6 +133,13 @@ $documentos = $pdo->query('
                                 <input type="hidden" name="id" value="<?= (int) $d['id'] ?>">
                                 <button type="submit" class="btn-secondary">
                                     <?= $activo ? 'Ocultar' : 'Activar' ?>
+                                </button>
+                            </form>
+                            <form method="POST" style="display:inline;" onsubmit="return confirm('¿Eliminar permanentemente este documento? Esta acción no se puede deshacer.');">
+                                <input type="hidden" name="accion" value="eliminar">
+                                <input type="hidden" name="id" value="<?= (int) $d['id'] ?>">
+                                <button type="submit" class="btn-secondary" style="color:#dc2626; border-color:#dc2626;">
+                                    Eliminar
                                 </button>
                             </form>
                         </td>

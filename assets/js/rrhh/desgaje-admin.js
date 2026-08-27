@@ -1,6 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
     const apiBaseUrl = window.API_FORMULARIOS || 'https://api.faret.cl/formularios/api/';
-    const adminDeleteKey = window.API_ADMIN_DELETE_KEY || '';
 
     let catalogos = { tipos: [], talleres: [], operadores: [] };
     let paginaActual = 1;
@@ -117,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderPaginacion();
 
         } catch (error) {
-            tablaBody.innerHTML = `<tr><td colspan="11" class="admin-empty">${escapeHtml(error.message)}</td></tr>`;
+            tablaBody.innerHTML = `<tr><td colspan="9" class="admin-empty">${escapeHtml(error.message)}</td></tr>`;
         }
     }
 
@@ -136,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderTabla(items) {
         if (!items || !items.length) {
-            tablaBody.innerHTML = `<tr><td colspan="11" class="admin-empty">No hay registros para mostrar.</td></tr>`;
+            tablaBody.innerHTML = `<tr><td colspan="9" class="admin-empty">No hay registros para mostrar.</td></tr>`;
             return;
         }
 
@@ -144,37 +143,24 @@ document.addEventListener('DOMContentLoaded', () => {
             const detalles = item.detalles && item.detalles.length ? item.detalles : [null];
 
             return detalles.map(detalle => `
-                <tr>
-                    <td><strong>${escapeHtml(item.codigo)}</strong></td>
+                <tr class="admin-row-clickable" data-detalle-id="${item.id}" title="Ver detalle">
                     <td>${escapeHtml(detalle ? detalle.np : (item.nps || '-'))}</td>
                     <td>${formatearFecha(item.fechaRegistro, true)}</td>
-                    <td>${escapeHtml(item.tallerNombreSnapshot)}</td>
                     <td>${escapeHtml(item.operadorNombreSnapshot)}</td>
                     <td>${escapeHtml(detalle ? detalle.clienteNombreSnapshot : '-')}</td>
                     <td>${detalle ? descripcionTrabajo(detalle) : '-'}</td>
+                    <td>${detalle && detalle.cantidadPliegos != null ? detalle.cantidadPliegos : '-'}</td>
+                    <td>${detalle && detalle.numeroMoldes != null ? detalle.numeroMoldes : '-'}</td>
                     <td>${detalle ? detalle.cantidadEstuches : item.cantidadEstuchesTotal}</td>
                     <td>${formatearMoneda(detalle ? detalle.valorCalculado : item.valorTotal)}</td>
-                    <td>${badgeEstado(item.estado)}</td>
-                    <td>
-                        <div class="admin-row-actions">
-                            <a class="admin-icon-btn" href="/modules/rrhh/desgaje/admin/detalle.php?id=${item.id}" title="Ver detalle">
-                                <i class="bi bi-eye"></i>
-                            </a>
-                            ${item.pdfRuta ? `
-                            <a class="admin-icon-btn" href="${apiBaseUrl}desgaje/registros/${item.id}/pdf" target="_blank" title="PDF">
-                                <i class="bi bi-file-earmark-pdf"></i>
-                            </a>` : ''}
-                            <button class="admin-icon-btn admin-icon-btn-danger" type="button" data-eliminar-id="${item.id}" data-eliminar-codigo="${escapeHtml(item.codigo)}" title="Eliminar registro">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </div>
-                    </td>
                 </tr>
             `);
         }).join('');
 
-        tablaBody.querySelectorAll('button[data-eliminar-id]').forEach(btn => {
-            btn.addEventListener('click', () => eliminarRegistro(btn.dataset.eliminarId, btn.dataset.eliminarCodigo));
+        tablaBody.querySelectorAll('tr[data-detalle-id]').forEach(fila => {
+            fila.addEventListener('click', () => {
+                window.location.href = `/modules/rrhh/desgaje/admin/detalle.php?id=${fila.dataset.detalleId}`;
+            });
         });
     }
 
@@ -183,31 +169,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return `Pliego ${escapeHtml(detalle.numeroPliego || '-')} · ${escapeHtml(detalle.tipoDesgajeNombreSnapshot || '-')}`;
         }
         return escapeHtml(detalle.descripcionProducto || detalle.descripcionTrabajo || '-');
-    }
-
-    async function eliminarRegistro(id, codigo) {
-        const confirmado = confirm(
-            `¿Eliminar definitivamente el registro ${codigo}?\n\nSe borrará la fila, sus trabajos, firma y PDF. Esta acción NO se puede deshacer.`
-        );
-        if (!confirmado) return;
-
-        try {
-            const response = await fetch(`${apiBaseUrl}desgaje/registros/${id}`, {
-                method: 'DELETE',
-                headers: { 'X-Admin-Key': adminDeleteKey }
-            });
-
-            if (!response.ok) {
-                const mensaje = await response.text().catch(() => '');
-                throw new Error(mensaje || 'No se pudo eliminar el registro.');
-            }
-
-            cargarRegistros();
-            cargarPendientes();
-
-        } catch (error) {
-            alert(error.message);
-        }
     }
 
     function renderPaginacion() {
@@ -262,16 +223,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             return detalles.map(detalle => `
                 <tr>
-                    <td>${escapeHtml(item.codigo)}</td>
                     <td>${escapeHtml(detalle ? detalle.np : (item.nps || '-'))}</td>
                     <td>${formatearFecha(item.fechaRegistro, true)}</td>
-                    <td>${escapeHtml(item.tallerNombreSnapshot)}</td>
                     <td>${escapeHtml(item.operadorNombreSnapshot)}</td>
                     <td>${escapeHtml(detalle ? detalle.clienteNombreSnapshot : '-')}</td>
                     <td>${detalle ? descripcionTrabajo(detalle) : '-'}</td>
+                    <td>${detalle && detalle.cantidadPliegos != null ? detalle.cantidadPliegos : '-'}</td>
+                    <td>${detalle && detalle.numeroMoldes != null ? detalle.numeroMoldes : '-'}</td>
                     <td>${detalle ? detalle.cantidadEstuches : item.cantidadEstuchesTotal}</td>
                     <td>${detalle ? detalle.valorCalculado : item.valorTotal}</td>
-                    <td>${escapeHtml(item.estado)}</td>
                 </tr>
             `);
         }).join('');
@@ -291,20 +251,19 @@ document.addEventListener('DOMContentLoaded', () => {
             </head>
             <body>
                 <table>
-                    <tr><td colspan="10" class="title">Exportación Registros de Desgaje</td></tr>
-                    <tr><td colspan="10" class="subtitle">Workspace Faret - ${new Date().toLocaleString('es-CL')}</td></tr>
+                    <tr><td colspan="9" class="title">Exportación Registros de Desgaje</td></tr>
+                    <tr><td colspan="9" class="subtitle">Workspace Faret - ${new Date().toLocaleString('es-CL')}</td></tr>
                     <tr></tr>
                     <tr>
-                        <th>CÓDIGO</th>
                         <th>NP</th>
                         <th>FECHA</th>
-                        <th>TALLER</th>
                         <th>OPERADOR</th>
                         <th>CLIENTE</th>
                         <th>DETALLE TRABAJO</th>
+                        <th>CANTIDAD DE PLIEGOS</th>
+                        <th>MOLDES</th>
                         <th>CANTIDAD</th>
                         <th>VALOR</th>
-                        <th>ESTADO</th>
                     </tr>
                     ${filas}
                 </table>
@@ -326,23 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function mostrarCargando() {
-        tablaBody.innerHTML = `<tr><td colspan="11" class="admin-empty">Cargando registros...</td></tr>`;
-    }
-
-    function badgeEstado(estado) {
-        const clases = {
-            BORRADOR: 'badge',
-            FIRMADO: 'badge badge-warning',
-            VALIDADO: 'badge badge-success',
-            ANULADO: 'badge badge-danger'
-        };
-        const textos = {
-            BORRADOR: 'Borrador',
-            FIRMADO: 'Firmado',
-            VALIDADO: 'Validado',
-            ANULADO: 'Anulado'
-        };
-        return `<span class="${clases[estado] || 'badge'}">${escapeHtml(textos[estado] || estado)}</span>`;
+        tablaBody.innerHTML = `<tr><td colspan="9" class="admin-empty">Cargando registros...</td></tr>`;
     }
 
     function formatearFecha(valor, soloFecha = false) {
