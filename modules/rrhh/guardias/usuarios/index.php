@@ -52,6 +52,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = $respuesta['error'] ?? 'No se pudo desactivar el usuario.';
         }
     }
+
+    if ($accion === 'cambiar_password') {
+        $id = (int)($_POST['id'] ?? 0);
+        $nuevaPassword = trim($_POST['nueva_password'] ?? '');
+
+        if ($nuevaPassword === '') {
+            $error = 'La nueva contraseña no puede estar vacía.';
+        } else {
+            $respuesta = ApiClient::patch("users/$id/password", ['password' => $nuevaPassword]);
+
+            if ($respuesta['ok']) {
+                $mensaje = 'Contraseña actualizada correctamente.';
+            } else {
+                $error = $respuesta['error'] ?? 'No se pudo actualizar la contraseña.';
+            }
+        }
+    }
+
+    if ($accion === 'eliminar') {
+        $id = (int)($_POST['id'] ?? 0);
+        $respuesta = ApiClient::delete("users/$id");
+
+        if ($respuesta['ok']) {
+            $mensaje = 'Usuario eliminado correctamente.';
+        } else {
+            $error = $respuesta['error'] ?? 'No se pudo eliminar el usuario.';
+        }
+    }
 }
 
 $respuestaUsuarios = ApiClient::get('users');
@@ -216,23 +244,45 @@ $inactivos = $totalUsuarios - $activos;
                             </td>
                             <td><?= htmlspecialchars($fecha) ?></td>
                             <td>
-                                <?php if ($activo): ?>
-                                    <form method="POST" style="display:inline;">
-                                        <input type="hidden" name="accion" value="desactivar">
+                                <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center;">
+                                    <?php if ($activo): ?>
+                                        <form method="POST" style="display:inline;">
+                                            <input type="hidden" name="accion" value="desactivar">
+                                            <input type="hidden" name="id" value="<?= htmlspecialchars($u['id']) ?>">
+                                            <button type="submit" class="btn-secondary">
+                                                Desactivar
+                                            </button>
+                                        </form>
+                                    <?php else: ?>
+                                        <form method="POST" style="display:inline;">
+                                            <input type="hidden" name="accion" value="activar">
+                                            <input type="hidden" name="id" value="<?= htmlspecialchars($u['id']) ?>">
+                                            <button type="submit" class="btn-primary">
+                                                Activar
+                                            </button>
+                                        </form>
+                                    <?php endif; ?>
+
+                                    <button type="button" class="btn-secondary" onclick="document.getElementById('reset-pass-<?= $u['id'] ?>').style.display='inline-flex'; this.style.display='none';">
+                                        Resetear contraseña
+                                    </button>
+                                    <form method="POST" id="reset-pass-<?= $u['id'] ?>" style="display:none; gap:4px;" onsubmit="return this.nueva_password.value.trim() !== '';">
+                                        <input type="hidden" name="accion" value="cambiar_password">
                                         <input type="hidden" name="id" value="<?= htmlspecialchars($u['id']) ?>">
-                                        <button type="submit" class="btn-secondary">
-                                            Desactivar
-                                        </button>
-                                    </form>
-                                <?php else: ?>
-                                    <form method="POST" style="display:inline;">
-                                        <input type="hidden" name="accion" value="activar">
-                                        <input type="hidden" name="id" value="<?= htmlspecialchars($u['id']) ?>">
+                                        <input type="text" name="nueva_password" placeholder="Nueva contraseña" style="width:140px;" required autofocus>
                                         <button type="submit" class="btn-primary">
-                                            Activar
+                                            Guardar
                                         </button>
                                     </form>
-                                <?php endif; ?>
+
+                                    <form method="POST" style="display:inline;" onsubmit="return confirm('¿Eliminar permanentemente al usuario <?= htmlspecialchars(addslashes($u['username'] ?? ''), ENT_QUOTES) ?>? Esta acción no se puede deshacer.');">
+                                        <input type="hidden" name="accion" value="eliminar">
+                                        <input type="hidden" name="id" value="<?= htmlspecialchars($u['id']) ?>">
+                                        <button type="submit" class="btn-secondary" style="color:#dc2626; border-color:#dc2626;" title="Eliminar usuario">
+                                            <i class="bi bi-trash-fill"></i>
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>

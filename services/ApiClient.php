@@ -78,6 +78,11 @@ class ApiClient
         return self::request(API_GUARDIAS, $endpoint, 'PATCH', $body);
     }
 
+    public static function delete($endpoint)
+    {
+        return self::request(API_GUARDIAS, $endpoint, 'DELETE');
+    }
+
     public static function getMejoraContinua($endpoint)
     {
         return self::request(API_MEJORA_CONTINUA, $endpoint, 'GET');
