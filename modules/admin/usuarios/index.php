@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $nombre = trim($_POST['nombre'] ?? '');
         $username = trim($_POST['username'] ?? '');
         $rol = $_POST['rol'] ?? '';
-        $modulosSeleccionados = $_POST['modulos'] ?? [];
+        $nivelesSeleccionados = $_POST['niveles'] ?? [];
 
         if ($nombre === '' || $username === '') {
             $error = 'Nombre y usuario son obligatorios.';
@@ -43,12 +43,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $nuevoId = (int) $pdo->lastInsertId();
 
-                if ($rol !== 'admin_ti' && is_array($modulosSeleccionados)) {
-                    $insertModulo = $pdo->prepare('INSERT INTO usuario_modulos (usuario_id, modulo_clave) VALUES (?, ?)');
+                if ($rol !== 'admin_ti' && is_array($nivelesSeleccionados)) {
+                    $insertModulo = $pdo->prepare('INSERT INTO usuario_modulos (usuario_id, modulo_clave, nivel) VALUES (?, ?, ?)');
 
-                    foreach ($modulosSeleccionados as $clave) {
-                        if (array_key_exists($clave, $modulosCatalogo)) {
-                            $insertModulo->execute([$nuevoId, $clave]);
+                    foreach ($nivelesSeleccionados as $clave => $nivel) {
+                        if (array_key_exists($clave, $modulosCatalogo) && in_array($nivel, ['ver', 'gestionar'], true)) {
+                            $insertModulo->execute([$nuevoId, $clave, $nivel]);
                         }
                     }
                 }
@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $usuarios = $pdo->query('SELECT * FROM usuarios ORDER BY nombre')->fetchAll(PDO::FETCH_ASSOC);
 
 $modulosPorUsuario = [];
-$stmtModulos = $pdo->prepare('SELECT modulo_clave FROM usuario_modulos WHERE usuario_id = ?');
+$stmtModulos = $pdo->prepare('SELECT modulo_clave, nivel FROM usuario_modulos WHERE usuario_id = ?');
 
 foreach ($usuarios as $u) {
     if ($u['rol'] === 'admin_ti') {
@@ -81,7 +81,7 @@ foreach ($usuarios as $u) {
     }
 
     $stmtModulos->execute([$u['id']]);
-    $modulosPorUsuario[$u['id']] = $stmtModulos->fetchAll(PDO::FETCH_COLUMN);
+    $modulosPorUsuario[$u['id']] = $stmtModulos->fetchAll(PDO::FETCH_ASSOC);
 }
 
 ?>
@@ -140,12 +140,16 @@ foreach ($usuarios as $u) {
 
         <div class="filter-group" style="grid-column: 1 / -1;">
             <label>Módulos con acceso (no aplica para Admin TI, que ya ve todo)</label>
-            <div style="display:flex; flex-wrap:wrap; gap:14px; margin-top:6px;">
+            <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap:10px; margin-top:6px;">
                 <?php foreach ($modulosCatalogo as $clave => $modulo): ?>
-                    <label style="display:flex; align-items:center; gap:6px; font-weight:400;">
-                        <input type="checkbox" name="modulos[]" value="<?= htmlspecialchars($clave) ?>">
-                        <?= htmlspecialchars($modulo['label']) ?>
-                    </label>
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                        <span><?= htmlspecialchars($modulo['label']) ?></span>
+                        <select name="niveles[<?= htmlspecialchars($clave) ?>]">
+                            <option value="">Sin acceso</option>
+                            <option value="ver">Ver</option>
+                            <option value="gestionar">Gestionar</option>
+                        </select>
+                    </div>
                 <?php endforeach; ?>
             </div>
         </div>
@@ -194,8 +198,12 @@ foreach ($usuarios as $u) {
                             <?php elseif (empty($modulosPorUsuario[$u['id']])): ?>
                                 <span class="status-badge status-pending">Sin asignar</span>
                             <?php else: ?>
-                                <?php foreach ($modulosPorUsuario[$u['id']] as $clave): ?>
-                                    <span class="badge"><?= htmlspecialchars($modulosCatalogo[$clave]['label'] ?? $clave) ?></span>
+                                <?php foreach ($modulosPorUsuario[$u['id']] as $moduloAsignado): ?>
+                                    <?php $clave = $moduloAsignado['modulo_clave']; ?>
+                                    <span class="badge">
+                                        <?= htmlspecialchars($modulosCatalogo[$clave]['label'] ?? $clave) ?>
+                                        (<?= $moduloAsignado['nivel'] === 'ver' ? 'Ver' : 'Gestionar' ?>)
+                                    </span>
                                 <?php endforeach; ?>
                             <?php endif; ?>
                         </td>

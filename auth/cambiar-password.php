@@ -81,27 +81,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <div class="auth-field">
                 <label for="password">Nueva contraseña</label>
-                <input
-                    type="password"
-                    id="password"
-                    name="password"
-                    autocomplete="new-password"
-                    minlength="8"
-                    required
-                    autofocus
-                >
+                <div class="auth-password-wrap">
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        autocomplete="new-password"
+                        minlength="8"
+                        required
+                        autofocus
+                    >
+                    <button type="button" class="auth-password-toggle" data-target="password"></button>
+                </div>
             </div>
 
             <div class="auth-field">
                 <label for="confirmar">Confirmar contraseña</label>
-                <input
-                    type="password"
-                    id="confirmar"
-                    name="confirmar"
-                    autocomplete="new-password"
-                    minlength="8"
-                    required
-                >
+                <div class="auth-password-wrap">
+                    <input
+                        type="password"
+                        id="confirmar"
+                        name="confirmar"
+                        autocomplete="new-password"
+                        minlength="8"
+                        required
+                    >
+                    <button type="button" class="auth-password-toggle" data-target="confirmar"></button>
+                </div>
             </div>
 
             <button type="submit" class="btn-auth">
@@ -111,6 +117,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </form>
 
     </div>
+
+    <script src="/assets/js/auth/password-toggle.js"></script>
 
 </body>
 

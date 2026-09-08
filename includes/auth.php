@@ -4,6 +4,7 @@ date_default_timezone_set('America/Santiago');
 
 const MAX_INTENTOS_FALLIDOS = 5;
 const BLOQUEO_MINUTOS = 15;
+const SESSION_INACTIVIDAD_MINUTOS = 120;
 
 if (session_status() === PHP_SESSION_NONE) {
     session_set_cookie_params([
@@ -52,9 +53,16 @@ function getAuthPdo(): PDO
         CREATE TABLE IF NOT EXISTS usuario_modulos (
             usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
             modulo_clave TEXT NOT NULL,
+            nivel TEXT NOT NULL DEFAULT \'gestionar\',
             PRIMARY KEY (usuario_id, modulo_clave)
         )
     ');
+
+    $columnasUsuarioModulos = $pdo->query('PRAGMA table_info(usuario_modulos)')->fetchAll(PDO::FETCH_COLUMN, 1);
+
+    if (!in_array('nivel', $columnasUsuarioModulos, true)) {
+        $pdo->exec("ALTER TABLE usuario_modulos ADD COLUMN nivel TEXT NOT NULL DEFAULT 'gestionar'");
+    }
 
     $pdo->exec('
         CREATE TABLE IF NOT EXISTS usuario_perfil (
@@ -269,6 +277,15 @@ function requireLogin(): void
         exit;
     }
 
+    if (isset($_SESSION['ultimo_acceso']) && (time() - $_SESSION['ultimo_acceso']) > SESSION_INACTIVIDAD_MINUTOS * 60) {
+        $next = urlencode($_SERVER['REQUEST_URI'] ?? '/');
+        cerrarSesionUsuario();
+        header('Location: /auth/login.php?motivo=expirada&next=' . $next);
+        exit;
+    }
+
+    $_SESSION['ultimo_acceso'] = time();
+
     $rutaActual = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 
     if (
@@ -308,6 +325,25 @@ function hasModuleAccess(string $clave): bool
     }
 
     return in_array($clave, currentUserModules(), true);
+}
+
+function moduleAccessLevel(string $clave): ?string
+{
+    $usuario = currentUser();
+
+    if ($usuario === null) {
+        return null;
+    }
+
+    if ($usuario['rol'] === 'admin_ti') {
+        return 'gestionar';
+    }
+
+    $stmt = getAuthPdo()->prepare('SELECT nivel FROM usuario_modulos WHERE usuario_id = ? AND modulo_clave = ?');
+    $stmt->execute([$usuario['id'], $clave]);
+    $nivel = $stmt->fetchColumn();
+
+    return $nivel !== false ? $nivel : null;
 }
 
 function mostrarAccesoDenegado(string $mensaje): void
@@ -398,6 +434,7 @@ function intentarLogin(string $username, string $password): array
         'rol' => $usuario['rol'],
         'debe_cambiar_password' => (bool) $usuario['debe_cambiar_password'],
     ];
+    $_SESSION['ultimo_acceso'] = time();
 
     return ['ok' => true];
 }

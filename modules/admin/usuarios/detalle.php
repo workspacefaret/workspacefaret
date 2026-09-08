@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($accion === 'actualizar') {
         $nombre = trim($_POST['nombre'] ?? '');
         $rol = $_POST['rol'] ?? '';
-        $modulosSeleccionados = $_POST['modulos'] ?? [];
+        $nivelesSeleccionados = $_POST['niveles'] ?? [];
 
         if ($nombre === '') {
             $error = 'El nombre es obligatorio.';
@@ -41,12 +41,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $pdo->prepare('DELETE FROM usuario_modulos WHERE usuario_id = ?')->execute([$id]);
 
-            if ($rol !== 'admin_ti' && is_array($modulosSeleccionados)) {
-                $insertModulo = $pdo->prepare('INSERT INTO usuario_modulos (usuario_id, modulo_clave) VALUES (?, ?)');
+            if ($rol !== 'admin_ti' && is_array($nivelesSeleccionados)) {
+                $insertModulo = $pdo->prepare('INSERT INTO usuario_modulos (usuario_id, modulo_clave, nivel) VALUES (?, ?, ?)');
 
-                foreach ($modulosSeleccionados as $clave) {
-                    if (array_key_exists($clave, $modulosCatalogo)) {
-                        $insertModulo->execute([$id, $clave]);
+                foreach ($nivelesSeleccionados as $clave => $nivel) {
+                    if (array_key_exists($clave, $modulosCatalogo) && in_array($nivel, ['ver', 'gestionar'], true)) {
+                        $insertModulo->execute([$id, $clave, $nivel]);
                     }
                 }
             }
@@ -80,9 +80,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$stmtModulos = $pdo->prepare('SELECT modulo_clave FROM usuario_modulos WHERE usuario_id = ?');
+$stmtModulos = $pdo->prepare('SELECT modulo_clave, nivel FROM usuario_modulos WHERE usuario_id = ?');
 $stmtModulos->execute([$id]);
-$modulosAsignados = $stmtModulos->fetchAll(PDO::FETCH_COLUMN);
+$nivelesAsignados = array_column($stmtModulos->fetchAll(PDO::FETCH_ASSOC), 'nivel', 'modulo_clave');
 
 $activo = (int) $usuario['activo'] === 1;
 
@@ -147,13 +147,17 @@ $activo = (int) $usuario['activo'] === 1;
 
         <div class="filter-group" style="grid-column: 1 / -1;">
             <label>Módulos con acceso (no aplica para Admin TI, que ya ve todo)</label>
-            <div style="display:flex; flex-wrap:wrap; gap:14px; margin-top:6px;">
+            <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap:10px; margin-top:6px;">
                 <?php foreach ($modulosCatalogo as $clave => $modulo): ?>
-                    <label style="display:flex; align-items:center; gap:6px; font-weight:400;">
-                        <input type="checkbox" name="modulos[]" value="<?= htmlspecialchars($clave) ?>"
-                            <?= in_array($clave, $modulosAsignados, true) ? 'checked' : '' ?>>
-                        <?= htmlspecialchars($modulo['label']) ?>
-                    </label>
+                    <?php $nivelActual = $nivelesAsignados[$clave] ?? ''; ?>
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                        <span><?= htmlspecialchars($modulo['label']) ?></span>
+                        <select name="niveles[<?= htmlspecialchars($clave) ?>]">
+                            <option value="" <?= $nivelActual === '' ? 'selected' : '' ?>>Sin acceso</option>
+                            <option value="ver" <?= $nivelActual === 'ver' ? 'selected' : '' ?>>Ver</option>
+                            <option value="gestionar" <?= $nivelActual === 'gestionar' ? 'selected' : '' ?>>Gestionar</option>
+                        </select>
+                    </div>
                 <?php endforeach; ?>
             </div>
         </div>

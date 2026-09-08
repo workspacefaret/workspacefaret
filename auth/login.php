@@ -19,6 +19,11 @@ if (currentUser() !== null) {
 
 $error = null;
 $username = '';
+$aviso = null;
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' && ($_GET['motivo'] ?? '') === 'expirada') {
+    $aviso = 'Tu sesión expiró por inactividad. Ingresa nuevamente.';
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
@@ -68,6 +73,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <h1>Iniciar sesión</h1>
 
+        <?php if ($aviso && !$error): ?>
+            <p class="auth-instructions"><?= htmlspecialchars($aviso) ?></p>
+        <?php endif; ?>
+
         <?php if ($error): ?>
             <div class="auth-error"><?= htmlspecialchars($error) ?></div>
         <?php endif; ?>
@@ -81,7 +90,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <div class="auth-field">
                 <label for="password">Contraseña</label>
-                <input type="password" id="password" name="password" autocomplete="current-password" required>
+                <div class="auth-password-wrap">
+                    <input type="password" id="password" name="password" autocomplete="current-password" required>
+                    <button type="button" class="auth-password-toggle" data-target="password"></button>
+                </div>
             </div>
 
             <button type="submit" class="btn-auth">Ingresar</button>
@@ -91,6 +103,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <a href="/modules/welcome/" class="auth-link">Volver al inicio</a>
 
     </div>
+
+    <script src="/assets/js/auth/password-toggle.js"></script>
 
 </body>
 
