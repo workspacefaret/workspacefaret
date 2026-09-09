@@ -59,7 +59,7 @@ ob_start();
         <form id="formPerfil" class="admin-form-grid" autocomplete="off">
             <div class="admin-form-field">
                 <label for="perfilCliente">Cliente</label>
-                <input type="text" id="perfilCliente">
+                <input type="text" id="perfilCliente" required>
             </div>
             <div class="admin-form-field">
                 <label for="perfilMedidas">Medidas</label>
@@ -184,7 +184,7 @@ ob_start();
         <form id="formMolde" class="admin-form-grid" autocomplete="off">
             <div class="admin-form-field">
                 <label for="moldeCliente">Cliente</label>
-                <input type="text" id="moldeCliente">
+                <input type="text" id="moldeCliente" required>
             </div>
             <div class="admin-form-field">
                 <label for="moldeRubro">Rubro</label>
@@ -324,7 +324,7 @@ ob_start();
         <form id="formMoldeNr" class="admin-form-grid" autocomplete="off">
             <div class="admin-form-field">
                 <label for="moldeNrCliente">Cliente</label>
-                <input type="text" id="moldeNrCliente">
+                <input type="text" id="moldeNrCliente" required>
             </div>
             <div class="admin-form-field">
                 <label for="moldeNrRubro">Rubro</label>
@@ -452,7 +452,7 @@ ob_start();
             <input type="hidden" id="editarPerfilId">
             <div class="admin-form-field">
                 <label for="editarPerfilCliente">Cliente</label>
-                <input type="text" id="editarPerfilCliente">
+                <input type="text" id="editarPerfilCliente" required>
             </div>
             <div class="admin-form-field">
                 <label for="editarPerfilMedidas">Medidas</label>
@@ -516,7 +516,7 @@ ob_start();
             <input type="hidden" id="editarMoldeTipo">
             <div class="admin-form-field">
                 <label for="editarMoldeCliente">Cliente</label>
-                <input type="text" id="editarMoldeCliente">
+                <input type="text" id="editarMoldeCliente" required>
             </div>
             <div class="admin-form-field">
                 <label for="editarMoldeRubro">Rubro</label>
