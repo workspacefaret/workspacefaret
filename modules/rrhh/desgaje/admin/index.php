@@ -9,7 +9,7 @@ if (file_exists($secretsPath)) {
     require_once $secretsPath;
 }
 
-$esAdminTi = (currentUser()['rol'] ?? null) === 'admin_ti';
+$puedeEliminar = moduleAccessLevel('rrhh') === 'gestionar';
 
 ob_start();
 ?>
@@ -204,8 +204,8 @@ ob_start();
 
 <script>
     window.API_FORMULARIOS = '<?= htmlspecialchars(API_FORMULARIOS) ?>';
-    window.esAdminTi = <?= $esAdminTi ? 'true' : 'false' ?>;
-    <?php if ($esAdminTi): ?>
+    window.esAdminTi = <?= $puedeEliminar ? 'true' : 'false' ?>;
+    <?php if ($puedeEliminar): ?>
     window.API_ADMIN_DELETE_KEY = <?= json_encode(defined('API_ADMIN_DELETE_KEY') ? API_ADMIN_DELETE_KEY : '') ?>;
     <?php endif; ?>
 </script>
