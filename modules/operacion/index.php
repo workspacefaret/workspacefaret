@@ -137,7 +137,7 @@ $areas = [
 
 $areas = array_filter($areas, fn($a) => $a['ver']);
 
-$novedades = obtenerNovedadesActivas(5);
+$novedades = obtenerNovedadesActivas(5, $usuario);
 ?>
 
 <link rel="stylesheet" href="/assets/css/formularios/admin-formularios.css">

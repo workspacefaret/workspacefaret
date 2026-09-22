@@ -99,23 +99,81 @@ function getAuthPdo(): PDO
         )
     ');
 
+    // Segmentación de audiencia de novedades (added 2026-09-22). Una novedad sin filas en
+    // ninguna de las dos tablas es visible para todos (comportamiento original, compatible con
+    // las novedades ya publicadas antes de esta fecha). Con filas, es visible si el rol del
+    // usuario o alguno de sus módulos coincide (ver obtenerNovedadesActivas()).
+    $pdo->exec('
+        CREATE TABLE IF NOT EXISTS novedad_roles (
+            novedad_id INTEGER NOT NULL REFERENCES novedades(id),
+            rol TEXT NOT NULL,
+            PRIMARY KEY (novedad_id, rol)
+        )
+    ');
+
+    $pdo->exec('
+        CREATE TABLE IF NOT EXISTS novedad_modulos (
+            novedad_id INTEGER NOT NULL REFERENCES novedades(id),
+            modulo_clave TEXT NOT NULL,
+            PRIMARY KEY (novedad_id, modulo_clave)
+        )
+    ');
+
     return $pdo;
 }
 
-function obtenerNovedadesActivas(int $limite = 5): array
+// $usuario: currentUser() del que consulta. admin_ti siempre ve todo (mismo criterio que
+// hasModuleAccess()); para el resto, una novedad sin audiencia asignada es visible para todos
+// (compatible con las novedades publicadas antes de la segmentación) y una novedad con audiencia
+// es visible si el rol del usuario o alguno de sus módulos coincide.
+function obtenerNovedadesActivas(int $limite, array $usuario): array
 {
-    $stmt = getAuthPdo()->prepare('
-        SELECT n.titulo, n.cuerpo, n.creado_en, u.nombre AS autor
+    $pdo = getAuthPdo();
+
+    $todas = $pdo->query('
+        SELECT n.id, n.titulo, n.cuerpo, n.creado_en, u.nombre AS autor
         FROM novedades n
         LEFT JOIN usuarios u ON u.id = n.creado_por
         WHERE n.activo = 1
         ORDER BY n.creado_en DESC
-        LIMIT ?
-    ');
-    $stmt->bindValue(1, $limite, PDO::PARAM_INT);
-    $stmt->execute();
+    ')->fetchAll(PDO::FETCH_ASSOC);
 
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    if (count($todas) === 0 || $usuario['rol'] === 'admin_ti') {
+        return array_slice($todas, 0, $limite);
+    }
+
+    $rolesPorNovedad = [];
+    foreach ($pdo->query('SELECT novedad_id, rol FROM novedad_roles') as $fila) {
+        $rolesPorNovedad[$fila['novedad_id']][] = $fila['rol'];
+    }
+
+    $modulosPorNovedad = [];
+    foreach ($pdo->query('SELECT novedad_id, modulo_clave FROM novedad_modulos') as $fila) {
+        $modulosPorNovedad[$fila['novedad_id']][] = $fila['modulo_clave'];
+    }
+
+    $modulosUsuario = currentUserModules();
+    $visibles = [];
+
+    foreach ($todas as $n) {
+        $roles = $rolesPorNovedad[$n['id']] ?? [];
+        $modulos = $modulosPorNovedad[$n['id']] ?? [];
+        $segmentada = count($roles) > 0 || count($modulos) > 0;
+
+        $coincide = !$segmentada
+            || in_array($usuario['rol'], $roles, true)
+            || count(array_intersect($modulos, $modulosUsuario)) > 0;
+
+        if ($coincide) {
+            $visibles[] = $n;
+
+            if (count($visibles) >= $limite) {
+                break;
+            }
+        }
+    }
+
+    return $visibles;
 }
 
 function obtenerPerfilUsuario(int $usuarioId): array

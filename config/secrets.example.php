@@ -3,3 +3,5 @@
 // Copiar este archivo como config/secrets.php en cada servidor y completar los valores reales.
 
 define('API_ADMIN_DELETE_KEY', ''); // debe coincidir con AdminSecurity:DeleteKey en el appsettings.json de Formularios.Api
+
+define('API_APIFARET_KEY', ''); // key del consumidor "Workspace" en Security:ApiKeys del appsettings.Production.json de apifaret

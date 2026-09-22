@@ -29,6 +29,68 @@
 
             <div class="menu-section">Áreas de trabajo</div>
 
+            <?php if (hasModuleAccess('portal_sap') || hasModuleAccess('portal_sap_ventas') || hasModuleAccess('portal_sap_compras') || hasModuleAccess('portal_sap_logistica') || hasModuleAccess('portal_sap_calidad') || hasModuleAccess('portal_sap_precios')): ?>
+                <a href="/modules/sap/">
+                    <i class="bi bi-diagram-2"></i>
+                    Portal SAP
+                </a>
+                <div class="menu-submenu">
+                    <?php if (hasModuleAccess('portal_sap')): ?>
+                        <a href="/modules/sap/inventario/">
+                            <i class="bi bi-boxes"></i>
+                            Inventario
+                        </a>
+                        <a href="/modules/sap/clientes/">
+                            <i class="bi bi-people"></i>
+                            Clientes
+                        </a>
+                        <a href="/modules/sap/proveedores/">
+                            <i class="bi bi-truck"></i>
+                            Proveedores
+                        </a>
+                        <a href="/modules/sap/almacenes/">
+                            <i class="bi bi-building"></i>
+                            Almacenes
+                        </a>
+                    <?php endif; ?>
+
+                    <?php if (hasModuleAccess('portal_sap_ventas')): ?>
+                        <a href="/modules/sap/ventas/">
+                            <i class="bi bi-graph-up"></i>
+                            Ventas
+                        </a>
+                    <?php endif; ?>
+
+                    <?php if (hasModuleAccess('portal_sap_compras')): ?>
+                        <a href="/modules/sap/compras/">
+                            <i class="bi bi-cart"></i>
+                            Compras
+                        </a>
+                    <?php endif; ?>
+
+                    <?php if (hasModuleAccess('portal_sap_logistica')): ?>
+                        <a href="/modules/sap/logistica/">
+                            <i class="bi bi-signpost-split"></i>
+                            Logística
+                        </a>
+                    <?php endif; ?>
+
+                    <?php if (hasModuleAccess('portal_sap_calidad')): ?>
+                        <a href="/modules/sap/calidad/">
+                            <i class="bi bi-patch-check"></i>
+                            Calidad
+                        </a>
+                    <?php endif; ?>
+
+                    <?php if (hasModuleAccess('portal_sap_precios')): ?>
+                        <a href="/modules/sap/precios/">
+                            <i class="bi bi-tag"></i>
+                            Precios
+                        </a>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+
             <?php if (hasModuleAccess('planificacion') || hasModuleAccess('control_moldes') || hasModuleAccess('stock_moldes')): ?>
                 <a href="/modules/planificacion/moldes/">
                     <i class="bi bi-box-seam"></i>

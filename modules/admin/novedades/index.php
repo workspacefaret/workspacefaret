@@ -6,6 +6,8 @@ requireAdminTi();
 ob_start();
 
 $pdo = getAuthPdo();
+$rolesCatalogo = obtenerRolesCatalogo();
+$modulosCatalogo = obtenerModulosCatalogo();
 
 $mensaje = '';
 $error = '';
@@ -16,12 +18,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($accion === 'crear') {
         $titulo = trim($_POST['titulo'] ?? '');
         $cuerpo = trim($_POST['cuerpo'] ?? '');
+        $rolesSeleccionados = array_intersect((array) ($_POST['roles'] ?? []), array_keys($rolesCatalogo));
+        $modulosSeleccionados = array_intersect((array) ($_POST['modulos'] ?? []), array_keys($modulosCatalogo));
 
         if ($titulo === '' || $cuerpo === '') {
             $error = 'Título y contenido son obligatorios.';
         } else {
             $pdo->prepare('INSERT INTO novedades (titulo, cuerpo, creado_por, creado_en) VALUES (?, ?, ?, ?)')
                 ->execute([$titulo, $cuerpo, currentUser()['id'], nowLocal()]);
+
+            $novedadId = (int) $pdo->lastInsertId();
+
+            if (count($rolesSeleccionados) > 0) {
+                $insertRol = $pdo->prepare('INSERT INTO novedad_roles (novedad_id, rol) VALUES (?, ?)');
+
+                foreach ($rolesSeleccionados as $rol) {
+                    $insertRol->execute([$novedadId, $rol]);
+                }
+            }
+
+            if (count($modulosSeleccionados) > 0) {
+                $insertModulo = $pdo->prepare('INSERT INTO novedad_modulos (novedad_id, modulo_clave) VALUES (?, ?)');
+
+                foreach ($modulosSeleccionados as $clave) {
+                    $insertModulo->execute([$novedadId, $clave]);
+                }
+            }
 
             $mensaje = 'Novedad publicada correctamente.';
         }
@@ -36,11 +58,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($accion === 'eliminar') {
         $id = (int) ($_POST['id'] ?? 0);
         $pdo->prepare('DELETE FROM novedades WHERE id = ?')->execute([$id]);
+        $pdo->prepare('DELETE FROM novedad_roles WHERE novedad_id = ?')->execute([$id]);
+        $pdo->prepare('DELETE FROM novedad_modulos WHERE novedad_id = ?')->execute([$id]);
         $mensaje = 'Novedad eliminada correctamente.';
     }
 }
 
 $novedades = $pdo->query('SELECT * FROM novedades ORDER BY creado_en DESC')->fetchAll(PDO::FETCH_ASSOC);
+
+$rolesPorNovedad = [];
+foreach ($pdo->query('SELECT novedad_id, rol FROM novedad_roles') as $fila) {
+    $rolesPorNovedad[$fila['novedad_id']][] = $fila['rol'];
+}
+
+$modulosPorNovedad = [];
+foreach ($pdo->query('SELECT novedad_id, modulo_clave FROM novedad_modulos') as $fila) {
+    $modulosPorNovedad[$fila['novedad_id']][] = $fila['modulo_clave'];
+}
+
+// Texto legible de la audiencia de una novedad para la columna del listado.
+function textoAudiencia(array $roles, array $modulos, array $rolesCatalogo, array $modulosCatalogo): string
+{
+    if (count($roles) === 0 && count($modulos) === 0) {
+        return 'Todos';
+    }
+
+    $partes = [];
+
+    foreach ($roles as $rol) {
+        $partes[] = $rolesCatalogo[$rol] ?? $rol;
+    }
+
+    foreach ($modulos as $clave) {
+        $partes[] = $modulosCatalogo[$clave]['label'] ?? $clave;
+    }
+
+    return implode(', ', $partes);
+}
 
 ?>
 
@@ -82,6 +136,31 @@ $novedades = $pdo->query('SELECT * FROM novedades ORDER BY creado_en DESC')->fet
             <textarea name="cuerpo" rows="4" required></textarea>
         </div>
 
+        <div class="filter-group">
+            <label>¿Quién puede verla? (nada marcado = todos los usuarios)</label>
+            <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap:10px; margin-top:6px;">
+                <?php foreach ($rolesCatalogo as $clave => $label): ?>
+                    <?php if ($clave === 'admin_ti') continue; // admin_ti siempre ve todo, segmentar por ese rol no tiene efecto ?>
+                    <label style="display:flex; align-items:center; gap:8px; font-weight:400;">
+                        <input type="checkbox" name="roles[]" value="<?= htmlspecialchars($clave) ?>">
+                        <?= htmlspecialchars($label) ?>
+                    </label>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+        <div class="filter-group">
+            <label>...o por módulo con acceso</label>
+            <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap:10px; margin-top:6px;">
+                <?php foreach ($modulosCatalogo as $clave => $modulo): ?>
+                    <label style="display:flex; align-items:center; gap:8px; font-weight:400;">
+                        <input type="checkbox" name="modulos[]" value="<?= htmlspecialchars($clave) ?>">
+                        <?= htmlspecialchars($modulo['label']) ?>
+                    </label>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
         <div class="filter-actions">
             <button type="submit" class="btn-primary">
                 <i class="bi bi-megaphone-fill"></i>
@@ -104,6 +183,7 @@ $novedades = $pdo->query('SELECT * FROM novedades ORDER BY creado_en DESC')->fet
                 <tr>
                     <th>Título</th>
                     <th>Contenido</th>
+                    <th>Audiencia</th>
                     <th>Publicado</th>
                     <th>Estado</th>
                     <th>Acciones</th>
@@ -117,6 +197,7 @@ $novedades = $pdo->query('SELECT * FROM novedades ORDER BY creado_en DESC')->fet
                     <tr>
                         <td><?= htmlspecialchars($n['titulo']) ?></td>
                         <td><?= htmlspecialchars($n['cuerpo']) ?></td>
+                        <td><?= htmlspecialchars(textoAudiencia($rolesPorNovedad[$n['id']] ?? [], $modulosPorNovedad[$n['id']] ?? [], $rolesCatalogo, $modulosCatalogo)) ?></td>
                         <td><?= htmlspecialchars($n['creado_en']) ?></td>
                         <td>
                             <span class="status-badge <?= $activo ? 'status-ok' : 'status-pending' ?>">
@@ -144,7 +225,7 @@ $novedades = $pdo->query('SELECT * FROM novedades ORDER BY creado_en DESC')->fet
 
                 <?php if (count($novedades) === 0): ?>
                     <tr>
-                        <td colspan="5">No hay novedades publicadas.</td>
+                        <td colspan="6">No hay novedades publicadas.</td>
                     </tr>
                 <?php endif; ?>
             </tbody>

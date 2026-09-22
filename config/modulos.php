@@ -12,4 +12,10 @@ return [
     'exportaciones' => ['label' => 'Exportaciones', 'icono' => 'bi-file-earmark-spreadsheet-fill'],
     'reportes' => ['label' => 'Reportes', 'icono' => 'bi-bar-chart-fill'],
     'documentacion' => ['label' => 'Documentación Técnica', 'icono' => 'bi-journal-text'],
+    'portal_sap' => ['label' => 'Portal SAP', 'icono' => 'bi-diagram-2'],
+    'portal_sap_ventas' => ['label' => 'Portal SAP - Ventas', 'icono' => 'bi-graph-up'],
+    'portal_sap_compras' => ['label' => 'Portal SAP - Compras', 'icono' => 'bi-cart'],
+    'portal_sap_logistica' => ['label' => 'Portal SAP - Logística', 'icono' => 'bi-truck'],
+    'portal_sap_calidad' => ['label' => 'Portal SAP - Calidad', 'icono' => 'bi-patch-check'],
+    'portal_sap_precios' => ['label' => 'Portal SAP - Precios', 'icono' => 'bi-tag'],
 ];

@@ -4,3 +4,4 @@ resumen-*.txt
 __pycache__/
 /tools/migracion-perfiles-moldes/cpm_perfiles.json
 /tools/migracion-perfiles-moldes/cpm_moldes.json
+.mcp.json
