@@ -111,6 +111,14 @@ ob_start();
                 <input type="text" id="filtroTreqBuscar" placeholder="NP/Molde, cliente, rack, perfil...">
             </div>
             <div class="admin-filter-field">
+                <label for="filtroTreqEstado">Estado</label>
+                <select id="filtroTreqEstado">
+                    <option value="">Todos</option>
+                    <option value="EN_STOCK">En stock</option>
+                    <option value="DE_BAJA">De baja</option>
+                </select>
+            </div>
+            <div class="admin-filter-field">
                 <label for="filtroTreqCliente">Cliente</label>
                 <input type="text" id="filtroTreqCliente" list="listaMreClientes">
             </div>
@@ -213,6 +221,14 @@ ob_start();
             <div class="admin-filter-field">
                 <label for="filtroFarmBuscar">Buscar</label>
                 <input type="text" id="filtroFarmBuscar" placeholder="NP/Molde, cliente, rack, perfil...">
+            </div>
+            <div class="admin-filter-field">
+                <label for="filtroFarmEstado">Estado</label>
+                <select id="filtroFarmEstado">
+                    <option value="">Todos</option>
+                    <option value="EN_STOCK">En stock</option>
+                    <option value="DE_BAJA">De baja</option>
+                </select>
             </div>
             <div class="admin-filter-field">
                 <label for="filtroFarmCliente">Cliente</label>
@@ -319,6 +335,14 @@ ob_start();
                 <input type="text" id="filtroInduBuscar" placeholder="NP/Molde, cliente, rack, perfil...">
             </div>
             <div class="admin-filter-field">
+                <label for="filtroInduEstado">Estado</label>
+                <select id="filtroInduEstado">
+                    <option value="">Todos</option>
+                    <option value="EN_STOCK">En stock</option>
+                    <option value="DE_BAJA">De baja</option>
+                </select>
+            </div>
+            <div class="admin-filter-field">
                 <label for="filtroInduCliente">Cliente</label>
                 <input type="text" id="filtroInduCliente" list="listaMreClientes">
             </div>
@@ -423,6 +447,14 @@ ob_start();
                 <input type="text" id="filtroCorrBuscar" placeholder="NP/Molde, cliente, rack, perfil...">
             </div>
             <div class="admin-filter-field">
+                <label for="filtroCorrEstado">Estado</label>
+                <select id="filtroCorrEstado">
+                    <option value="">Todos</option>
+                    <option value="EN_STOCK">En stock</option>
+                    <option value="DE_BAJA">De baja</option>
+                </select>
+            </div>
+            <div class="admin-filter-field">
                 <label for="filtroCorrCliente">Cliente</label>
                 <input type="text" id="filtroCorrCliente" list="listaMreClientes">
             </div>
@@ -494,6 +526,14 @@ ob_start();
                 </select>
             </div>
             <div class="admin-filter-field">
+                <label for="filtroTodoEstado">Estado</label>
+                <select id="filtroTodoEstado">
+                    <option value="">Todos</option>
+                    <option value="EN_STOCK">En stock</option>
+                    <option value="DE_BAJA">De baja</option>
+                </select>
+            </div>
+            <div class="admin-filter-field">
                 <label for="filtroTodoCliente">Cliente</label>
                 <input type="text" id="filtroTodoCliente" list="listaMreClientes">
             </div>
@@ -552,6 +592,13 @@ ob_start();
             <input type="hidden" id="editarMreId">
             <input type="hidden" id="editarMreCategoria">
 
+            <div class="admin-form-field">
+                <label for="editarMreEstado">Estado</label>
+                <select id="editarMreEstado">
+                    <option value="EN_STOCK">En stock</option>
+                    <option value="DE_BAJA">De baja</option>
+                </select>
+            </div>
             <div class="admin-form-field">
                 <label for="editarMreNpMolde">NP / Molde</label>
                 <input type="text" id="editarMreNpMolde">

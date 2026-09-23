@@ -23,6 +23,12 @@
         return tab ? tab.label : categoria;
     }
 
+    const ETIQUETAS_ESTADO = { EN_STOCK: 'En stock', DE_BAJA: 'De baja' };
+
+    function etiquetaEstado(estado) {
+        return ETIQUETAS_ESTADO[estado] || estado;
+    }
+
     const paginaActualPorTab = {};
     const porPagina = 50;
     const debounceTimers = {};
@@ -101,6 +107,9 @@
         const categoriaFiltro = tab.consolidado ? valor('filtro' + p + 'Categoria') : tab.categoria;
         if (categoriaFiltro) params.set('categoria', categoriaFiltro);
 
+        const estadoFiltro = valor('filtro' + p + 'Estado');
+        if (estadoFiltro) params.set('estado', estadoFiltro);
+
         params.set('pagina', pagina);
         params.set('porPagina', porPagina);
 
@@ -146,14 +155,23 @@
     }
 
     function accionesHtml(item) {
+        const esBaja = item.estado === 'DE_BAJA';
+        const tituloToggle = esBaja ? 'Reactivar (volver a En stock)' : 'Dar de baja';
+        const iconoToggle = esBaja ? 'bi-arrow-counterclockwise' : 'bi-dash-circle';
+
         return '<div class="admin-row-actions">' +
                     '<button type="button" class="admin-icon-btn" data-editar="' + item.id + '" data-categoria="' + escaparHtml(item.categoria) + '" title="Editar"><i class="bi bi-pencil"></i></button>' +
                     '<button type="button" class="admin-icon-btn" data-historial="' + item.id + '" data-historial-codigo="' + escaparHtml(item.npMolde) + '" title="Historial"><i class="bi bi-clock-history"></i></button>' +
+                    '<button type="button" class="admin-icon-btn" data-toggle-estado="' + item.id + '" title="' + tituloToggle + '"><i class="bi ' + iconoToggle + '"></i></button>' +
                 '</div>';
     }
 
+    function claseFilaEstado(item) {
+        return item.estado === 'DE_BAJA' ? ' class="admin-row-baja"' : '';
+    }
+
     function renderFila(item) {
-        return '<tr>' +
+        return '<tr' + claseFilaEstado(item) + '>' +
             '<td>' + escaparHtml(item.npMolde) + '</td>' +
             '<td>' + escaparHtml(item.cliente) + '</td>' +
             '<td>' + escaparHtml(item.rack) + '</td>' +
@@ -164,7 +182,7 @@
     }
 
     function renderFilaConsolidada(item) {
-        return '<tr>' +
+        return '<tr' + claseFilaEstado(item) + '>' +
             '<td>' + escaparHtml(etiquetaCategoria(item.categoria)) + '</td>' +
             '<td>' + escaparHtml(item.npMolde) + '</td>' +
             '<td>' + escaparHtml(item.cliente) + '</td>' +
@@ -205,12 +223,16 @@
         if (tab.consolidado) {
             document.getElementById('filtro' + p + 'Categoria').addEventListener('change', function () { cargarRegistros(tab, 1); });
         }
+        document.getElementById('filtro' + p + 'Estado').addEventListener('change', function () { cargarRegistros(tab, 1); });
 
         document.getElementById('btnLimpiarFiltros' + p).addEventListener('click', function () {
             ['Buscar', 'Cliente', 'Rack', 'Perfil'].forEach(function (campo) {
                 document.getElementById('filtro' + p + campo).value = '';
             });
-            if (tab.consolidado) document.getElementById('filtro' + p + 'Categoria').value = '';
+            if (tab.consolidado) {
+                document.getElementById('filtro' + p + 'Categoria').value = '';
+            }
+            document.getElementById('filtro' + p + 'Estado').value = '';
             cargarRegistros(tab, 1);
         });
     }
@@ -218,6 +240,7 @@
     function leerFormulario(tab, prefijoCampos) {
         return {
             categoria: tab.categoria,
+            estado: valor(prefijoCampos + 'Estado'),
             npMolde: valor(prefijoCampos + 'NpMolde'),
             cliente: valor(prefijoCampos + 'Cliente'),
             rack: valor(prefijoCampos + 'Rack'),
@@ -274,8 +297,49 @@
             const botonHistorial = evento.target.closest('[data-historial]');
             if (botonHistorial) {
                 await abrirHistorial(botonHistorial.dataset.historial, botonHistorial.dataset.historialCodigo);
+                return;
+            }
+
+            const botonToggle = evento.target.closest('[data-toggle-estado]');
+            if (botonToggle) {
+                await toggleEstado(parseInt(botonToggle.dataset.toggleEstado, 10), tab, botonToggle);
             }
         });
+    }
+
+    async function toggleEstado(id, tab, boton) {
+        boton.disabled = true;
+        try {
+            const response = await fetch(apiBaseUrl + 'mre/registros/' + id);
+            if (!response.ok) throw new Error('No fue posible cargar el registro.');
+            const item = await response.json();
+
+            const nuevoEstado = item.estado === 'DE_BAJA' ? 'EN_STOCK' : 'DE_BAJA';
+            const payload = {
+                categoria: item.categoria,
+                estado: nuevoEstado,
+                npMolde: item.npMolde,
+                cliente: item.cliente,
+                rack: item.rack,
+                perfil: item.perfil,
+                observaciones: item.observaciones,
+                usuario: usuarioActual
+            };
+
+            const putResponse = await fetch(apiBaseUrl + 'mre/registros/' + id, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const texto = await putResponse.text();
+            if (!putResponse.ok) throw new Error(texto || 'No fue posible cambiar el estado.');
+
+            cargarRegistros(tab, paginaActualPorTab[tab.prefijo] || 1);
+        } catch (error) {
+            alert(error.message);
+            boton.disabled = false;
+        }
     }
 
     async function abrirModalEditar(id, tab) {
@@ -290,6 +354,7 @@
         document.getElementById('editarMreCategoria').value = item.categoria;
         document.getElementById('modalEditarRegistroCodigo').textContent = item.npMolde || ('#' + item.id);
         document.getElementById('modalEditarRegistroCategoria').textContent = item.categoria;
+        document.getElementById('editarMreEstado').value = item.estado || 'EN_STOCK';
         document.getElementById('editarMreNpMolde').value = item.npMolde || '';
         document.getElementById('editarMreCliente').value = item.cliente || '';
         document.getElementById('editarMreRack').value = item.rack || '';
@@ -416,6 +481,7 @@
                 filtrosTexto: window.PlanificacionPrint.resumenFiltros([
                     ['Buscar', valor('filtro' + p + 'Buscar')],
                     tab.consolidado ? ['Categoría', etiquetaCategoria(valor('filtro' + p + 'Categoria'))] : null,
+                    ['Estado', etiquetaEstado(valor('filtro' + p + 'Estado'))],
                     ['Cliente', valor('filtro' + p + 'Cliente')],
                     ['Rack', valor('filtro' + p + 'Rack')],
                     ['Perfil', valor('filtro' + p + 'Perfil')]
