@@ -372,7 +372,8 @@
 }
 
 .admin-change-state option {
-    color: #111827;
+    background: #0f172a;
+    color: #fff;
 }
 
 .admin-list-box {
@@ -1129,7 +1130,8 @@
 }
 
 .admin-change-state option {
-    color: #111827;
+    background: #0f172a;
+    color: #fff;
 }
 
 .admin-list-box {
@@ -1634,6 +1636,11 @@
     background: #ffffff;
     border-color: #cbd5e1;
     color: #0f172a;
+}
+
+[data-theme="light"] .admin-change-state option {
+    background: #ffffff;
+    color: #111827;
 }
 
 [data-theme="light"] .admin-list-box {
