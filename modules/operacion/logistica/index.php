@@ -21,6 +21,15 @@ ob_start();
         <p>Acceso a formularios operacionales disponibles en solicitudes.faret.cl.</p>
     </a>
 
+    <a href="/modules/operacion/logistica/salida-mercaderia/" class="module-card">
+        <div class="module-icon">
+            <i class="bi bi-box-arrow-up-right"></i>
+        </div>
+
+        <h2>Salida de Mercadería</h2>
+        <p>Registra y consulta las salidas de mercadería de bodega/planta, con folio automático.</p>
+    </a>
+
 </div>
 
 <?php

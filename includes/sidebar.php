@@ -129,6 +129,16 @@
                     <i class="bi bi-truck"></i>
                     Logística
                 </a>
+                <div class="menu-submenu">
+                    <a href="https://solicitudes.faret.cl/app/formularios/" target="_blank">
+                        <i class="bi bi-clipboard2-check-fill"></i>
+                        Formularios Logística
+                    </a>
+                    <a href="/modules/operacion/logistica/salida-mercaderia/">
+                        <i class="bi bi-box-arrow-up-right"></i>
+                        Salida de Mercadería
+                    </a>
+                </div>
             <?php endif; ?>
 
             <?php if (hasModuleAccess('desarrollo')): ?>
