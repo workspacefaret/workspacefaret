@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const porPagina = 20;
     let filtroDebounce = null;
 
+    const tablaHead = document.getElementById('tablaRegistrosHead');
     const tablaBody = document.getElementById('tablaRegistrosBody');
     const badgeCantidad = document.getElementById('badgeCantidadRegistros');
     const paginacion = document.getElementById('adminPagination');
@@ -122,6 +123,46 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function esTallerManualSeleccionado() {
+        const tallerId = filtroTaller?.value;
+        if (!tallerId) return false;
+
+        const taller = (catalogos.talleres || []).find(t => String(t.id) === String(tallerId));
+        return taller?.modoRegistro === 'MANUAL';
+    }
+
+    function renderEncabezado(modoManual) {
+        if (!tablaHead) return;
+
+        tablaHead.innerHTML = modoManual ? `
+            <tr>
+                <th>NP</th>
+                <th>Cliente</th>
+                <th>Descripción producto</th>
+                <th>Cantidad buena</th>
+                <th>Cantidad mala</th>
+                <th>Total procesado</th>
+                <th>Precio</th>
+                <th>Valor</th>
+                <th>Descripción trabajo</th>
+                <th>Acciones</th>
+            </tr>
+        ` : `
+            <tr>
+                <th>NP</th>
+                <th>Fecha</th>
+                <th>Operador</th>
+                <th>Cliente</th>
+                <th>Detalle trabajo</th>
+                <th>Cantidad de pliegos</th>
+                <th>Moldes</th>
+                <th>Cantidad</th>
+                <th>Valor</th>
+                <th>Acciones</th>
+            </tr>
+        `;
+    }
+
     function limpiarFiltros() {
         filtroFechaDesde.value = '';
         filtroFechaHasta.value = '';
@@ -135,7 +176,56 @@ document.addEventListener('DOMContentLoaded', () => {
         cargarRegistros();
     }
 
+    function celdaAcciones(item, detalle) {
+        return `
+            <div class="admin-row-actions">
+                ${esAdminTi ? `
+                <button class="admin-icon-btn admin-icon-btn-danger" type="button" data-eliminar-id="${item.id}" data-eliminar-codigo="${escapeHtml(item.codigo || item.nps || detalle?.np || '')}" title="Eliminar registro completo">
+                    <i class="bi bi-trash"></i>
+                </button>
+                ` : ''}
+            </div>
+        `;
+    }
+
+    function filaCatalogo(item, detalle) {
+        return `
+            <tr class="admin-row-clickable" data-detalle-id="${item.id}" title="Ver detalle">
+                <td>${escapeHtml(detalle ? detalle.np : (item.nps || '-'))}</td>
+                <td>${formatearFecha(item.fechaRegistro, true)}</td>
+                <td>${escapeHtml(item.operadorNombreSnapshot)}</td>
+                <td>${escapeHtml(detalle ? detalle.clienteNombreSnapshot : '-')}</td>
+                <td>${detalle ? descripcionTrabajo(detalle) : '-'}</td>
+                <td>${detalle && detalle.cantidadPliegos != null ? detalle.cantidadPliegos : '-'}</td>
+                <td>${detalle && detalle.numeroMoldes != null ? detalle.numeroMoldes : '-'}</td>
+                <td>${detalle ? detalle.cantidadEstuches : item.cantidadEstuchesTotal}</td>
+                <td>${formatearMoneda(detalle ? detalle.valorCalculado : item.valorTotal)}</td>
+                <td>${celdaAcciones(item, detalle)}</td>
+            </tr>
+        `;
+    }
+
+    function filaManual(item, detalle) {
+        return `
+            <tr class="admin-row-clickable" data-detalle-id="${item.id}" title="Ver detalle">
+                <td>${escapeHtml(detalle ? detalle.np : (item.nps || '-'))}</td>
+                <td>${escapeHtml(detalle ? detalle.clienteNombreSnapshot : '-')}</td>
+                <td>${escapeHtml(detalle ? (detalle.descripcionProducto || '-') : '-')}</td>
+                <td>${detalle && detalle.cantidadBuena != null ? detalle.cantidadBuena : '-'}</td>
+                <td>${detalle && detalle.cantidadMala != null ? detalle.cantidadMala : '-'}</td>
+                <td>${detalle ? detalle.cantidadEstuches : item.cantidadEstuchesTotal}</td>
+                <td>${formatearMoneda(detalle ? detalle.precioAplicado : null)}</td>
+                <td>${formatearMoneda(detalle ? detalle.valorCalculado : item.valorTotal)}</td>
+                <td>${escapeHtml(detalle ? (detalle.descripcionTrabajo || '-') : '-')}</td>
+                <td>${celdaAcciones(item, detalle)}</td>
+            </tr>
+        `;
+    }
+
     function renderTabla(items) {
+        const modoManual = esTallerManualSeleccionado();
+        renderEncabezado(modoManual);
+
         if (!items || !items.length) {
             tablaBody.innerHTML = `<tr><td colspan="10" class="admin-empty">No hay registros para mostrar.</td></tr>`;
             return;
@@ -144,28 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tablaBody.innerHTML = items.flatMap(item => {
             const detalles = item.detalles && item.detalles.length ? item.detalles : [null];
 
-            return detalles.map(detalle => `
-                <tr class="admin-row-clickable" data-detalle-id="${item.id}" title="Ver detalle">
-                    <td>${escapeHtml(detalle ? detalle.np : (item.nps || '-'))}</td>
-                    <td>${formatearFecha(item.fechaRegistro, true)}</td>
-                    <td>${escapeHtml(item.operadorNombreSnapshot)}</td>
-                    <td>${escapeHtml(detalle ? detalle.clienteNombreSnapshot : '-')}</td>
-                    <td>${detalle ? descripcionTrabajo(detalle) : '-'}</td>
-                    <td>${detalle && detalle.cantidadPliegos != null ? detalle.cantidadPliegos : '-'}</td>
-                    <td>${detalle && detalle.numeroMoldes != null ? detalle.numeroMoldes : '-'}</td>
-                    <td>${detalle ? detalle.cantidadEstuches : item.cantidadEstuchesTotal}</td>
-                    <td>${formatearMoneda(detalle ? detalle.valorCalculado : item.valorTotal)}</td>
-                    <td>
-                        <div class="admin-row-actions">
-                            ${esAdminTi ? `
-                            <button class="admin-icon-btn admin-icon-btn-danger" type="button" data-eliminar-id="${item.id}" data-eliminar-codigo="${escapeHtml(item.codigo || item.nps || detalle?.np || '')}" title="Eliminar registro completo">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                            ` : ''}
-                        </div>
-                    </td>
-                </tr>
-            `);
+            return detalles.map(detalle => modoManual ? filaManual(item, detalle) : filaCatalogo(item, detalle));
         }).join('');
 
         tablaBody.querySelectorAll('tr[data-detalle-id]').forEach(fila => {
@@ -262,10 +331,24 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        const modoManual = esTallerManualSeleccionado();
+
         const filas = items.flatMap(item => {
             const detalles = item.detalles && item.detalles.length ? item.detalles : [null];
 
-            return detalles.map(detalle => `
+            return detalles.map(detalle => modoManual ? `
+                <tr>
+                    <td>${escapeHtml(detalle ? detalle.np : (item.nps || '-'))}</td>
+                    <td>${escapeHtml(detalle ? detalle.clienteNombreSnapshot : '-')}</td>
+                    <td>${escapeHtml(detalle ? (detalle.descripcionProducto || '-') : '-')}</td>
+                    <td>${detalle && detalle.cantidadBuena != null ? detalle.cantidadBuena : '-'}</td>
+                    <td>${detalle && detalle.cantidadMala != null ? detalle.cantidadMala : '-'}</td>
+                    <td>${detalle ? detalle.cantidadEstuches : item.cantidadEstuchesTotal}</td>
+                    <td>${detalle ? detalle.precioAplicado : ''}</td>
+                    <td>${detalle ? detalle.valorCalculado : item.valorTotal}</td>
+                    <td>${escapeHtml(detalle ? (detalle.descripcionTrabajo || '-') : '-')}</td>
+                </tr>
+            ` : `
                 <tr>
                     <td>${escapeHtml(detalle ? detalle.np : (item.nps || '-'))}</td>
                     <td>${formatearFecha(item.fechaRegistro, true)}</td>
@@ -279,6 +362,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 </tr>
             `);
         }).join('');
+
+        const columnas = modoManual
+            ? ['NP', 'CLIENTE', 'DESCRIPCIÓN PRODUCTO', 'CANTIDAD BUENA', 'CANTIDAD MALA', 'TOTAL PROCESADO', 'PRECIO', 'VALOR', 'DESCRIPCIÓN TRABAJO']
+            : ['NP', 'FECHA', 'OPERADOR', 'CLIENTE', 'DETALLE TRABAJO', 'CANTIDAD DE PLIEGOS', 'MOLDES', 'CANTIDAD', 'VALOR'];
 
         const html = `
             <html>
@@ -295,20 +382,10 @@ document.addEventListener('DOMContentLoaded', () => {
             </head>
             <body>
                 <table>
-                    <tr><td colspan="9" class="title">Exportación Registros de Desgaje</td></tr>
-                    <tr><td colspan="9" class="subtitle">Workspace Faret - ${new Date().toLocaleString('es-CL')}</td></tr>
+                    <tr><td colspan="${columnas.length}" class="title">Exportación Registros de Desgaje</td></tr>
+                    <tr><td colspan="${columnas.length}" class="subtitle">Workspace Faret - ${new Date().toLocaleString('es-CL')}</td></tr>
                     <tr></tr>
-                    <tr>
-                        <th>NP</th>
-                        <th>FECHA</th>
-                        <th>OPERADOR</th>
-                        <th>CLIENTE</th>
-                        <th>DETALLE TRABAJO</th>
-                        <th>CANTIDAD DE PLIEGOS</th>
-                        <th>MOLDES</th>
-                        <th>CANTIDAD</th>
-                        <th>VALOR</th>
-                    </tr>
+                    <tr>${columnas.map(c => `<th>${c}</th>`).join('')}</tr>
                     ${filas}
                 </table>
             </body>
@@ -329,6 +406,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function mostrarCargando() {
+        renderEncabezado(esTallerManualSeleccionado());
         tablaBody.innerHTML = `<tr><td colspan="10" class="admin-empty">Cargando registros...</td></tr>`;
     }
 

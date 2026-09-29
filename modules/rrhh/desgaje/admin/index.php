@@ -143,7 +143,7 @@ ob_start();
 
         <div class="admin-table-wrap">
             <table class="admin-table admin-table-desgaje">
-                <thead>
+                <thead id="tablaRegistrosHead">
                     <tr>
                         <th>NP</th>
                         <th>Fecha</th>
