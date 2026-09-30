@@ -108,6 +108,29 @@ Pages check `$respuesta['ok']` and render an inline error card on failure — al
   - Since 2026-07-17, `modules/formularios/publico/` (+ `diseno/` and `rrhh/` subpages) is a separate, unauthenticated hub added specifically for public form access by area — see the Authentication section above for the full public/protected boundary. It is distinct from this protected `modules/formularios/index.php` hub.
   - Both request types share the `solicitantes` and `clientes` catalogs (`catalogos/solicitantes`, `catalogos/clientes?search=`), and since 2026-07-13 also the shared `estados_solicitud` catalog (`catalogos/estados`) for the state-management workflow described above. Both reuse the CSS in `assets/css/formularios/*` — no new CSS was added for Estructural, it reuses `formularios.css` / `admin-formularios.css` as-is.
   - **Drag-and-drop uploads (added 2026-07-29).** Both creation forms' "Adjuntos" `.upload-card` box now also accepts dropped files, not just the native file-picker button. This is a single shared, generic script — `assets/js/formularios/upload-dropzone.js` — included via an extra `<script>` tag in both `solicitud-grafica/index.php` and `solicitud-estructural/index.php` (loaded before each form's own script). It wires `dragover`/`dragleave`/`drop` on any `.upload-card` on the page, assigns the dropped `FileList` directly to that card's `input[type=file].files`, and dispatches a synthetic `change` event — deliberately reusing the existing per-form `change` listener (preview rendering) and existing submit logic (`Array.from(adjuntosInput.files)`) unchanged in `desarrollo-grafico.js`/`solicitud-estructural.js`, rather than adding a parallel upload path. Visual feedback is a `.is-dragover` class toggled on the `.upload-card`, styled in `formularios.css` (plus the matching `[data-theme="light"] .upload-card.is-dragover` override at the end of that file, per the theming convention above). If a third form ever needs the same `.upload-card` pattern, including this same script is enough — no per-form wiring required.
+- `modules/sap/` — **Portal SAP**, read-only over SAP Business One.
+  - **Backend:** the sibling .NET 8 repo `apisapfaret` (`../apisapfaret`, published at `https://api.faret.cl/apifaret`), called **server-side only** through `services/ApiFaretClient.php`. The API key lives in `config/secrets.php` and must never reach the browser. `modules/sap/buscar.php` is the JSON proxy used by `assets/js/sap/autocomplete.js`.
+  - **Pages:** Inicio, `inventario/`, `clientes/`, `proveedores/` and `almacenes/` are gated by `portal_sap`. `ventas/`, `compras/`, `logistica/`, `calidad/` and `precios/` each have their own key (`portal_sap_ventas`, `_compras`, `_logistica`, `_calidad`, `_precios`).
+  - **Shared helper** `modules/sap/_ui.php` (added 2026-09-30, UX1; returns 404 if requested directly). Every Portal SAP page must use it:
+    - `sapFecha()` / `sapDiasDesde()` for dates.
+    - `sapBadgeEstado()` for SAP states: only confirmed translations are shown; unknown states are shown raw.
+    - `sapEmpresa()` normalizes the raw `CompanyDB` (`FARET_PRODUCCION`) returned by `lotes/*` and `inventario/antiguedad` into the portal code.
+    - `sapConteo()` / `sapNotaTruncado()` for honest counts ("20+").
+    - `sapResultado()` for ok/parcial/error when a query spans several companies.
+    - `sapErrorCard()` / `sapAvisoParcial()` for errors, which never show the raw API body.
+  - **Tables:** every SAP table uses `class="data-table sap-tabla"`, which on mobile opts out of the global `.data-table` mobile rule that hardcodes Usuarios labels.
+  - **Tests:** `php tests/sap_ui_test.php` (CLI only; never deployed).
+  - **Verified API facts (don't assume otherwise):**
+    - apisapfaret returns **at most 20 rows per company per query**, whatever `top` is requested, because it doesn't follow Service Layer `nextLink`. Never show a list length as a total.
+    - OData dates `…T00:00:00Z` shifted one day earlier with `strtotime` in America/Santiago; use `sapFecha()`.
+    - `porAlmacen[].disponible` is physical stock (InStock). Libre = En stock − Comprometido.
+    - `DocNum` is not unique; navigate documents by `DocEntry`. `BaseType`/`BaseEntry` only allows navigating backward.
+  - **Scope rules (user decisions):**
+    - Vendedores are out of scope.
+    - Never infer document relations that SAP doesn't prove.
+    - No writes to SAP; no new SQLQueries.
+    - Improvements go in the order UX2 (universal document detail by DocEntry) → UX3 → UX5 → UX4 → UX6 → UX7 (Integraciones UI; API keys are owned by apisapfaret, never stored in Workspace). One step at a time, each with explicit approval.
+  - **Status 2026-09-30:** UX0+UX1 committed (`124781c`) and deployed to `.70`.
 - `modules/en-proceso/index.php` — generic "coming soon" placeholder page, parameterized by a `?modulo=` query string; linked to from the sidebar for unbuilt areas (Contabilidad, Comercial, Registros Formularios) instead of building stub modules.
 - `modules/dashboard/index.php` — a simplified two-card home hub (Operación / Administración-Registros). Not linked from the sidebar, `welcome`, or anywhere else in the app as of this writing — treat it as orphaned/experimental, not a live route, unless you find a new link to it.
 - `_backup_logistica/`, `_backup_orden_rrhh/` — timestamped snapshots of previous file versions (filenames end in `_YYYYMMDD_HHMMSS`), kept in-repo rather than relying on git history. Don't treat these as live code paths.
