@@ -4,24 +4,13 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/auth.php';
 requireModuleAccess('portal_sap');
 
 require_once $_SERVER['DOCUMENT_ROOT'] . '/services/ApiFaretClient.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/modules/sap/_ui.php';
 
 ob_start();
 
 $empresa = ApiFaretClient::empresaActual();
 $almacen = trim($_GET['almacen'] ?? '');
 $item = trim($_GET['item'] ?? '');
-
-function formatoCantidad($n)
-{
-    if ($n === null || $n === '') {
-        return '-';
-    }
-
-    $n = (float)$n;
-    $decimales = floor($n) == $n ? 0 : 2;
-
-    return number_format($n, $decimales, ',', '.');
-}
 
 // Arma un link "?empresa=..&almacen=..&item=.." combinando los filtros ya
 // activos con el nuevo, mismo patrón que urlInventario() en inventario/index.php.
@@ -83,15 +72,12 @@ if ($almacen !== '') {
     <div class="table-header">
         <div>
             <h2>Almacenes en <?= htmlspecialchars($empresa) ?></h2>
-            <p><?= count($almacenes) ?> almacenes activos.</p>
+            <p><?= $respuestaAlmacenes['ok'] ? count($almacenes) . ' almacenes activos.' : '' ?></p>
         </div>
     </div>
 
     <?php if (!$respuestaAlmacenes['ok']): ?>
-        <div class="card">
-            <h2>Error de conexión con apifaret</h2>
-            <p>No se pudo obtener el catálogo de almacenes. <?= htmlspecialchars(ApiFaretClient::mensajeError($respuestaAlmacenes)) ?></p>
-        </div>
+        <?= sapErrorCard('No se pudo obtener el catálogo de almacenes.', $respuestaAlmacenes) ?>
     <?php elseif (count($almacenes) === 0): ?>
         <p style="color:var(--muted);">No hay almacenes activos en <?= htmlspecialchars($empresa) ?>.</p>
     <?php else: ?>
@@ -136,26 +122,22 @@ if ($almacen !== '') {
         <div class="table-header">
             <div>
                 <h2>Stock en <?= htmlspecialchars($almacen) ?></h2>
-                <p><?= count($stockAlmacen) ?> filas (máximo 300).</p>
+                <p>Qué hay en cada ubicación del almacén, en <?= htmlspecialchars($empresa) ?>.</p>
             </div>
         </div>
 
         <?php if (!$respuestaStock['ok']): ?>
-            <div class="card">
-                <h2>Error de conexión con apifaret</h2>
-                <p>No se pudo obtener el stock del almacén. <?= htmlspecialchars(ApiFaretClient::mensajeError($respuestaStock)) ?></p>
-            </div>
+            <?= sapErrorCard('No se pudo obtener el stock del almacén.', $respuestaStock) ?>
         <?php else: ?>
 
             <div class="table-responsive">
-                <table class="data-table">
+                <table class="data-table sap-tabla">
                     <thead>
                         <tr>
-                            <th>Ubicación (bin)</th>
-                            <th>Código</th>
-                            <th>Descripción</th>
+                            <th>Ubicación</th>
+                            <th>Artículo</th>
                             <th>Lote</th>
-                            <th>Cantidad</th>
+                            <th class="sap-num">En stock</th>
                             <th></th>
                         </tr>
                     </thead>
@@ -163,10 +145,18 @@ if ($almacen !== '') {
                         <?php foreach ($stockAlmacen as $s): ?>
                             <tr>
                                 <td><?= htmlspecialchars($s['bin'] ?? '-') ?></td>
-                                <td><?= htmlspecialchars($s['itemCode'] ?? '-') ?></td>
-                                <td><?= htmlspecialchars($s['itemName'] ?? '-') ?></td>
-                                <td><?= htmlspecialchars($s['lote'] ?? '-') ?></td>
-                                <td><?= formatoCantidad($s['cantidad'] ?? 0) ?></td>
+                                <td>
+                                    <strong><?= htmlspecialchars($s['itemCode'] ?? '-') ?></strong><br>
+                                    <span style="color:var(--muted);font-size:13px;"><?= htmlspecialchars($s['itemName'] ?? '') ?></span>
+                                </td>
+                                <td>
+                                    <?php if (!empty($s['lote'])): ?>
+                                        <a href="/modules/sap/inventario/?empresa=<?= rawurlencode($empresa) ?>&lote=<?= rawurlencode($s['lote']) ?>"><?= htmlspecialchars($s['lote']) ?></a>
+                                    <?php else: ?>
+                                        -
+                                    <?php endif; ?>
+                                </td>
+                                <td class="sap-num"><?= sapCantidad($s['cantidad'] ?? 0) ?></td>
                                 <td>
                                     <a class="btn-secondary" href="/modules/sap/inventario/?empresa=<?= rawurlencode($empresa) ?>&item=<?= rawurlencode($s['itemCode'] ?? '') ?>" aria-label="Ver artículo <?= htmlspecialchars($s['itemCode'] ?? '') ?>">Ver artículo</a>
                                 </td>
@@ -175,12 +165,15 @@ if ($almacen !== '') {
 
                         <?php if (count($stockAlmacen) === 0): ?>
                             <tr>
-                                <td colspan="6">Sin stock registrado.</td>
+                                <td colspan="5">Sin stock registrado<?= $item !== '' ? ' para ese artículo' : '' ?> en este almacén.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
             </div>
+            <?php if (sapPuedeEstarTruncado(count($stockAlmacen), SAP_FILAS_MAX_POR_CONSULTA)): ?>
+                <p class="sap-nota"><i class="bi bi-info-circle"></i> Se muestran las primeras <?= count($stockAlmacen) ?> filas. Puede haber más stock en este almacén: filtra por artículo para ver uno puntual.</p>
+            <?php endif; ?>
 
         <?php endif; ?>
     </div>

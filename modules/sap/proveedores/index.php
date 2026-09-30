@@ -4,11 +4,13 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/auth.php';
 requireModuleAccess('portal_sap');
 
 require_once $_SERVER['DOCUMENT_ROOT'] . '/services/ApiFaretClient.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/modules/sap/_ui.php';
 
 ob_start();
 
 $empresa = ApiFaretClient::empresaActual();
 $texto = trim($_GET['texto'] ?? '');
+$topBusqueda = 50;
 $proveedor = trim($_GET['proveedor'] ?? '');
 
 // Arma un link "?empresa=..&texto=..&proveedor=.." combinando los filtros ya
@@ -27,7 +29,7 @@ $proveedores = [];
 $respuestaBusqueda = null;
 
 if ($texto !== '') {
-    $respuestaBusqueda = ApiFaretClient::get('proveedores/buscar?texto=' . rawurlencode($texto) . '&top=50', $empresa);
+    $respuestaBusqueda = ApiFaretClient::get('proveedores/buscar?texto=' . rawurlencode($texto) . '&top=' . $topBusqueda, $empresa);
 
     if ($respuestaBusqueda['ok']) {
         $proveedores = $respuestaBusqueda['data']['data'] ?? [];
@@ -88,17 +90,14 @@ if ($proveedor !== '') {
         <div class="table-header">
             <div>
                 <h2>Proveedores para "<?= htmlspecialchars($texto) ?>"</h2>
-                <p><?= count($proveedores) ?> resultados en <?= htmlspecialchars($empresa) ?> (máximo 50).</p>
+                <p>En <?= htmlspecialchars($empresa) ?>.</p>
             </div>
         </div>
 
         <?php if (!$respuestaBusqueda['ok']): ?>
-            <div class="card">
-                <h2>Error de conexión con apifaret</h2>
-                <p>No se pudo realizar la búsqueda de proveedores. <?= htmlspecialchars(ApiFaretClient::mensajeError($respuestaBusqueda)) ?></p>
-            </div>
+            <?= sapErrorCard('No se pudo realizar la búsqueda de proveedores.', $respuestaBusqueda) ?>
         <?php elseif (count($proveedores) === 0): ?>
-            <p style="color:var(--muted);">No se encontraron proveedores.</p>
+            <p style="color:var(--muted);">No se encontraron proveedores para "<?= htmlspecialchars($texto) ?>" en <?= htmlspecialchars($empresa) ?>.</p>
         <?php else: ?>
 
             <?php foreach ($proveedores as $p): ?>
@@ -111,6 +110,7 @@ if ($proveedor !== '') {
                     <i class="bi bi-chevron-right sap-list-chevron"></i>
                 </a>
             <?php endforeach; ?>
+            <?= sapNotaTruncado(count($proveedores), $topBusqueda, 'coincidencias') ?>
         <?php endif; ?>
     </div>
 
@@ -127,10 +127,7 @@ if ($proveedor !== '') {
         </div>
 
         <?php if (!$respuestaFicha['ok']): ?>
-            <div class="card">
-                <h2>Error de conexión con apifaret</h2>
-                <p>No se pudo consultar el proveedor. <?= htmlspecialchars(ApiFaretClient::mensajeError($respuestaFicha)) ?></p>
-            </div>
+            <?= sapErrorCard('No se pudo consultar el proveedor.', $respuestaFicha) ?>
         <?php elseif (count($fichaProveedor) === 0): ?>
             <p>El proveedor no existe en <?= htmlspecialchars($empresa) ?>.</p>
         <?php else: ?>
@@ -145,13 +142,13 @@ if ($proveedor !== '') {
             <?php endif; ?>
 
             <div class="table-responsive">
-                <table class="data-table">
+                <table class="data-table sap-tabla">
                     <thead>
                         <tr>
-                            <th>Empresa</th>
                             <th>Código</th>
                             <th>Nombre</th>
                             <th>Grupo</th>
+                            <th>Condición de pago</th>
                             <th>Ciudad</th>
                             <th>Teléfono</th>
                             <th>Email</th>
@@ -160,10 +157,10 @@ if ($proveedor !== '') {
                     <tbody>
                         <?php foreach ($fichaProveedor as $f): ?>
                             <tr>
-                                <td><?= htmlspecialchars($f['empresa'] ?? '-') ?></td>
                                 <td><?= htmlspecialchars($f['cardCode'] ?? '-') ?></td>
                                 <td><?= htmlspecialchars($f['cardName'] ?? '-') ?></td>
                                 <td><?= htmlspecialchars($f['grupoNombre'] ?? $f['grupoCodigo'] ?? '-') ?></td>
+                                <td><?= htmlspecialchars($f['condicionPagoNombre'] ?? '-') ?></td>
                                 <td><?= htmlspecialchars($f['ciudad'] ?? '-') ?></td>
                                 <td><?= htmlspecialchars($f['telefono'] ?? '-') ?></td>
                                 <td><?= htmlspecialchars($f['email'] ?? '-') ?></td>

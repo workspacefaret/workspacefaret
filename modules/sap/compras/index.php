@@ -4,6 +4,7 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/auth.php';
 requireModuleAccess('portal_sap_compras');
 
 require_once $_SERVER['DOCUMENT_ROOT'] . '/services/ApiFaretClient.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/modules/sap/_ui.php';
 
 ob_start();
 
@@ -11,25 +12,7 @@ $empresa = ApiFaretClient::empresaActual();
 $docNum = trim($_GET['docNum'] ?? '');
 $proveedor = trim($_GET['proveedor'] ?? '');
 $docNumInvalido = $docNum !== '' && !ctype_digit($docNum);
-
-function formatoFechaSap($fecha)
-{
-    if (!$fecha) {
-        return '-';
-    }
-
-    $timestamp = strtotime($fecha);
-
-    return $timestamp ? date('d-m-Y', $timestamp) : $fecha;
-}
-
-function badgeEstado($estado)
-{
-    $abierto = stripos((string) $estado, 'open') !== false;
-    $clase = $abierto ? 'status-pending' : 'status-ok';
-
-    return '<span class="status-badge ' . $clase . '">' . htmlspecialchars($estado ?: '-') . '</span>';
-}
+$topCompras = 30;
 
 $resultadosPedidos = [];
 $respuestaPedidos = null;
@@ -45,7 +28,7 @@ if (!$docNumInvalido && ($docNum !== '' || $proveedor !== '')) {
         $params[] = 'proveedor=' . rawurlencode($proveedor);
     }
 
-    $filtro = implode('&', $params) . '&top=30';
+    $filtro = implode('&', $params) . '&top=' . $topCompras;
 
     $respuestaPedidos = ApiFaretClient::get('compras/pedidos/buscar?' . $filtro, $empresa);
 
@@ -108,7 +91,7 @@ if ($verDocEntry !== null) {
     <input type="hidden" name="empresa" value="<?= htmlspecialchars($empresa) ?>">
 
     <div class="filter-group">
-        <label>N° de documento (DocNum)</label>
+        <label>N° de documento</label>
         <input type="text" name="docNum" maxlength="100" placeholder="Ej: 40522" value="<?= htmlspecialchars($docNum) ?>">
     </div>
 
@@ -133,7 +116,7 @@ if ($verDocEntry !== null) {
 
     <div class="card">
         <h2>Número de documento inválido</h2>
-        <p>"<?= htmlspecialchars($docNum) ?>" no es un número. El DocNum debe ser numérico.</p>
+        <p>"<?= htmlspecialchars($docNum) ?>" no es un número. El N° de documento debe ser numérico.</p>
     </div>
 
 <?php elseif ($docNum !== '' || $proveedor !== ''): ?>
@@ -146,18 +129,15 @@ if ($verDocEntry !== null) {
         </div>
 
         <?php if (!$respuestaPedidos['ok']): ?>
-            <div class="card">
-                <h2>Error de conexión con apifaret</h2>
-                <p>No se pudieron buscar pedidos de compra. <?= htmlspecialchars(ApiFaretClient::mensajeError($respuestaPedidos)) ?></p>
-            </div>
+            <?= sapErrorCard('No se pudieron buscar pedidos de compra.', $respuestaPedidos) ?>
         <?php elseif (count($resultadosPedidos) === 0): ?>
             <p>Sin pedidos de compra que coincidan con la búsqueda en <?= htmlspecialchars($empresa) ?>.</p>
         <?php else: ?>
             <div class="table-responsive">
-                <table class="data-table">
+                <table class="data-table sap-tabla">
                     <thead>
                         <tr>
-                            <th>Doc</th>
+                            <th>N°</th>
                             <th>Proveedor</th>
                             <th>Fecha</th>
                             <th>Estado</th>
@@ -167,10 +147,10 @@ if ($verDocEntry !== null) {
                     <tbody>
                         <?php foreach ($resultadosPedidos as $p): ?>
                             <tr>
-                                <td>#<?= htmlspecialchars($p['docNum'] ?? '-') ?></td>
+                                <td><strong><?= htmlspecialchars($p['docNum'] ?? '-') ?></strong></td>
                                 <td><?= htmlspecialchars($p['proveedorNombre'] ?? $p['proveedorCodigo'] ?? '-') ?></td>
-                                <td><?= htmlspecialchars(formatoFechaSap($p['fecha'] ?? null)) ?></td>
-                                <td><?= badgeEstado($p['estado'] ?? null) ?></td>
+                                <td><?= htmlspecialchars(sapFecha($p['fecha'] ?? null)) ?></td>
+                                <td><?= sapBadgeEstado($p['estado'] ?? '') ?></td>
                                 <td>
                                     <a class="btn-secondary" href="?empresa=<?= rawurlencode($empresa) ?>&docNum=<?= rawurlencode($docNum) ?>&proveedor=<?= rawurlencode($proveedor) ?>&verDocEntry=<?= (int) ($p['docEntry'] ?? 0) ?>#lineasPedido">
                                         Ver líneas
@@ -181,6 +161,7 @@ if ($verDocEntry !== null) {
                     </tbody>
                 </table>
             </div>
+            <?= sapNotaTruncado(count($resultadosPedidos), $topCompras) ?>
         <?php endif; ?>
     </div>
 
@@ -189,42 +170,40 @@ if ($verDocEntry !== null) {
         <div class="table-card" style="margin-top:32px;" id="lineasPedido">
             <div class="table-header">
                 <div>
-                    <h2>Líneas del Pedido de compra #<?= htmlspecialchars($fichaPedido['docNum'] ?? $verDocEntry) ?></h2>
-                    <p>Cantidad pendiente por línea (lo que aún falta por recibir).</p>
+                    <h2>Líneas del pedido de compra N° <?= htmlspecialchars($fichaPedido['docNum'] ?? '') ?></h2>
+                    <p>Pendiente: cantidad que según SAP aún falta recibir en cada línea.</p>
                 </div>
             </div>
 
             <?php if (!$respuestaLineasPedido['ok']): ?>
-                <div class="card">
-                    <h2>Error de conexión con apifaret</h2>
-                    <p>No se pudieron obtener las líneas. <?= htmlspecialchars(ApiFaretClient::mensajeError($respuestaLineasPedido)) ?></p>
-                </div>
+                <?= sapErrorCard('No se pudieron obtener las líneas.', $respuestaLineasPedido) ?>
             <?php elseif ($fichaPedido === null): ?>
                 <div class="card">
                     <h2>No encontrado</h2>
-                    <p>No se encontró el Pedido de compra #<?= (int) $verDocEntry ?> en <?= htmlspecialchars($empresa) ?>.</p>
+                    <p>No se encontró ese pedido de compra en <?= htmlspecialchars($empresa) ?>.</p>
                 </div>
             <?php else: ?>
                 <div class="table-responsive">
-                    <table class="data-table">
+                    <table class="data-table sap-tabla">
                         <thead>
                             <tr>
-                                <th>Ítem</th>
-                                <th>Descripción</th>
+                                <th>Artículo</th>
                                 <th>Almacén</th>
-                                <th>Cantidad</th>
-                                <th>Pendiente</th>
+                                <th class="sap-num">Cantidad</th>
+                                <th class="sap-num">Pendiente</th>
                                 <th>Estado línea</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($lineasPedido as $ln): ?>
                                 <tr>
-                                    <td><?= htmlspecialchars($ln['itemCode'] ?? '-') ?></td>
-                                    <td><?= htmlspecialchars($ln['descripcion'] ?? '-') ?></td>
+                                    <td>
+                                        <strong><?= htmlspecialchars($ln['itemCode'] ?? '-') ?></strong><br>
+                                        <span style="color:var(--muted);font-size:13px;"><?= htmlspecialchars($ln['descripcion'] ?? '') ?></span>
+                                    </td>
                                     <td><?= htmlspecialchars($ln['almacen'] ?? '-') ?></td>
-                                    <td><?= htmlspecialchars((string) ($ln['cantidad'] ?? '-')) ?></td>
-                                    <td><?= htmlspecialchars((string) ($ln['cantidadPendiente'] ?? '-')) ?></td>
+                                    <td class="sap-num"><?= sapCantidad($ln['cantidad'] ?? null) ?> <?= htmlspecialchars($ln['unidad'] ?? '') ?></td>
+                                    <td class="sap-num"><?= sapCantidad($ln['cantidadPendiente'] ?? null) ?></td>
                                     <td>
                                         <span class="status-badge <?= empty($ln['cerrada']) ? 'status-pending' : 'status-ok' ?>">
                                             <?= empty($ln['cerrada']) ? 'Abierta' : 'Cerrada' ?>
@@ -235,7 +214,7 @@ if ($verDocEntry !== null) {
 
                             <?php if (count($lineasPedido) === 0): ?>
                                 <tr>
-                                    <td colspan="6">Sin líneas.</td>
+                                    <td colspan="5">Sin líneas.</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>

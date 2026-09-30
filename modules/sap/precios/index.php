@@ -4,23 +4,12 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/auth.php';
 requireModuleAccess('portal_sap_precios');
 
 require_once $_SERVER['DOCUMENT_ROOT'] . '/services/ApiFaretClient.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/modules/sap/_ui.php';
 
 ob_start();
 
 $empresa = ApiFaretClient::empresaActual();
 $item = trim($_GET['item'] ?? '');
-
-function formatoCantidad($n)
-{
-    if ($n === null || $n === '') {
-        return '-';
-    }
-
-    $n = (float) $n;
-    $decimales = floor($n) == $n ? 0 : 2;
-
-    return number_format($n, $decimales, ',', '.');
-}
 
 $listas = [];
 $respuestaListas = ApiFaretClient::get('listasprecios?soloActivas=true', $empresa);
@@ -44,7 +33,8 @@ if ($item !== '') {
 
 <div class="hero">
     <h1>Precios SAP</h1>
-    <p>Listas de precios y precio de un artículo por lista. Acceso restringido por permiso separado. Solo lectura.</p>
+    <p>Listas de precios y precio de un artículo por lista. Solo lectura.</p>
+    <p style="font-size:13px;opacity:.8;">Referencia limitada: SAP no mantiene precios en el maestro de artículos de forma regular; el precio real se acuerda en cada documento.</p>
 </div>
 
 <div class="filter-card">
@@ -64,18 +54,15 @@ if ($item !== '') {
     <div class="table-header">
         <div>
             <h2>Listas de precios en <?= htmlspecialchars($empresa) ?></h2>
-            <p><?= count($listas) ?> listas activas.</p>
+            <p><?= $respuestaListas['ok'] ? count($listas) . ' listas activas.' : '' ?></p>
         </div>
     </div>
 
     <?php if (!$respuestaListas['ok']): ?>
-        <div class="card">
-            <h2>Error de conexión con apifaret</h2>
-            <p>No se pudo obtener el catálogo de listas de precios. <?= htmlspecialchars(ApiFaretClient::mensajeError($respuestaListas)) ?></p>
-        </div>
+        <?= sapErrorCard('No se pudo obtener el catálogo de listas de precios.', $respuestaListas) ?>
     <?php else: ?>
         <div class="table-responsive">
-            <table class="data-table">
+            <table class="data-table sap-tabla">
                 <thead>
                     <tr>
                         <th>N°</th>
@@ -142,20 +129,17 @@ if ($item !== '') {
         </div>
 
         <?php if (!$respuestaPrecios['ok']): ?>
-            <div class="card">
-                <h2>Error de conexión con apifaret</h2>
-                <p>No se pudo consultar el precio del artículo. <?= htmlspecialchars(ApiFaretClient::mensajeError($respuestaPrecios)) ?></p>
-            </div>
+            <?= sapErrorCard('No se pudo consultar el precio del artículo.', $respuestaPrecios) ?>
         <?php elseif (count($fichaPrecios) === 0): ?>
             <p>El artículo no existe en <?= htmlspecialchars($empresa) ?>.</p>
         <?php else: ?>
 
             <div class="table-responsive">
-                <table class="data-table">
+                <table class="data-table sap-tabla">
                     <thead>
                         <tr>
                             <th>Lista</th>
-                            <th>Precio</th>
+                            <th class="sap-num">Precio</th>
                             <th>Moneda</th>
                         </tr>
                     </thead>
@@ -163,7 +147,7 @@ if ($item !== '') {
                         <?php foreach (($fichaPrecios[0]['precios'] ?? []) as $p): ?>
                             <tr>
                                 <td><?= htmlspecialchars($p['listaNombre'] ?? $p['listaNumero'] ?? '-') ?></td>
-                                <td><?= formatoCantidad($p['precio'] ?? 0) ?></td>
+                                <td class="sap-num"><?= sapCantidad($p['precio'] ?? 0) ?></td>
                                 <td><?= htmlspecialchars($p['moneda'] ?? '-') ?></td>
                             </tr>
                         <?php endforeach; ?>
@@ -176,6 +160,14 @@ if ($item !== '') {
                     </tbody>
                 </table>
             </div>
+
+            <?php
+                $preciosItem = $fichaPrecios[0]['precios'] ?? [];
+                $todosEnCero = count($preciosItem) > 0 && count(array_filter($preciosItem, fn($p) => (float) ($p['precio'] ?? 0) != 0)) === 0;
+            ?>
+            <?php if ($todosEnCero): ?>
+                <p class="sap-nota"><i class="bi bi-info-circle"></i> Todas las listas tienen precio 0 para este artículo en SAP: no sirven como referencia de precio.</p>
+            <?php endif; ?>
 
         <?php endif; ?>
     </div>

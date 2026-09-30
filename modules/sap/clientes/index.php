@@ -4,11 +4,13 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/auth.php';
 requireModuleAccess('portal_sap');
 
 require_once $_SERVER['DOCUMENT_ROOT'] . '/services/ApiFaretClient.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/modules/sap/_ui.php';
 
 ob_start();
 
 $empresa = ApiFaretClient::empresaActual();
 $texto = trim($_GET['texto'] ?? '');
+$topBusqueda = 50;
 $cliente = trim($_GET['cliente'] ?? '');
 
 // Arma un link "?empresa=..&texto=..&cliente=.." combinando los filtros ya
@@ -27,7 +29,7 @@ $clientes = [];
 $respuestaBusqueda = null;
 
 if ($texto !== '') {
-    $respuestaBusqueda = ApiFaretClient::get('clientes/buscar?texto=' . rawurlencode($texto) . '&top=50', $empresa);
+    $respuestaBusqueda = ApiFaretClient::get('clientes/buscar?texto=' . rawurlencode($texto) . '&top=' . $topBusqueda, $empresa);
 
     if ($respuestaBusqueda['ok']) {
         $clientes = $respuestaBusqueda['data']['data'] ?? [];
@@ -88,17 +90,14 @@ if ($cliente !== '') {
         <div class="table-header">
             <div>
                 <h2>Clientes para "<?= htmlspecialchars($texto) ?>"</h2>
-                <p><?= count($clientes) ?> resultados en <?= htmlspecialchars($empresa) ?> (máximo 50).</p>
+                <p>En <?= htmlspecialchars($empresa) ?>.</p>
             </div>
         </div>
 
         <?php if (!$respuestaBusqueda['ok']): ?>
-            <div class="card">
-                <h2>Error de conexión con apifaret</h2>
-                <p>No se pudo realizar la búsqueda de clientes. <?= htmlspecialchars(ApiFaretClient::mensajeError($respuestaBusqueda)) ?></p>
-            </div>
+            <?= sapErrorCard('No se pudo realizar la búsqueda de clientes.', $respuestaBusqueda) ?>
         <?php elseif (count($clientes) === 0): ?>
-            <p style="color:var(--muted);">No se encontraron clientes.</p>
+            <p style="color:var(--muted);">No se encontraron clientes para "<?= htmlspecialchars($texto) ?>" en <?= htmlspecialchars($empresa) ?>.</p>
         <?php else: ?>
 
             <?php foreach ($clientes as $c): ?>
@@ -111,6 +110,7 @@ if ($cliente !== '') {
                     <i class="bi bi-chevron-right sap-list-chevron"></i>
                 </a>
             <?php endforeach; ?>
+            <?= sapNotaTruncado(count($clientes), $topBusqueda, 'coincidencias') ?>
         <?php endif; ?>
     </div>
 
@@ -127,10 +127,7 @@ if ($cliente !== '') {
         </div>
 
         <?php if (!$respuestaFicha['ok']): ?>
-            <div class="card">
-                <h2>Error de conexión con apifaret</h2>
-                <p>No se pudo consultar el cliente. <?= htmlspecialchars(ApiFaretClient::mensajeError($respuestaFicha)) ?></p>
-            </div>
+            <?= sapErrorCard('No se pudo consultar el cliente.', $respuestaFicha) ?>
         <?php elseif (count($fichaCliente) === 0): ?>
             <p>El cliente no existe en <?= htmlspecialchars($empresa) ?>.</p>
         <?php else: ?>
@@ -145,14 +142,12 @@ if ($cliente !== '') {
             <?php endif; ?>
 
             <div class="table-responsive">
-                <table class="data-table">
+                <table class="data-table sap-tabla">
                     <thead>
                         <tr>
-                            <th>Empresa</th>
                             <th>Código</th>
                             <th>Nombre</th>
                             <th>Grupo</th>
-                            <th>Vendedor</th>
                             <th>Ciudad</th>
                             <th>Teléfono</th>
                             <th>Email</th>
@@ -161,11 +156,9 @@ if ($cliente !== '') {
                     <tbody>
                         <?php foreach ($fichaCliente as $f): ?>
                             <tr>
-                                <td><?= htmlspecialchars($f['empresa'] ?? '-') ?></td>
                                 <td><?= htmlspecialchars($f['cardCode'] ?? '-') ?></td>
                                 <td><?= htmlspecialchars($f['cardName'] ?? '-') ?></td>
                                 <td><?= htmlspecialchars($f['grupoNombre'] ?? $f['grupoCodigo'] ?? '-') ?></td>
-                                <td><?= htmlspecialchars($f['vendedorCodigo'] ?? '-') ?></td>
                                 <td><?= htmlspecialchars($f['ciudad'] ?? '-') ?></td>
                                 <td><?= htmlspecialchars($f['telefono'] ?? '-') ?></td>
                                 <td><?= htmlspecialchars($f['email'] ?? '-') ?></td>

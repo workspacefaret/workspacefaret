@@ -4,6 +4,7 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/auth.php';
 requireModuleAccess('portal_sap_ventas');
 
 require_once $_SERVER['DOCUMENT_ROOT'] . '/services/ApiFaretClient.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/modules/sap/_ui.php';
 
 ob_start();
 
@@ -12,24 +13,14 @@ $docNum = trim($_GET['docNum'] ?? '');
 $cliente = trim($_GET['cliente'] ?? '');
 $docNumInvalido = $docNum !== '' && !ctype_digit($docNum);
 
-function formatoFechaSap($fecha)
-{
-    if (!$fecha) {
-        return '-';
-    }
-
-    $timestamp = strtotime($fecha);
-
-    return $timestamp ? date('d-m-Y', $timestamp) : $fecha;
-}
-
-function badgeEstado($estado)
-{
-    $abierto = stripos((string) $estado, 'open') !== false;
-    $clase = $abierto ? 'status-pending' : 'status-ok';
-
-    return '<span class="status-badge ' . $clase . '">' . htmlspecialchars($estado ?: '-') . '</span>';
-}
+// Opcional: limita la búsqueda a un solo tipo de documento (ej. "Buscar NV con este N°"
+// desde Inventario). Sin este parámetro se buscan los 3 tipos, como antes.
+$tiposValidos = ['nv', 'cotizaciones', 'facturas'];
+$tipo = in_array($_GET['tipo'] ?? '', $tiposValidos, true) ? $_GET['tipo'] : '';
+$buscarNV = $tipo === '' || $tipo === 'nv';
+$buscarCotizaciones = $tipo === '' || $tipo === 'cotizaciones';
+$buscarFacturas = $tipo === '' || $tipo === 'facturas';
+$topVentas = 30;
 
 $resultadosNV = [];
 $resultadosCotizaciones = [];
@@ -49,24 +40,30 @@ if (!$docNumInvalido && ($docNum !== '' || $cliente !== '')) {
         $params[] = 'cliente=' . rawurlencode($cliente);
     }
 
-    $filtro = implode('&', $params) . '&top=30';
+    $filtro = implode('&', $params) . '&top=' . $topVentas;
 
-    $respuestaNV = ApiFaretClient::get('ventas/notaventa/buscar?' . $filtro, $empresa);
+    if ($buscarNV) {
+        $respuestaNV = ApiFaretClient::get('ventas/notaventa/buscar?' . $filtro, $empresa);
 
-    if ($respuestaNV['ok']) {
-        $resultadosNV = $respuestaNV['data']['data'] ?? [];
+        if ($respuestaNV['ok']) {
+            $resultadosNV = $respuestaNV['data']['data'] ?? [];
+        }
     }
 
-    $respuestaCotizaciones = ApiFaretClient::get('ventas/cotizaciones/buscar?' . $filtro, $empresa);
+    if ($buscarCotizaciones) {
+        $respuestaCotizaciones = ApiFaretClient::get('ventas/cotizaciones/buscar?' . $filtro, $empresa);
 
-    if ($respuestaCotizaciones['ok']) {
-        $resultadosCotizaciones = $respuestaCotizaciones['data']['data'] ?? [];
+        if ($respuestaCotizaciones['ok']) {
+            $resultadosCotizaciones = $respuestaCotizaciones['data']['data'] ?? [];
+        }
     }
 
-    $respuestaFacturas = ApiFaretClient::get('ventas/facturas/buscar?' . $filtro, $empresa);
+    if ($buscarFacturas) {
+        $respuestaFacturas = ApiFaretClient::get('ventas/facturas/buscar?' . $filtro, $empresa);
 
-    if ($respuestaFacturas['ok']) {
-        $resultadosFacturas = $respuestaFacturas['data']['data'] ?? [];
+        if ($respuestaFacturas['ok']) {
+            $resultadosFacturas = $respuestaFacturas['data']['data'] ?? [];
+        }
     }
 }
 
@@ -80,7 +77,7 @@ $lineasNV = [];
 $fichaNV = null;
 $respuestaLineasNV = null;
 
-if ($verDocEntry !== null) {
+if ($verDocEntry !== null && $buscarNV) {
     $respuestaLineasNV = ApiFaretClient::get('ventas/notaventa/' . $verDocEntry, $empresa);
 
     if ($respuestaLineasNV['ok']) {
@@ -88,6 +85,9 @@ if ($verDocEntry !== null) {
         $lineasNV = $fichaNV['lineas'] ?? [];
     }
 }
+
+// Conserva los filtros activos (incluido "tipo") en los links internos de la página.
+$paramsBusqueda = array_filter(['empresa' => $empresa, 'docNum' => $docNum, 'cliente' => $cliente, 'tipo' => $tipo], fn($v) => $v !== '');
 
 ?>
 
@@ -124,13 +124,23 @@ if ($verDocEntry !== null) {
     <input type="hidden" name="empresa" value="<?= htmlspecialchars($empresa) ?>">
 
     <div class="filter-group">
-        <label>N° de documento (DocNum)</label>
+        <label>N° de documento</label>
         <input type="text" name="docNum" maxlength="100" placeholder="Ej: 22929" value="<?= htmlspecialchars($docNum) ?>">
     </div>
 
     <div class="filter-group">
         <label>Cliente (código exacto SAP)</label>
         <input type="text" name="cliente" maxlength="100" placeholder="Ej: C0001" value="<?= htmlspecialchars($cliente) ?>">
+    </div>
+
+    <div class="filter-group">
+        <label>Buscar en</label>
+        <select name="tipo">
+            <option value="" <?= $tipo === '' ? 'selected' : '' ?>>Notas de venta, cotizaciones y facturas</option>
+            <option value="nv" <?= $tipo === 'nv' ? 'selected' : '' ?>>Solo notas de venta</option>
+            <option value="cotizaciones" <?= $tipo === 'cotizaciones' ? 'selected' : '' ?>>Solo cotizaciones</option>
+            <option value="facturas" <?= $tipo === 'facturas' ? 'selected' : '' ?>>Solo facturas</option>
+        </select>
     </div>
 
     <div class="filter-actions">
@@ -149,10 +159,19 @@ if ($verDocEntry !== null) {
 
     <div class="card">
         <h2>Número de documento inválido</h2>
-        <p>"<?= htmlspecialchars($docNum) ?>" no es un número. El DocNum debe ser numérico.</p>
+        <p>"<?= htmlspecialchars($docNum) ?>" no es un número. El N° de documento debe ser numérico.</p>
     </div>
 
 <?php elseif ($docNum !== '' || $cliente !== ''): ?>
+
+    <?php if ($docNum !== '' && $tipo === ''): ?>
+        <p class="sap-nota" style="margin:0 0 16px;">
+            <i class="bi bi-info-circle"></i>
+            Cada tipo de documento tiene su propia numeración: una nota de venta, una cotización y una factura con el mismo N° no están necesariamente relacionadas.
+        </p>
+    <?php endif; ?>
+
+    <?php if ($buscarNV): ?>
 
     <div class="table-card">
         <div class="table-header">
@@ -162,21 +181,18 @@ if ($verDocEntry !== null) {
         </div>
 
         <?php if (!$respuestaNV['ok']): ?>
-            <div class="card">
-                <h2>Error de conexión con apifaret</h2>
-                <p>No se pudieron buscar notas de venta. <?= htmlspecialchars(ApiFaretClient::mensajeError($respuestaNV)) ?></p>
-            </div>
+            <?= sapErrorCard('No se pudieron buscar notas de venta.', $respuestaNV) ?>
         <?php elseif (count($resultadosNV) === 0): ?>
             <p>Sin notas de venta que coincidan con la búsqueda en <?= htmlspecialchars($empresa) ?>.</p>
         <?php else: ?>
             <div class="table-responsive">
-                <table class="data-table">
+                <table class="data-table sap-tabla">
                     <thead>
                         <tr>
-                            <th>Doc</th>
+                            <th>N°</th>
                             <th>Cliente</th>
                             <th>Fecha</th>
-                            <th>F. entrega</th>
+                            <th>Entrega</th>
                             <th>Estado</th>
                             <th>Comentarios</th>
                             <th></th>
@@ -185,14 +201,14 @@ if ($verDocEntry !== null) {
                     <tbody>
                         <?php foreach ($resultadosNV as $nv): ?>
                             <tr>
-                                <td>#<?= htmlspecialchars($nv['docNum'] ?? '-') ?></td>
+                                <td><strong><?= htmlspecialchars($nv['docNum'] ?? '-') ?></strong></td>
                                 <td><?= htmlspecialchars($nv['clienteNombre'] ?? $nv['clienteCodigo'] ?? '-') ?></td>
-                                <td><?= htmlspecialchars(formatoFechaSap($nv['fecha'] ?? null)) ?></td>
-                                <td><?= htmlspecialchars(formatoFechaSap($nv['fechaEntrega'] ?? null)) ?></td>
-                                <td><?= badgeEstado($nv['estado'] ?? null) ?></td>
-                                <td><?= htmlspecialchars($nv['comentarios'] ?? '-') ?></td>
+                                <td><?= htmlspecialchars(sapFecha($nv['fecha'] ?? null)) ?></td>
+                                <td><?= htmlspecialchars(sapFecha($nv['fechaEntrega'] ?? null)) ?></td>
+                                <td><?= sapBadgeEstado($nv['estado'] ?? '') ?></td>
+                                <td><?= sapTextoCorto($nv['comentarios'] ?? '') ?></td>
                                 <td>
-                                    <a class="btn-secondary" href="?empresa=<?= rawurlencode($empresa) ?>&docNum=<?= rawurlencode($docNum) ?>&cliente=<?= rawurlencode($cliente) ?>&verDocEntry=<?= (int) ($nv['docEntry'] ?? 0) ?>#lineasNV">
+                                    <a class="btn-secondary" href="?<?= htmlspecialchars(http_build_query($paramsBusqueda + ['verDocEntry' => (int) ($nv['docEntry'] ?? 0)])) ?>#lineasNV">
                                         Ver líneas
                                     </a>
                                 </td>
@@ -201,6 +217,7 @@ if ($verDocEntry !== null) {
                     </tbody>
                 </table>
             </div>
+            <?= sapNotaTruncado(count($resultadosNV), $topVentas) ?>
         <?php endif; ?>
     </div>
 
@@ -209,42 +226,40 @@ if ($verDocEntry !== null) {
         <div class="table-card" style="margin-top:32px;" id="lineasNV">
             <div class="table-header">
                 <div>
-                    <h2>Líneas de la Nota de Venta #<?= htmlspecialchars($fichaNV['docNum'] ?? $verDocEntry) ?></h2>
-                    <p>Cantidad pendiente por línea (lo que aún falta por despachar).</p>
+                    <h2>Líneas de la nota de venta N° <?= htmlspecialchars($fichaNV['docNum'] ?? '') ?></h2>
+                    <p>Pendiente: cantidad que según SAP aún falta entregar en cada línea.</p>
                 </div>
             </div>
 
             <?php if (!$respuestaLineasNV['ok']): ?>
-                <div class="card">
-                    <h2>Error de conexión con apifaret</h2>
-                    <p>No se pudieron obtener las líneas. <?= htmlspecialchars(ApiFaretClient::mensajeError($respuestaLineasNV)) ?></p>
-                </div>
+                <?= sapErrorCard('No se pudieron obtener las líneas.', $respuestaLineasNV) ?>
             <?php elseif ($fichaNV === null): ?>
                 <div class="card">
                     <h2>No encontrada</h2>
-                    <p>No se encontró la Nota de Venta #<?= (int) $verDocEntry ?> en <?= htmlspecialchars($empresa) ?>.</p>
+                    <p>No se encontró esa nota de venta en <?= htmlspecialchars($empresa) ?>.</p>
                 </div>
             <?php else: ?>
                 <div class="table-responsive">
-                    <table class="data-table">
+                    <table class="data-table sap-tabla">
                         <thead>
                             <tr>
-                                <th>Ítem</th>
-                                <th>Descripción</th>
+                                <th>Artículo</th>
                                 <th>Almacén</th>
-                                <th>Cantidad</th>
-                                <th>Pendiente</th>
+                                <th class="sap-num">Cantidad</th>
+                                <th class="sap-num">Pendiente</th>
                                 <th>Estado línea</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($lineasNV as $ln): ?>
                                 <tr>
-                                    <td><?= htmlspecialchars($ln['itemCode'] ?? '-') ?></td>
-                                    <td><?= htmlspecialchars($ln['descripcion'] ?? '-') ?></td>
+                                    <td>
+                                        <strong><?= htmlspecialchars($ln['itemCode'] ?? '-') ?></strong><br>
+                                        <span style="color:var(--muted);font-size:13px;"><?= htmlspecialchars($ln['descripcion'] ?? '') ?></span>
+                                    </td>
                                     <td><?= htmlspecialchars($ln['almacen'] ?? '-') ?></td>
-                                    <td><?= htmlspecialchars((string) ($ln['cantidad'] ?? '-')) ?></td>
-                                    <td><?= htmlspecialchars((string) ($ln['cantidadPendiente'] ?? '-')) ?></td>
+                                    <td class="sap-num"><?= sapCantidad($ln['cantidad'] ?? null) ?> <?= htmlspecialchars($ln['unidad'] ?? '') ?></td>
+                                    <td class="sap-num"><?= sapCantidad($ln['cantidadPendiente'] ?? null) ?></td>
                                     <td>
                                         <span class="status-badge <?= empty($ln['cerrada']) ? 'status-pending' : 'status-ok' ?>">
                                             <?= empty($ln['cerrada']) ? 'Abierta' : 'Cerrada' ?>
@@ -255,7 +270,7 @@ if ($verDocEntry !== null) {
 
                             <?php if (count($lineasNV) === 0): ?>
                                 <tr>
-                                    <td colspan="6">Sin líneas.</td>
+                                    <td colspan="5">Sin líneas.</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -266,6 +281,10 @@ if ($verDocEntry !== null) {
 
     <?php endif; ?>
 
+    <?php endif; // $buscarNV ?>
+
+    <?php if ($buscarCotizaciones): ?>
+
     <div class="table-card" style="margin-top:32px;">
         <div class="table-header">
             <div>
@@ -274,18 +293,15 @@ if ($verDocEntry !== null) {
         </div>
 
         <?php if (!$respuestaCotizaciones['ok']): ?>
-            <div class="card">
-                <h2>Error de conexión con apifaret</h2>
-                <p>No se pudieron buscar cotizaciones. <?= htmlspecialchars(ApiFaretClient::mensajeError($respuestaCotizaciones)) ?></p>
-            </div>
+            <?= sapErrorCard('No se pudieron buscar cotizaciones.', $respuestaCotizaciones) ?>
         <?php elseif (count($resultadosCotizaciones) === 0): ?>
             <p>Sin cotizaciones que coincidan con la búsqueda en <?= htmlspecialchars($empresa) ?>.</p>
         <?php else: ?>
             <div class="table-responsive">
-                <table class="data-table">
+                <table class="data-table sap-tabla">
                     <thead>
                         <tr>
-                            <th>Doc</th>
+                            <th>N°</th>
                             <th>Cliente</th>
                             <th>Fecha</th>
                             <th>Válida hasta</th>
@@ -296,19 +312,24 @@ if ($verDocEntry !== null) {
                     <tbody>
                         <?php foreach ($resultadosCotizaciones as $cot): ?>
                             <tr>
-                                <td>#<?= htmlspecialchars($cot['docNum'] ?? '-') ?></td>
+                                <td><strong><?= htmlspecialchars($cot['docNum'] ?? '-') ?></strong></td>
                                 <td><?= htmlspecialchars($cot['clienteNombre'] ?? $cot['clienteCodigo'] ?? '-') ?></td>
-                                <td><?= htmlspecialchars(formatoFechaSap($cot['fecha'] ?? null)) ?></td>
-                                <td><?= htmlspecialchars(formatoFechaSap($cot['validaHasta'] ?? null)) ?></td>
-                                <td><?= badgeEstado($cot['estado'] ?? null) ?></td>
-                                <td><?= htmlspecialchars($cot['comentarios'] ?? '-') ?></td>
+                                <td><?= htmlspecialchars(sapFecha($cot['fecha'] ?? null)) ?></td>
+                                <td><?= htmlspecialchars(sapFecha($cot['validaHasta'] ?? null)) ?></td>
+                                <td><?= sapBadgeEstado($cot['estado'] ?? '') ?></td>
+                                <td><?= sapTextoCorto($cot['comentarios'] ?? '') ?></td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
+            <?= sapNotaTruncado(count($resultadosCotizaciones), $topVentas) ?>
         <?php endif; ?>
     </div>
+
+    <?php endif; // $buscarCotizaciones ?>
+
+    <?php if ($buscarFacturas): ?>
 
     <div class="table-card" style="margin-top:32px;">
         <div class="table-header">
@@ -318,41 +339,41 @@ if ($verDocEntry !== null) {
         </div>
 
         <?php if (!$respuestaFacturas['ok']): ?>
-            <div class="card">
-                <h2>Error de conexión con apifaret</h2>
-                <p>No se pudieron buscar facturas. <?= htmlspecialchars(ApiFaretClient::mensajeError($respuestaFacturas)) ?></p>
-            </div>
+            <?= sapErrorCard('No se pudieron buscar facturas.', $respuestaFacturas) ?>
         <?php elseif (count($resultadosFacturas) === 0): ?>
             <p>Sin facturas que coincidan con la búsqueda en <?= htmlspecialchars($empresa) ?>.</p>
         <?php else: ?>
             <div class="table-responsive">
-                <table class="data-table">
+                <table class="data-table sap-tabla">
                     <thead>
                         <tr>
-                            <th>Doc</th>
+                            <th>N°</th>
                             <th>Cliente</th>
                             <th>Fecha</th>
                             <th>Vencimiento</th>
-                            <th>Estado</th>
+                            <th>Estado <?= sapAyuda('Estado del documento en SAP. En facturas, "Abierta" normalmente indica saldo pendiente de pago.') ?></th>
                             <th>Comentarios</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($resultadosFacturas as $f): ?>
                             <tr>
-                                <td>#<?= htmlspecialchars($f['docNum'] ?? '-') ?></td>
+                                <td><strong><?= htmlspecialchars($f['docNum'] ?? '-') ?></strong></td>
                                 <td><?= htmlspecialchars($f['clienteNombre'] ?? $f['clienteCodigo'] ?? '-') ?></td>
-                                <td><?= htmlspecialchars(formatoFechaSap($f['fecha'] ?? null)) ?></td>
-                                <td><?= htmlspecialchars(formatoFechaSap($f['fechaVencimiento'] ?? null)) ?></td>
-                                <td><?= badgeEstado($f['estado'] ?? null) ?></td>
-                                <td><?= htmlspecialchars($f['comentarios'] ?? '-') ?></td>
+                                <td><?= htmlspecialchars(sapFecha($f['fecha'] ?? null)) ?></td>
+                                <td><?= htmlspecialchars(sapFecha($f['fechaVencimiento'] ?? null)) ?></td>
+                                <td><?= sapBadgeEstado($f['estado'] ?? '') ?></td>
+                                <td><?= sapTextoCorto($f['comentarios'] ?? '') ?></td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
+            <?= sapNotaTruncado(count($resultadosFacturas), $topVentas) ?>
         <?php endif; ?>
     </div>
+
+    <?php endif; // $buscarFacturas ?>
 
 <?php endif; ?>
 

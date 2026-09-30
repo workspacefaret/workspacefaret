@@ -4,6 +4,7 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/auth.php';
 requireModuleAccess('portal_sap');
 
 require_once $_SERVER['DOCUMENT_ROOT'] . '/services/ApiFaretClient.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/modules/sap/_ui.php';
 
 ob_start();
 
@@ -11,38 +12,8 @@ $empresa = ApiFaretClient::empresaActual();
 $texto = trim($_GET['texto'] ?? '');
 $item = trim($_GET['item'] ?? '');
 $lote = trim($_GET['lote'] ?? '');
-
-function formatoCantidad($n)
-{
-    if ($n === null || $n === '') {
-        return '-';
-    }
-
-    $n = (float)$n;
-    $decimales = floor($n) == $n ? 0 : 2;
-
-    return number_format($n, $decimales, ',', '.');
-}
-
-function formatoFechaSap($fecha)
-{
-    if (!$fecha) {
-        return '-';
-    }
-
-    $timestamp = strtotime($fecha);
-
-    return $timestamp ? date('d-m-Y', $timestamp) : $fecha;
-}
-
-function erroresPorEmpresa($respuesta)
-{
-    if (!$respuesta['ok'] || !is_array($respuesta['data'])) {
-        return [];
-    }
-
-    return $respuesta['data']['errors'] ?? [];
-}
+$topBusqueda = 50;
+$verVentas = hasModuleAccess('portal_sap_ventas');
 
 // Arma un link "?empresa=..&texto=..&item=..&lote=.." combinando los filtros ya
 // activos con el nuevo, para que al navegar a un artículo/lote no se pierda de
@@ -62,7 +33,7 @@ $articulos = [];
 $respuestaBusqueda = null;
 
 if ($texto !== '') {
-    $respuestaBusqueda = ApiFaretClient::get('articulos/buscar?texto=' . rawurlencode($texto) . '&top=50', $empresa);
+    $respuestaBusqueda = ApiFaretClient::get('articulos/buscar?texto=' . rawurlencode($texto) . '&top=' . $topBusqueda, $empresa);
 
     if ($respuestaBusqueda['ok']) {
         $articulos = $respuestaBusqueda['data']['data'] ?? [];
@@ -92,9 +63,12 @@ if ($item !== '') {
         $stocks = $respuestaStock['data']['data'] ?? [];
     }
 
-    if ($respuestaLotesItem['ok']) {
-        $lotesItem = $respuestaLotesItem['data']['data'] ?? [];
-    }
+    $resultadoLotesItem = sapResultado($respuestaLotesItem, true);
+    $lotesItem = $resultadoLotesItem['filas'];
+
+    // Hasta 20 lotes por empresa por consulta: si alguna empresa llegó al tope puede haber más.
+    $lotesPorEmpresa = array_count_values(array_map(fn($l) => sapEmpresaEtiqueta($l['empresa'] ?? ''), $lotesItem));
+    $lotesItemPuedeTenerMas = count($lotesPorEmpresa) > 0 && max($lotesPorEmpresa) >= SAP_FILAS_MAX_POR_CONSULTA;
 }
 
 // Búsqueda de lote exacto
@@ -104,10 +78,8 @@ $respuestaLote = null;
 if ($lote !== '') {
     // lotes/{lote} tampoco acepta "empresa" (mismo motivo que lotes/item arriba).
     $respuestaLote = ApiFaretClient::get('lotes/' . rawurlencode($lote));
-
-    if ($respuestaLote['ok']) {
-        $resultadosLote = $respuestaLote['data']['data'] ?? [];
-    }
+    $resultadoLote = sapResultado($respuestaLote, true);
+    $resultadosLote = $resultadoLote['filas'];
 }
 
 // Antigüedad de inventario: solo cuando no hay una búsqueda puntual en curso,
@@ -116,13 +88,22 @@ $sinFiltros = $texto === '' && $item === '' && $lote === '';
 $respuestaAntiguedad = null;
 $lotesAntiguos = [];
 $totalAntiguos = 0;
+$lotesSinFecha = 0;
+$antiguedadPuedeFaltar = false;
+$diasAntiguedad = 90;
 
 if ($sinFiltros) {
-    $respuestaAntiguedad = ApiFaretClient::get('inventario/antiguedad?diasMinimos=90&top=100', $empresa);
+    // Se pide sin mínimo de días y el filtro se aplica aquí (mismo criterio que el
+    // Inicio): así se sabe si la consulta llegó al tope antes de filtrar, y se
+    // excluyen los lotes sin fecha de ingreso legible (apifaret los incluye igual).
+    $respuestaAntiguedad = ApiFaretClient::get('inventario/antiguedad?diasMinimos=0&top=' . SAP_FILAS_MAX_POR_CONSULTA, $empresa);
 
     if ($respuestaAntiguedad['ok']) {
-        $lotesAntiguos = $respuestaAntiguedad['data']['data'] ?? [];
-        $totalAntiguos = $respuestaAntiguedad['data']['total'] ?? count($lotesAntiguos);
+        $filasAntiguedad = $respuestaAntiguedad['data']['data'] ?? [];
+        $antiguedadPuedeFaltar = sapPuedeEstarTruncado(count($filasAntiguedad), SAP_FILAS_MAX_POR_CONSULTA);
+        $lotesSinFecha = count(array_filter($filasAntiguedad, fn($la) => ($la['diasEnBodega'] ?? null) === null));
+        $lotesAntiguos = array_values(array_filter($filasAntiguedad, fn($la) => ($la['diasEnBodega'] ?? null) !== null && $la['diasEnBodega'] >= $diasAntiguedad));
+        $totalAntiguos = count($lotesAntiguos);
     }
 }
 
@@ -176,63 +157,53 @@ if ($sinFiltros) {
         <div class="table-header">
             <div>
                 <h2>Artículos para "<?= htmlspecialchars($texto) ?>"</h2>
-                <p><?= count($articulos) ?> resultados en <?= htmlspecialchars($empresa) ?> (máximo 50).</p>
+                <p>En <?= htmlspecialchars($empresa) ?>.</p>
             </div>
         </div>
 
         <?php if (!$respuestaBusqueda['ok']): ?>
-            <div class="card">
-                <h2>Error de conexión con apifaret</h2>
-                <p>No se pudo realizar la búsqueda de artículos. <?= htmlspecialchars(ApiFaretClient::mensajeError($respuestaBusqueda)) ?></p>
-            </div>
+            <?= sapErrorCard('No se pudo realizar la búsqueda de artículos.', $respuestaBusqueda) ?>
         <?php else: ?>
 
-            <?php foreach (erroresPorEmpresa($respuestaBusqueda) as $err): ?>
-                <p><strong><?= htmlspecialchars($err['empresa'] ?? '-') ?>:</strong> <?= htmlspecialchars($err['mensaje'] ?? 'Error') ?></p>
-            <?php endforeach; ?>
-
             <div class="table-responsive">
-                <table class="data-table">
+                <table class="data-table sap-tabla">
                     <thead>
                         <tr>
-                            <th>Empresa</th>
                             <th>Código</th>
                             <th>Descripción</th>
                             <th>Grupo</th>
-                            <th>Unidad</th>
-                            <th>Lotes</th>
-                            <th>Vigente</th>
+                            <th>Estado</th>
                             <th></th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($articulos as $a): ?>
+                            <?php $urlArticulo = urlInventario($empresa, $texto, $item, $lote, ['item' => $a['itemCode'] ?? '']); ?>
                             <tr>
-                                <td><?= htmlspecialchars($a['empresa'] ?? '-') ?></td>
-                                <td><?= htmlspecialchars($a['itemCode'] ?? '-') ?></td>
+                                <td><a href="<?= htmlspecialchars($urlArticulo) ?>"><strong><?= htmlspecialchars($a['itemCode'] ?? '-') ?></strong></a></td>
                                 <td><?= htmlspecialchars($a['itemName'] ?? '-') ?></td>
                                 <td><?= htmlspecialchars($a['grupoNombre'] ?? $a['grupoCodigo'] ?? '-') ?></td>
-                                <td><?= htmlspecialchars($a['unidad'] ?? '-') ?></td>
-                                <td><?= !empty($a['manejaLotes']) ? 'Sí' : 'No' ?></td>
                                 <td>
                                     <span class="status-badge <?= !empty($a['vigente']) ? 'status-ok' : 'status-pending' ?>">
-                                        <?= !empty($a['vigente']) ? 'Sí' : 'No' ?>
+                                        <?= !empty($a['vigente']) ? 'Vigente' : 'No vigente' ?>
                                     </span>
                                 </td>
                                 <td>
-                                    <a class="btn-secondary" href="<?= htmlspecialchars(urlInventario($empresa, $texto, $item, $lote, ['item' => $a['itemCode'] ?? ''])) ?>" aria-label="Ver stock de <?= htmlspecialchars($a['itemCode'] ?? '') ?>">Ver stock</a>
+                                    <a class="btn-secondary" href="<?= htmlspecialchars($urlArticulo) ?>" aria-label="Ver stock de <?= htmlspecialchars($a['itemCode'] ?? '') ?>">Ver stock</a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
 
                         <?php if (count($articulos) === 0): ?>
                             <tr>
-                                <td colspan="8">No se encontraron artículos.</td>
+                                <td colspan="5">No se encontraron artículos para "<?= htmlspecialchars($texto) ?>" en <?= htmlspecialchars($empresa) ?>.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
             </div>
+
+            <?= sapNotaTruncado(count($articulos), $topBusqueda, 'coincidencias') ?>
 
         <?php endif; ?>
     </div>
@@ -250,13 +221,16 @@ if ($sinFiltros) {
         </div>
 
         <?php if (!$respuestaFicha['ok'] && !$respuestaStock['ok']): ?>
-            <div class="card">
-                <h2>Error de conexión con apifaret</h2>
-                <p>No se pudo consultar el artículo. <?= htmlspecialchars(ApiFaretClient::mensajeError($respuestaFicha)) ?></p>
-            </div>
+            <?= sapErrorCard('No se pudo consultar el artículo.', $respuestaFicha) ?>
         <?php else: ?>
 
-            <?php if (count($fichas) === 0 && count($stocks) === 0): ?>
+            <?php if (!$respuestaFicha['ok']): ?>
+                <?= sapErrorCard('No se pudo consultar la ficha del artículo. El stock sí está disponible.', $respuestaFicha) ?>
+            <?php elseif (!$respuestaStock['ok']): ?>
+                <?= sapErrorCard('No se pudo consultar el stock del artículo. La ficha sí está disponible.', $respuestaStock) ?>
+            <?php endif; ?>
+
+            <?php if ($respuestaFicha['ok'] && $respuestaStock['ok'] && count($fichas) === 0 && count($stocks) === 0): ?>
                 <p>El artículo no existe en <?= htmlspecialchars($empresa) ?>.</p>
             <?php endif; ?>
 
@@ -272,14 +246,13 @@ if ($sinFiltros) {
             <?php if (count($fichas) > 0): ?>
                 <h3>Ficha</h3>
                 <div class="table-responsive">
-                    <table class="data-table">
+                    <table class="data-table sap-tabla">
                         <thead>
                             <tr>
-                                <th>Empresa</th>
                                 <th>Grupo</th>
                                 <th>Unidad</th>
-                                <th>Vigente</th>
-                                <th>Lotes</th>
+                                <th>Estado</th>
+                                <th>Maneja lotes</th>
                                 <th>Gramaje</th>
                                 <th>Ancho</th>
                                 <th>Categoría</th>
@@ -291,10 +264,9 @@ if ($sinFiltros) {
                             <?php foreach ($fichas as $f): ?>
                                 <?php $at = $f['atributosTecnicos'] ?? []; ?>
                                 <tr>
-                                    <td><?= htmlspecialchars($f['empresa'] ?? '-') ?></td>
                                     <td><?= htmlspecialchars($f['grupoNombre'] ?? $f['grupoCodigo'] ?? '-') ?></td>
                                     <td><?= htmlspecialchars($f['unidad'] ?? '-') ?></td>
-                                    <td><?= !empty($f['vigente']) ? 'Sí' : 'No' ?></td>
+                                    <td><?= !empty($f['vigente']) ? 'Vigente' : 'No vigente' ?></td>
                                     <td><?= !empty($f['manejaLotes']) ? 'Sí' : 'No' ?></td>
                                     <td><?= htmlspecialchars($at['gramaje'] ?? '-') ?></td>
                                     <td><?= htmlspecialchars($at['ancho'] ?? '-') ?></td>
@@ -309,34 +281,66 @@ if ($sinFiltros) {
             <?php endif; ?>
 
             <?php foreach ($stocks as $s): ?>
-                <h3 style="margin-top:24px;">
-                    Stock en <?= htmlspecialchars($s['empresa'] ?? '-') ?>:
-                    <?= formatoCantidad($s['stockTotal'] ?? 0) ?>
-                </h3>
+                <?php
+                    // En apifaret "disponible" es el stock físico (InStock de SAP), no lo libre:
+                    // Libre = En stock − Comprometido. "Pedido" = cantidad en pedidos por recibir.
+                    $almacenes = $s['porAlmacen'] ?? [];
+                    $sumaEnStock = array_sum(array_column($almacenes, 'disponible'));
+                    $sumaComprometido = array_sum(array_column($almacenes, 'comprometido'));
+                    $sumaPedido = array_sum(array_column($almacenes, 'pedido'));
+                ?>
+                <div class="sap-kpi-grid" style="margin-top:24px;">
+                    <div class="sap-kpi-card">
+                        <span class="sap-kpi-body">
+                            <span>En stock <?= sapAyuda('Cantidad física en bodega en ' . sapEmpresaEtiqueta($s['empresa'] ?? $empresa) . '.') ?></span>
+                            <strong><?= sapCantidad($sumaEnStock) ?></strong>
+                        </span>
+                    </div>
+                    <div class="sap-kpi-card">
+                        <span class="sap-kpi-body">
+                            <span>Comprometido <?= sapAyuda('Reservado por notas de venta abiertas. SAP no indica aquí cuáles son.') ?></span>
+                            <strong><?= sapCantidad($sumaComprometido) ?></strong>
+                        </span>
+                    </div>
+                    <div class="sap-kpi-card">
+                        <span class="sap-kpi-body">
+                            <span>Libre <?= sapAyuda('En stock menos comprometido.') ?></span>
+                            <strong><?= sapCantidad($sumaEnStock - $sumaComprometido) ?></strong>
+                        </span>
+                    </div>
+                    <div class="sap-kpi-card">
+                        <span class="sap-kpi-body">
+                            <span>En pedido <?= sapAyuda('Cantidad en pedidos aún por recibir.') ?></span>
+                            <strong><?= sapCantidad($sumaPedido) ?></strong>
+                        </span>
+                    </div>
+                </div>
 
                 <div class="table-responsive">
-                    <table class="data-table">
+                    <table class="data-table sap-tabla">
                         <thead>
                             <tr>
                                 <th>Almacén</th>
-                                <th>Disponible</th>
-                                <th>Comprometido</th>
-                                <th>Pedido</th>
+                                <th class="sap-num">En stock</th>
+                                <th class="sap-num">Comprometido</th>
+                                <th class="sap-num">Libre</th>
+                                <th class="sap-num">En pedido</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($s['porAlmacen'] ?? [] as $alm): ?>
+                            <?php foreach ($almacenes as $alm): ?>
                                 <tr>
                                     <td><?= htmlspecialchars($alm['almacen'] ?? '-') ?></td>
-                                    <td><?= formatoCantidad($alm['disponible'] ?? 0) ?></td>
-                                    <td><?= formatoCantidad($alm['comprometido'] ?? 0) ?></td>
-                                    <td><?= formatoCantidad($alm['pedido'] ?? 0) ?></td>
+                                    <td class="sap-num"><?= sapCantidad($alm['disponible'] ?? 0) ?></td>
+                                    <td class="sap-num"><?= sapCantidad($alm['comprometido'] ?? 0) ?></td>
+                                    <td class="sap-num"><?= sapCantidad(($alm['disponible'] ?? 0) - ($alm['comprometido'] ?? 0)) ?></td>
+                                    <td class="sap-num"><?= sapCantidad($alm['pedido'] ?? 0) ?></td>
                                 </tr>
                             <?php endforeach; ?>
 
-                            <?php if (count($s['porAlmacen'] ?? []) === 0): ?>
+                            <?php if (count($almacenes) === 0): ?>
                                 <tr>
-                                    <td colspan="4">Sin stock en ningún almacén.</td>
+                                    <td colspan="5">Sin stock ni movimientos pendientes en ningún almacén de <?= htmlspecialchars($empresa) ?>.</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -345,12 +349,12 @@ if ($sinFiltros) {
 
                 <?php if (count($s['porBin'] ?? []) > 0): ?>
                     <div class="table-responsive" style="margin-top:12px;">
-                        <table class="data-table">
+                        <table class="data-table sap-tabla">
                             <thead>
                                 <tr>
                                     <th>Almacén</th>
-                                    <th>Ubicación (bin)</th>
-                                    <th>Cantidad</th>
+                                    <th>Ubicación</th>
+                                    <th class="sap-num">En stock</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -358,7 +362,7 @@ if ($sinFiltros) {
                                     <tr>
                                         <td><?= htmlspecialchars($bin['almacen'] ?? '-') ?></td>
                                         <td><?= htmlspecialchars($bin['bin'] ?? '-') ?></td>
-                                        <td><?= formatoCantidad($bin['cantidad'] ?? 0) ?></td>
+                                        <td class="sap-num"><?= sapCantidad($bin['cantidad'] ?? 0) ?></td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
@@ -367,18 +371,19 @@ if ($sinFiltros) {
                 <?php endif; ?>
             <?php endforeach; ?>
 
-            <h3 style="margin-top:24px;">Lotes del artículo (<?= count($lotesItem) ?>) — todas las compañías</h3>
+            <h3 style="margin-top:24px;">Lotes del artículo — todas las empresas</h3>
 
-            <?php if (!$respuestaLotesItem['ok']): ?>
-                <p>No se pudieron consultar los lotes del artículo.</p>
+            <?php if ($resultadoLotesItem['estado'] === 'error'): ?>
+                <?= sapErrorCard('No se pudieron consultar los lotes del artículo.', $respuestaLotesItem) ?>
             <?php else: ?>
+                <?= sapAvisoParcial($resultadoLotesItem['empresasFallidas']) ?>
                 <div class="table-responsive">
-                    <table class="data-table">
+                    <table class="data-table sap-tabla">
                         <thead>
                             <tr>
-                                <th>Empresa</th>
                                 <th>Lote</th>
-                                <th>Stock</th>
+                                <th>Empresa</th>
+                                <th class="sap-num">En stock</th>
                                 <th>Unidad</th>
                                 <th></th>
                             </tr>
@@ -386,9 +391,9 @@ if ($sinFiltros) {
                         <tbody>
                             <?php foreach ($lotesItem as $l): ?>
                                 <tr>
-                                    <td><?= htmlspecialchars($l['empresa'] ?? '-') ?></td>
-                                    <td><?= htmlspecialchars($l['lote'] ?? '-') ?></td>
-                                    <td><?= formatoCantidad($l['stock'] ?? 0) ?></td>
+                                    <td><strong><?= htmlspecialchars($l['lote'] ?? '-') ?></strong></td>
+                                    <td><span class="sap-list-chip"><?= htmlspecialchars(sapEmpresaEtiqueta($l['empresa'] ?? '')) ?></span></td>
+                                    <td class="sap-num"><?= sapCantidad($l['stock'] ?? 0) ?></td>
                                     <td><?= htmlspecialchars($l['unidad'] ?? '-') ?></td>
                                     <td>
                                         <a class="btn-secondary" href="<?= htmlspecialchars(urlInventario($empresa, $texto, $item, $lote, ['lote' => $l['lote'] ?? ''])) ?>" aria-label="Ver ubicación del lote <?= htmlspecialchars($l['lote'] ?? '') ?>">Ver ubicación</a>
@@ -398,12 +403,15 @@ if ($sinFiltros) {
 
                             <?php if (count($lotesItem) === 0): ?>
                                 <tr>
-                                    <td colspan="5">El artículo no tiene lotes registrados.</td>
+                                    <td colspan="5">No se encontraron lotes registrados para este artículo<?= count($resultadoLotesItem['empresasFallidas']) > 0 ? ' en las empresas consultadas' : '' ?>.</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
+                <?php if ($lotesItemPuedeTenerMas): ?>
+                    <p class="sap-nota"><i class="bi bi-info-circle"></i> Se muestran hasta <?= SAP_FILAS_MAX_POR_CONSULTA ?> lotes por empresa. Puede haber más en SAP.</p>
+                <?php endif; ?>
             <?php endif; ?>
 
             <?php if (count($fichas) > 0): ?>
@@ -428,52 +436,51 @@ if ($sinFiltros) {
         <div class="table-header">
             <div>
                 <h2>Stock del lote "<?= htmlspecialchars($lote) ?>"</h2>
-                <p>Resultado en todas las compañías (la búsqueda por lote no admite filtrar por empresa).</p>
+                <p>Se busca en todas las empresas.</p>
             </div>
         </div>
 
-        <?php if (!$respuestaLote['ok']): ?>
-            <div class="card">
-                <h2>Error de conexión con apifaret</h2>
-                <p>No se pudo consultar el lote. <?= htmlspecialchars(ApiFaretClient::mensajeError($respuestaLote)) ?></p>
-            </div>
+        <?php if ($resultadoLote['estado'] === 'error'): ?>
+            <?= sapErrorCard('No se pudo consultar el lote.', $respuestaLote) ?>
         <?php else: ?>
 
-            <?php foreach (erroresPorEmpresa($respuestaLote) as $err): ?>
-                <p><strong><?= htmlspecialchars($err['empresa'] ?? '-') ?>:</strong> <?= htmlspecialchars($err['mensaje'] ?? 'Error') ?></p>
-            <?php endforeach; ?>
+            <?= sapAvisoParcial($resultadoLote['empresasFallidas']) ?>
 
             <div class="table-responsive">
-                <table class="data-table">
+                <table class="data-table sap-tabla">
                     <thead>
                         <tr>
+                            <th>Artículo</th>
                             <th>Empresa</th>
-                            <th>Ítem</th>
-                            <th>Descripción</th>
-                            <th>Unidad</th>
-                            <th>Stock</th>
+                            <th class="sap-num">En stock</th>
                             <th>Ubicación</th>
                             <th></th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($resultadosLote as $r): ?>
+                            <?php
+                                // El artículo se abre en la empresa donde está el lote, no en la seleccionada.
+                                $empresaLote = sapEmpresa($r['empresa'] ?? '', $empresa);
+                                $urlArticuloLote = urlInventario($empresaLote, $texto, $item, $lote, ['item' => $r['itemCode'] ?? '']);
+                            ?>
                             <tr>
-                                <td><?= htmlspecialchars($r['empresa'] ?? '-') ?></td>
-                                <td><?= htmlspecialchars($r['itemCode'] ?? '-') ?></td>
-                                <td><?= htmlspecialchars($r['itemName'] ?? '-') ?></td>
-                                <td><?= htmlspecialchars($r['unidad'] ?? '-') ?></td>
-                                <td><?= formatoCantidad($r['stock'] ?? 0) ?></td>
+                                <td>
+                                    <a href="<?= htmlspecialchars($urlArticuloLote) ?>"><strong><?= htmlspecialchars($r['itemCode'] ?? '-') ?></strong></a><br>
+                                    <span style="color:var(--muted);font-size:13px;"><?= htmlspecialchars($r['itemName'] ?? '-') ?></span>
+                                </td>
+                                <td><span class="sap-list-chip"><?= htmlspecialchars(sapEmpresaEtiqueta($r['empresa'] ?? '')) ?></span></td>
+                                <td class="sap-num"><?= sapCantidad($r['stock'] ?? 0) ?> <?= htmlspecialchars($r['unidad'] ?? '') ?></td>
                                 <td><?= htmlspecialchars($r['ubicacion'] ?? '-') ?></td>
                                 <td>
-                                    <a class="btn-secondary" href="<?= htmlspecialchars(urlInventario($empresa, $texto, $item, $lote, ['item' => $r['itemCode'] ?? ''])) ?>" aria-label="Ver artículo <?= htmlspecialchars($r['itemCode'] ?? '') ?>">Ver artículo</a>
+                                    <a class="btn-secondary" href="<?= htmlspecialchars($urlArticuloLote) ?>" aria-label="Ver artículo <?= htmlspecialchars($r['itemCode'] ?? '') ?>">Ver artículo</a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
 
                         <?php if (count($resultadosLote) === 0): ?>
                             <tr>
-                                <td colspan="7">No se encontró el lote en <?= htmlspecialchars($empresa) ?>.</td>
+                                <td colspan="5">No se encontró el lote "<?= htmlspecialchars($lote) ?>"<?= count($resultadoLote['empresasFallidas']) > 0 ? ' en las empresas consultadas' : ' en ninguna empresa' ?>. Revisa que el código esté completo.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
@@ -496,8 +503,12 @@ if ($sinFiltros) {
 
 <div class="kpi-grid" id="antiguedad">
     <div class="kpi-card">
-        <span>Lotes con más de 90 días</span>
-        <strong><?= $totalAntiguos ?></strong>
+        <span>Lotes con ingreso inicial hace <?= $diasAntiguedad ?> días o más</span>
+        <?php if ($respuestaAntiguedad['ok']): ?>
+            <strong><?= $antiguedadPuedeFaltar && $totalAntiguos > 0 ? $totalAntiguos . '+' : $totalAntiguos ?></strong>
+        <?php else: ?>
+            <strong>—</strong>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -505,70 +516,56 @@ if ($sinFiltros) {
     <div class="table-header">
         <div>
             <h2>Antigüedad de inventario</h2>
-            <p>Lotes del grupo "Terminados" con 90 días o más en bodega. La fecha de ingreso es la del primer ingreso histórico del lote en SAP y puede estar desfasada.</p>
+            <p>
+                Lotes de productos terminados en <?= htmlspecialchars($empresa) ?> cuyo ingreso inicial fue hace <?= $diasAntiguedad ?> días o más.
+                <?= sapAyuda('La fecha es la del primer ingreso conocido del lote en SAP. No indica cuánto tiempo lleva sin moverse: el lote pudo tener movimientos después.') ?>
+            </p>
         </div>
     </div>
 
     <?php if (!$respuestaAntiguedad['ok']): ?>
-        <div class="card">
-            <h2>Error de conexión con apifaret</h2>
-            <p>No se pudo obtener la antigüedad de inventario. <?= htmlspecialchars(ApiFaretClient::mensajeError($respuestaAntiguedad)) ?></p>
-        </div>
+        <?= sapErrorCard('No se pudo obtener la antigüedad de inventario.', $respuestaAntiguedad) ?>
     <?php else: ?>
 
-        <?php foreach (erroresPorEmpresa($respuestaAntiguedad) as $err): ?>
-            <p><strong><?= htmlspecialchars($err['empresa'] ?? '-') ?>:</strong> <?= htmlspecialchars($err['mensaje'] ?? 'Error') ?></p>
-        <?php endforeach; ?>
-
         <div class="table-responsive">
-            <table class="data-table">
+            <table class="data-table sap-tabla">
                 <thead>
                     <tr>
-                        <th>Empresa</th>
-                        <th>Ítem</th>
-                        <th>Descripción</th>
-                        <th>Almacén</th>
-                        <th>Ubicación</th>
+                        <th>Artículo</th>
                         <th>Lote</th>
-                        <th>Cantidad</th>
-                        <th>Ingreso</th>
-                        <th>Días</th>
-                        <th>Posible NV</th>
+                        <th>Ubicación</th>
+                        <th class="sap-num">Cantidad</th>
+                        <th>Ingreso inicial</th>
+                        <th class="sap-num">Días desde ingreso inicial</th>
+                        <th>NV sugerida <?= sapAyuda('Referencia registrada manualmente en el lote. No está validada contra la nota de venta y puede estar desactualizada.') ?></th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php foreach ($lotesAntiguos as $la): ?>
+                        <?php $empresaFila = sapEmpresa($la['empresa'] ?? '', $empresa); ?>
                         <tr>
-                            <td><?= htmlspecialchars($la['empresa'] ?? '-') ?></td>
                             <td>
-                                <a href="?item=<?= rawurlencode($la['itemCode'] ?? '') ?>"><?= htmlspecialchars($la['itemCode'] ?? '-') ?></a>
+                                <a href="<?= htmlspecialchars(urlInventario($empresaFila, '', '', '', ['item' => $la['itemCode'] ?? ''])) ?>"><strong><?= htmlspecialchars($la['itemCode'] ?? '-') ?></strong></a><br>
+                                <span style="color:var(--muted);font-size:13px;"><?= htmlspecialchars($la['itemName'] ?? '-') ?></span>
                             </td>
-                            <td><?= htmlspecialchars($la['itemName'] ?? '-') ?></td>
-                            <td><?= htmlspecialchars($la['almacen'] ?? '-') ?></td>
-                            <td><?= htmlspecialchars($la['bin'] ?? '-') ?></td>
                             <td>
-                                <a href="?lote=<?= rawurlencode($la['lote'] ?? '') ?>"><?= htmlspecialchars($la['lote'] ?? '-') ?></a>
+                                <a href="<?= htmlspecialchars(urlInventario($empresaFila, '', '', '', ['lote' => $la['lote'] ?? ''])) ?>"><?= htmlspecialchars($la['lote'] ?? '-') ?></a>
                             </td>
-                            <td><?= formatoCantidad($la['cantidad'] ?? 0) ?></td>
-                            <td><?= htmlspecialchars(formatoFechaSap($la['fechaIngreso'] ?? null)) ?></td>
-                            <td><?= htmlspecialchars($la['diasEnBodega'] ?? '-') ?></td>
+                            <td><?= htmlspecialchars($la['almacen'] ?? '-') ?><br><span style="color:var(--muted);font-size:13px;"><?= htmlspecialchars($la['bin'] ?? '') ?></span></td>
+                            <td class="sap-num"><?= sapCantidad($la['cantidad'] ?? 0) ?></td>
+                            <td><?= htmlspecialchars(sapFecha($la['fechaIngreso'] ?? null)) ?></td>
+                            <td class="sap-num"><?= htmlspecialchars((string) ($la['diasEnBodega'] ?? '-')) ?></td>
                             <td>
-                                <?php
-                                    $posibleNV = $la['posibleNotaVenta'] ?? '';
-                                    // La fila trae el CompanyDB crudo de SAP (ej. "FARET_PRODUCCION"),
-                                    // no el código normalizado que usa el resto del portal — mapeo
-                                    // 1:1 confirmado contra appsettings.json de apisapfaret.
-                                    $empresaFila = strtoupper(preg_replace('/_PRODUCCION$/', '', $la['empresa'] ?? ''));
-                                    if (!in_array($empresaFila, ApiFaretClient::EMPRESAS_VALIDAS, true)) {
-                                        $empresaFila = $empresa;
-                                    }
-                                ?>
-                                <?php if ($posibleNV !== '' && ctype_digit($posibleNV)): ?>
-                                    <a href="/modules/sap/ventas/?empresa=<?= rawurlencode($empresaFila) ?>&docNum=<?= rawurlencode($posibleNV) ?>" title="Buscar esta Nota de Venta en Ventas">
-                                        <?= htmlspecialchars($posibleNV) ?>
-                                    </a>
+                                <?php $posibleNV = trim((string) ($la['posibleNotaVenta'] ?? '')); ?>
+                                <?php if ($posibleNV === ''): ?>
+                                    -
                                 <?php else: ?>
-                                    <?= htmlspecialchars($posibleNV !== '' ? $posibleNV : '-') ?>
+                                    <?= htmlspecialchars($posibleNV) ?>
+                                    <span class="badge badge-warning" title="Referencia no validada: puede no corresponder a una nota de venta vigente.">No validada</span>
+                                    <?php if ($verVentas && ctype_digit($posibleNV)): ?>
+                                        <br>
+                                        <a href="/modules/sap/ventas/?empresa=<?= rawurlencode($empresaFila) ?>&docNum=<?= rawurlencode($posibleNV) ?>&tipo=nv" style="font-size:13px;" title="Busca notas de venta con este número. Confirma que corresponda al lote antes de usarla.">Buscar NV con este N°</a>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                             </td>
                         </tr>
@@ -576,12 +573,19 @@ if ($sinFiltros) {
 
                     <?php if (count($lotesAntiguos) === 0): ?>
                         <tr>
-                            <td colspan="10">No hay lotes con 90 días o más en bodega.</td>
+                            <td colspan="7">No hay lotes de productos terminados con ingreso inicial hace <?= $diasAntiguedad ?> días o más en <?= htmlspecialchars($empresa) ?><?= $antiguedadPuedeFaltar ? ' entre los consultados' : '' ?>.</td>
                         </tr>
                     <?php endif; ?>
                 </tbody>
             </table>
         </div>
+
+        <?php if ($antiguedadPuedeFaltar): ?>
+            <p class="sap-nota"><i class="bi bi-info-circle"></i> SAP entregó una muestra parcial de los lotes. Puede haber más lotes antiguos que no aparecen aquí.</p>
+        <?php endif; ?>
+        <?php if ($lotesSinFecha > 0): ?>
+            <p class="sap-nota"><i class="bi bi-info-circle"></i> <?= $lotesSinFecha ?> lote(s) sin fecha de ingreso legible no se incluyen.</p>
+        <?php endif; ?>
 
     <?php endif; ?>
 </div>

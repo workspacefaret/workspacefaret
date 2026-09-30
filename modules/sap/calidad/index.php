@@ -4,6 +4,7 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/auth.php';
 requireModuleAccess('portal_sap_calidad');
 
 require_once $_SERVER['DOCUMENT_ROOT'] . '/services/ApiFaretClient.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/modules/sap/_ui.php';
 
 ob_start();
 
@@ -39,29 +40,6 @@ $rangoValido = $desdeSap !== null && $hastaSap !== null;
 
 $itemLote = trim($_GET['itemLote'] ?? '');
 $fechaLote = trim($_GET['fechaLote'] ?? '');
-
-function formatoFechaSap($fecha)
-{
-    if (!$fecha) {
-        return '-';
-    }
-
-    $timestamp = strtotime($fecha);
-
-    return $timestamp ? date('d-m-Y', $timestamp) : $fecha;
-}
-
-function formatoCantidad($n)
-{
-    if ($n === null || $n === '') {
-        return '-';
-    }
-
-    $n = (float) $n;
-    $decimales = floor($n) == $n ? 0 : 2;
-
-    return number_format($n, $decimales, ',', '.');
-}
 
 $resultadosBobinas = [];
 $respuestaBobinas = null;
@@ -163,18 +141,15 @@ if ($empresaSoportada && $itemLote !== '' && $fechaLote !== '') {
             <div class="table-header">
                 <div>
                     <h2>Recepciones de bobinas</h2>
-                    <p>Del <?= htmlspecialchars(formatoFechaSap($desdeSap)) ?> al <?= htmlspecialchars(formatoFechaSap($hastaSap)) ?> en <?= htmlspecialchars($empresa) ?>.</p>
+                    <p>Del <?= htmlspecialchars(sapFecha($desdeSap)) ?> al <?= htmlspecialchars(sapFecha($hastaSap)) ?> en <?= htmlspecialchars($empresa) ?>.</p>
                 </div>
             </div>
 
             <?php if (!$respuestaBobinas['ok']): ?>
-                <div class="card">
-                    <h2>Error de conexión con apifaret</h2>
-                    <p>No se pudo obtener la recepción de bobinas. <?= htmlspecialchars(ApiFaretClient::mensajeError($respuestaBobinas)) ?></p>
-                </div>
+                <?= sapErrorCard('No se pudo obtener la recepción de bobinas.', $respuestaBobinas) ?>
             <?php else: ?>
                 <div class="table-responsive">
-                    <table class="data-table">
+                    <table class="data-table sap-tabla">
                         <thead>
                             <tr>
                                 <th>Fecha</th>
@@ -182,23 +157,23 @@ if ($empresaSoportada && $itemLote !== '' && $fechaLote !== '') {
                                 <th>Guía</th>
                                 <th>Ítem</th>
                                 <th>Descripción</th>
-                                <th>Cantidad</th>
-                                <th>Ancho decl.</th>
-                                <th>Gramaje decl.</th>
+                                <th class="sap-num">Cantidad</th>
+                                <th class="sap-num">Ancho declarado</th>
+                                <th class="sap-num">Gramaje declarado</th>
                                 <th></th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($resultadosBobinas as $b): ?>
                                 <tr>
-                                    <td><?= htmlspecialchars(formatoFechaSap($b['fechaRecepcion'] ?? null)) ?></td>
+                                    <td><?= htmlspecialchars(sapFecha($b['fechaRecepcion'] ?? null)) ?></td>
                                     <td><?= htmlspecialchars($b['proveedor'] ?? '-') ?></td>
                                     <td><?= htmlspecialchars($b['guia'] ?? '-') ?></td>
                                     <td><?= htmlspecialchars($b['itemCode'] ?? '-') ?></td>
                                     <td><?= htmlspecialchars($b['descripcion'] ?? '-') ?></td>
-                                    <td><?= formatoCantidad($b['cantidadRecibida'] ?? 0) ?></td>
-                                    <td><?= formatoCantidad($b['anchoDeclarado'] ?? null) ?></td>
-                                    <td><?= formatoCantidad($b['gramajeDeclarado'] ?? null) ?></td>
+                                    <td class="sap-num"><?= sapCantidad($b['cantidadRecibida'] ?? 0) ?></td>
+                                    <td class="sap-num"><?= sapCantidad($b['anchoDeclarado'] ?? null) ?></td>
+                                    <td class="sap-num"><?= sapCantidad($b['gramajeDeclarado'] ?? null) ?></td>
                                     <td>
                                         <a class="btn-secondary" href="?empresa=<?= rawurlencode($empresa) ?>&desde=<?= rawurlencode($desdeInput) ?>&hasta=<?= rawurlencode($hastaInput) ?>&itemLote=<?= rawurlencode($b['itemCode'] ?? '') ?>&fechaLote=<?= rawurlencode(date('Y-m-d', strtotime((string) ($b['fechaRecepcion'] ?? '')) ?: time())) ?>#lotesBobina" aria-label="Ver lotes de <?= htmlspecialchars($b['itemCode'] ?? '') ?>">
                                             Ver lotes
@@ -215,6 +190,7 @@ if ($empresaSoportada && $itemLote !== '' && $fechaLote !== '') {
                         </tbody>
                     </table>
                 </div>
+                <?= sapNotaTruncado(count($resultadosBobinas), SAP_FILAS_MAX_POR_CONSULTA, 'rango') ?>
             <?php endif; ?>
         </div>
 
@@ -225,7 +201,7 @@ if ($empresaSoportada && $itemLote !== '' && $fechaLote !== '') {
         <div class="table-card" style="margin-top:32px;" id="lotesBobina">
             <div class="table-header">
                 <div>
-                    <h2>Lotes/bobinas de <?= htmlspecialchars($itemLote) ?> (<?= htmlspecialchars(formatoFechaSap($fechaLote)) ?>)</h2>
+                    <h2>Lotes/bobinas de <?= htmlspecialchars($itemLote) ?> (<?= htmlspecialchars(sapFecha($fechaLote)) ?>)</h2>
                     <p>Trazabilidad aproximada: son lotes creados ese mismo día para este artículo, no un vínculo real de documento a lote (SAP no expone esa relación vía Service Layer).</p>
                 </div>
             </div>
@@ -236,13 +212,10 @@ if ($empresaSoportada && $itemLote !== '' && $fechaLote !== '') {
                     <p>No se pudo interpretar la fecha de la recepción.</p>
                 </div>
             <?php elseif (!$respuestaLotesBobina['ok']): ?>
-                <div class="card">
-                    <h2>Error de conexión con apifaret</h2>
-                    <p>No se pudieron obtener los lotes. <?= htmlspecialchars(ApiFaretClient::mensajeError($respuestaLotesBobina)) ?></p>
-                </div>
+                <?= sapErrorCard('No se pudieron obtener los lotes.', $respuestaLotesBobina) ?>
             <?php else: ?>
                 <div class="table-responsive">
-                    <table class="data-table">
+                    <table class="data-table sap-tabla">
                         <thead>
                             <tr>
                                 <th>N° bobina</th>
@@ -253,7 +226,7 @@ if ($empresaSoportada && $itemLote !== '' && $fechaLote !== '') {
                             <?php foreach ($resultadosLotesBobina as $l): ?>
                                 <tr>
                                     <td><?= htmlspecialchars($l['numeroBobina'] ?? '-') ?></td>
-                                    <td><?= htmlspecialchars(formatoFechaSap($l['fechaCreacion'] ?? null)) ?></td>
+                                    <td><?= htmlspecialchars(sapFecha($l['fechaCreacion'] ?? null)) ?></td>
                                 </tr>
                             <?php endforeach; ?>
 

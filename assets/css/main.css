@@ -1824,3 +1824,115 @@ a.sap-list-row:hover {
 [data-theme="light"] .sap-guide {
     box-shadow: 0 12px 28px rgba(15, 23, 42, .08);
 }
+
+/* Claridad de datos (added 2026-09-30, UX1): avisos de error/parcial, notas de
+   resultados que pueden estar incompletos, ayudas breves y columnas numéricas.
+   Usados vía los helpers de modules/sap/_ui.php. */
+.sap-aviso {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 12px 16px;
+    margin: 0 0 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(245, 158, 11, .35);
+    background: rgba(245, 158, 11, .10);
+    color: #fbbf24;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.sap-aviso strong {
+    color: inherit;
+}
+
+.sap-nota {
+    margin: 10px 4px 0;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.sap-ayuda {
+    color: var(--muted);
+    cursor: help;
+    font-size: 13px;
+    margin-left: 4px;
+}
+
+.data-table th.sap-num,
+.data-table td.sap-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.sap-kpi-body .sap-kpi-nota {
+    display: block;
+    margin: 6px 0 0;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--muted);
+}
+
+[data-theme="light"] .sap-aviso {
+    color: #92400e;
+    border-color: rgba(180, 83, 9, .35);
+}
+
+/* Tablas de Portal SAP en pantallas chicas: la regla general de "Responsive tablas"
+   (más arriba) convierte cada fila en tarjeta con etiquetas fijas pensadas para la
+   tabla de Usuarios ("ID", "Usuario", "Rol"...), que en Portal SAP rotulaban mal
+   cantidades y documentos. Solo para .sap-tabla se mantiene la tabla con sus
+   encabezados reales y scroll horizontal. El resto del sitio no cambia. */
+@media (max-width: 900px) {
+    .table-responsive:has(> .sap-tabla) {
+        overflow-x: auto;
+    }
+
+    .data-table.sap-tabla {
+        display: table;
+        min-width: 640px;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .data-table.sap-tabla thead {
+        display: table-header-group;
+    }
+
+    .data-table.sap-tabla tbody {
+        display: table-row-group;
+    }
+
+    .data-table.sap-tabla tr,
+    [data-theme="light"] .data-table.sap-tabla tr {
+        display: table-row;
+        background: none;
+        border: 0;
+        border-radius: 0;
+        padding: 0;
+        box-shadow: none;
+    }
+
+    .data-table.sap-tabla tr,
+    .data-table.sap-tabla td {
+        width: auto;
+    }
+
+    .data-table.sap-tabla td {
+        display: table-cell;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--border);
+        text-align: left;
+    }
+
+    .data-table.sap-tabla td.sap-num {
+        text-align: right;
+    }
+
+    .data-table.sap-tabla td::before {
+        content: none;
+    }
+}

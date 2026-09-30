@@ -21,6 +21,7 @@ $verCalidad = hasModuleAccess('portal_sap_calidad');
 $verPrecios = hasModuleAccess('portal_sap_precios');
 
 require_once $_SERVER['DOCUMENT_ROOT'] . '/services/ApiFaretClient.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/modules/sap/_ui.php';
 
 ob_start();
 
@@ -55,32 +56,45 @@ $respuestaStockDatos = null;
 // Todo lo de abajo (KPIs, búsqueda global, accesos frecuentes, traslados) es
 // contenido del acceso base "portal_sap" — se omite por completo si el usuario
 // solo tiene una o más de las claves de área (Ventas/Compras/Logística/Calidad).
+// Tope pedido a cada consulta del Inicio. apifaret entrega como máximo 20 filas
+// por consulta (ver SAP_FILAS_MAX_POR_CONSULTA en _ui.php), así que los conteos
+// se muestran con sapConteo() ("20+") y nunca como total exacto de SAP.
+$topInicio = SAP_FILAS_MAX_POR_CONSULTA;
+$lotesAntiguos = [];
+$antiguedadPuedeFaltar = false;
+
 if ($verBase) {
-    $respuestaTraslados = ApiFaretClient::get('documentos/traslados/pendientes?top=20', $empresa);
+    $respuestaTraslados = ApiFaretClient::get('documentos/traslados/pendientes?top=' . $topInicio, $empresa);
 
     if ($respuestaTraslados['ok']) {
         $trasladosPendientes = $respuestaTraslados['data']['data'] ?? [];
-        $totalTraslados = $respuestaTraslados['data']['total'] ?? count($trasladosPendientes);
+        $totalTraslados = count($trasladosPendientes);
     }
 
-    $respuestaAntiguedad = ApiFaretClient::get('inventario/antiguedad?diasMinimos=90&top=500', $empresa);
+    // Se pide sin mínimo de días y el filtro de 90 días se aplica aquí: así se sabe
+    // si la consulta llegó al tope (puede haber más lotes) antes de filtrar.
+    // Se excluyen lotes sin fecha de ingreso legible (apifaret los incluye igual).
+    $respuestaAntiguedad = ApiFaretClient::get('inventario/antiguedad?diasMinimos=0&top=' . $topInicio, $empresa);
 
     if ($respuestaAntiguedad['ok']) {
-        $totalAntiguos = $respuestaAntiguedad['data']['total'] ?? count($respuestaAntiguedad['data']['data'] ?? []);
+        $filasAntiguedad = $respuestaAntiguedad['data']['data'] ?? [];
+        $antiguedadPuedeFaltar = sapPuedeEstarTruncado(count($filasAntiguedad), $topInicio);
+        $lotesAntiguos = array_filter($filasAntiguedad, fn($la) => ($la['diasEnBodega'] ?? null) !== null && $la['diasEnBodega'] >= 90);
+        $totalAntiguos = count($lotesAntiguos);
     }
 
-    $respuestaPicking = ApiFaretClient::get('documentos/picking/pendientes?top=50', $empresa);
+    $respuestaPicking = ApiFaretClient::get('documentos/picking/pendientes?top=' . $topInicio, $empresa);
 
     if ($respuestaPicking['ok']) {
         $pickingPendiente = $respuestaPicking['data']['data'] ?? [];
-        $totalPicking = $respuestaPicking['data']['total'] ?? count($pickingPendiente);
+        $totalPicking = count($pickingPendiente);
     }
 
     $hoySap = date('Ymd');
-    $respuestaRecepciones = ApiFaretClient::get('documentos/recepciones?desde=' . $hoySap . '&hasta=' . $hoySap . '&top=50', $empresa);
+    $respuestaRecepciones = ApiFaretClient::get('documentos/recepciones?desde=' . $hoySap . '&hasta=' . $hoySap . '&top=' . $topInicio, $empresa);
 
     if ($respuestaRecepciones['ok']) {
-        $totalRecepcionesHoy = $respuestaRecepciones['data']['total'] ?? count($respuestaRecepciones['data']['data'] ?? []);
+        $totalRecepcionesHoy = count($respuestaRecepciones['data']['data'] ?? []);
     }
 
     // Estado de conexión del header: si alguna de las 4 consultas base falló, se
@@ -99,11 +113,10 @@ if ($verBase) {
         }
 
         // lotes/{lote} exige coincidencia exacta y no admite "empresa" (ver nota en inventario/index.php).
+        // Consulta multiempresa: si falla solo alguna compañía se muestran igual las demás.
         $respuestaBusquedaLote = ApiFaretClient::get('lotes/' . rawurlencode($buscar));
-
-        if ($respuestaBusquedaLote['ok']) {
-            $resultadosBusquedaLote = $respuestaBusquedaLote['data']['data'] ?? [];
-        }
+        $resultadoBusquedaLote = sapResultado($respuestaBusquedaLote, true);
+        $resultadosBusquedaLote = $resultadoBusquedaLote['filas'];
 
         $respuestaBusquedaClientes = ApiFaretClient::get('clientes/buscar?texto=' . rawurlencode($buscar) . '&top=5', $empresa);
 
@@ -133,29 +146,6 @@ if ($verBase) {
             $stockDatos = $respuestaStockDatos['data']['data'] ?? [];
         }
     }
-}
-
-function formatoCantidad($n)
-{
-    if ($n === null || $n === '') {
-        return '-';
-    }
-
-    $n = (float)$n;
-    $decimales = floor($n) == $n ? 0 : 2;
-
-    return number_format($n, $decimales, ',', '.');
-}
-
-function formatoFechaSap($fecha)
-{
-    if (!$fecha) {
-        return '-';
-    }
-
-    $timestamp = strtotime($fecha);
-
-    return $timestamp ? date('d-m-Y', $timestamp) : $fecha;
 }
 
 ?>
@@ -222,10 +212,7 @@ function formatoFechaSap($fecha)
         <h3>Artículos</h3>
 
         <?php if (!$respuestaBusquedaArticulos['ok']): ?>
-            <div class="card">
-                <h2>Error de conexión con apifaret</h2>
-                <p>No se pudo buscar artículos. <?= htmlspecialchars(ApiFaretClient::mensajeError($respuestaBusquedaArticulos)) ?></p>
-            </div>
+            <?= sapErrorCard('No se pudo buscar artículos.', $respuestaBusquedaArticulos) ?>
         <?php elseif (count($resultadosBusquedaArticulos) === 0): ?>
             <p>Sin artículos que coincidan con "<?= htmlspecialchars($buscar) ?>" en <?= htmlspecialchars($empresa) ?>.</p>
         <?php else: ?>
@@ -244,23 +231,24 @@ function formatoFechaSap($fecha)
 
         <h3 style="margin-top:24px;">Lotes</h3>
 
-        <?php if (!$respuestaBusquedaLote['ok']): ?>
-            <div class="card">
-                <h2>Error de conexión con apifaret</h2>
-                <p>No se pudo buscar el lote. <?= htmlspecialchars(ApiFaretClient::mensajeError($respuestaBusquedaLote)) ?></p>
-            </div>
-        <?php elseif (count($resultadosBusquedaLote) === 0): ?>
-            <p>Sin coincidencia exacta de lote para "<?= htmlspecialchars($buscar) ?>".</p>
+        <?php if ($resultadoBusquedaLote['estado'] === 'error'): ?>
+            <?= sapErrorCard('No se pudo buscar el lote.', $respuestaBusquedaLote) ?>
         <?php else: ?>
+            <?= sapAvisoParcial($resultadoBusquedaLote['empresasFallidas']) ?>
+        <?php endif; ?>
+
+        <?php if ($resultadoBusquedaLote['estado'] !== 'error' && count($resultadosBusquedaLote) === 0): ?>
+            <p>Sin coincidencia exacta de lote para "<?= htmlspecialchars($buscar) ?>".</p>
+        <?php elseif (count($resultadosBusquedaLote) > 0): ?>
             <?php foreach ($resultadosBusquedaLote as $r): ?>
-                <a class="sap-list-row" href="/modules/sap/inventario/?empresa=<?= rawurlencode($empresa) ?>&lote=<?= rawurlencode($buscar) ?>">
+                <a class="sap-list-row" href="/modules/sap/inventario/?empresa=<?= rawurlencode(sapEmpresa($r['empresa'] ?? '', $empresa)) ?>&lote=<?= rawurlencode($buscar) ?>">
                     <span class="sap-list-icon"><i class="bi bi-upc-scan"></i></span>
                     <span class="sap-list-main">
                         <span class="sap-list-title"><?= htmlspecialchars($buscar) ?></span><br>
                         <span class="sap-list-sub"><?= htmlspecialchars($r['itemCode'] ?? '-') ?> · <?= htmlspecialchars($r['itemName'] ?? '-') ?></span>
                     </span>
-                    <span class="sap-list-chip"><?= htmlspecialchars($r['empresa'] ?? '-') ?></span>
-                    <span class="sap-list-date"><?= formatoCantidad($r['stock'] ?? 0) ?></span>
+                    <span class="sap-list-chip"><?= htmlspecialchars(sapEmpresaEtiqueta($r['empresa'] ?? '')) ?></span>
+                    <span class="sap-list-date"><?= sapCantidad($r['stock'] ?? 0) ?> en stock</span>
                     <i class="bi bi-chevron-right sap-list-chevron"></i>
                 </a>
             <?php endforeach; ?>
@@ -269,10 +257,7 @@ function formatoFechaSap($fecha)
         <h3 style="margin-top:24px;">Clientes</h3>
 
         <?php if (!$respuestaBusquedaClientes['ok']): ?>
-            <div class="card">
-                <h2>Error de conexión con apifaret</h2>
-                <p>No se pudo buscar clientes. <?= htmlspecialchars(ApiFaretClient::mensajeError($respuestaBusquedaClientes)) ?></p>
-            </div>
+            <?= sapErrorCard('No se pudo buscar clientes.', $respuestaBusquedaClientes) ?>
         <?php elseif (count($resultadosBusquedaClientes) === 0): ?>
             <p>Sin clientes que coincidan con "<?= htmlspecialchars($buscar) ?>" en <?= htmlspecialchars($empresa) ?>.</p>
         <?php else: ?>
@@ -291,10 +276,7 @@ function formatoFechaSap($fecha)
         <h3 style="margin-top:24px;">Proveedores</h3>
 
         <?php if (!$respuestaBusquedaProveedores['ok']): ?>
-            <div class="card">
-                <h2>Error de conexión con apifaret</h2>
-                <p>No se pudo buscar proveedores. <?= htmlspecialchars(ApiFaretClient::mensajeError($respuestaBusquedaProveedores)) ?></p>
-            </div>
+            <?= sapErrorCard('No se pudo buscar proveedores.', $respuestaBusquedaProveedores) ?>
         <?php elseif (count($resultadosBusquedaProveedores) === 0): ?>
             <p>Sin proveedores que coincidan con "<?= htmlspecialchars($buscar) ?>" en <?= htmlspecialchars($empresa) ?>.</p>
         <?php else: ?>
@@ -317,32 +299,52 @@ function formatoFechaSap($fecha)
     <div class="sap-kpi-card">
         <span class="sap-kpi-icon icon-green"><i class="bi bi-arrow-left-right"></i></span>
         <span class="sap-kpi-body">
-            <span>Traslados pendientes</span>
-            <strong><?= $respuestaTraslados['ok'] ? $totalTraslados : '-' ?></strong>
+            <span>Solicitudes de traslado abiertas</span>
+            <?php if ($respuestaTraslados['ok']): ?>
+                <strong><?= htmlspecialchars(sapConteo($totalTraslados, $topInicio)) ?></strong>
+                <?php if (sapPuedeEstarTruncado($totalTraslados, $topInicio)): ?><span class="sap-kpi-nota">Puede haber más en SAP</span><?php endif; ?>
+            <?php else: ?>
+                <strong>—</strong><span class="sap-kpi-nota">No disponible ahora</span>
+            <?php endif; ?>
         </span>
     </div>
 
     <div class="sap-kpi-card">
         <span class="sap-kpi-icon icon-orange"><i class="bi bi-box-seam"></i></span>
         <span class="sap-kpi-body">
-            <span>Picking pendiente</span>
-            <strong><?= $totalPicking === null ? '-' : $totalPicking ?></strong>
+            <span>Picking liberado</span>
+            <?php if ($totalPicking !== null): ?>
+                <strong><?= htmlspecialchars(sapConteo($totalPicking, $topInicio)) ?></strong>
+                <?php if (sapPuedeEstarTruncado($totalPicking, $topInicio)): ?><span class="sap-kpi-nota">Puede haber más en SAP</span><?php endif; ?>
+            <?php else: ?>
+                <strong>—</strong><span class="sap-kpi-nota">No disponible ahora</span>
+            <?php endif; ?>
         </span>
     </div>
 
     <div class="sap-kpi-card">
         <span class="sap-kpi-icon icon-blue"><i class="bi bi-truck"></i></span>
         <span class="sap-kpi-body">
-            <span>Recepciones hoy</span>
-            <strong><?= $totalRecepcionesHoy === null ? '-' : $totalRecepcionesHoy ?></strong>
+            <span>Recepciones con fecha de hoy</span>
+            <?php if ($totalRecepcionesHoy !== null): ?>
+                <strong><?= htmlspecialchars(sapConteo($totalRecepcionesHoy, $topInicio)) ?></strong>
+                <?php if (sapPuedeEstarTruncado($totalRecepcionesHoy, $topInicio)): ?><span class="sap-kpi-nota">Puede haber más en SAP</span><?php endif; ?>
+            <?php else: ?>
+                <strong>—</strong><span class="sap-kpi-nota">No disponible ahora</span>
+            <?php endif; ?>
         </span>
     </div>
 
     <a class="sap-kpi-card" href="/modules/sap/inventario/?empresa=<?= rawurlencode($empresa) ?>#antiguedad">
         <span class="sap-kpi-icon icon-purple"><i class="bi bi-hourglass-split"></i></span>
         <span class="sap-kpi-body">
-            <span>Lotes con más de 90 días</span>
-            <strong><?= $totalAntiguos === null ? '-' : $totalAntiguos ?></strong>
+            <span>Lotes con ingreso inicial hace más de 90 días</span>
+            <?php if ($totalAntiguos !== null): ?>
+                <strong><?= $antiguedadPuedeFaltar && $totalAntiguos > 0 ? $totalAntiguos . '+' : $totalAntiguos ?></strong>
+                <span class="sap-kpi-nota"><?= $antiguedadPuedeFaltar ? 'Muestra parcial de SAP · ' : '' ?>Productos terminados</span>
+            <?php else: ?>
+                <strong>—</strong><span class="sap-kpi-nota">No disponible ahora</span>
+            <?php endif; ?>
         </span>
     </a>
 </div>
@@ -354,24 +356,24 @@ function formatoFechaSap($fecha)
 // tab "Bodega" para no duplicar el markup.
 ob_start();
 
-if (!$respuestaTraslados['ok'] || !$respuestaPicking['ok']) {
-    ?>
-    <div class="card">
-        <h2>Error de conexión con apifaret</h2>
-        <p>
-            No se pudo obtener el listado completo de bodega.
-            <?php if (!$respuestaTraslados['ok']): ?><?= htmlspecialchars(ApiFaretClient::mensajeError($respuestaTraslados)) ?><?php endif; ?>
-            <?php if (!$respuestaPicking['ok']): ?><?= htmlspecialchars(ApiFaretClient::mensajeError($respuestaPicking)) ?><?php endif; ?>
-        </p>
-    </div>
-    <?php
+// Si falla una de las dos consultas se muestra igual la otra, con su aviso.
+if (!$respuestaTraslados['ok']) {
+    echo sapErrorCard('No se pudieron consultar las solicitudes de traslado.', $respuestaTraslados);
+}
+
+if (!$respuestaPicking['ok']) {
+    echo sapErrorCard('No se pudo consultar el picking.', $respuestaPicking);
+}
+
+if (!$respuestaTraslados['ok'] && !$respuestaPicking['ok']) {
+    // Nada más que mostrar.
 } elseif (count($trasladosPendientes) === 0 && count($pickingPendiente) === 0) {
     ?>
-    <p style="color:var(--muted);padding:8px 6px;">No hay traslados ni picking pendientes en <?= htmlspecialchars($empresa) ?>.</p>
+    <p style="color:var(--muted);padding:8px 6px;">No hay solicitudes de traslado abiertas ni picking liberado en <?= htmlspecialchars($empresa) ?>.</p>
     <?php
 } else {
-    // Vista previa acotada (el KPI de arriba ya muestra el total real) — evita
-    // una lista larguísima que descalce la columna del widget de stock al lado.
+    // Vista previa acotada — evita una lista larguísima que descalce la columna
+    // del widget de stock al lado. La lista completa está en Logística.
     $vistaBodega = array_merge(
         array_map(fn($t) => ['tipo' => 'traslado', 'item' => $t], $trasladosPendientes),
         array_map(fn($pk) => ['tipo' => 'picking', 'item' => $pk], $pickingPendiente)
@@ -384,16 +386,17 @@ if (!$respuestaTraslados['ok'] || !$respuestaPicking['ok']) {
     foreach ($vistaBodegaPreview as $fila) {
         if ($fila['tipo'] === 'traslado') {
             $t = $fila['item'];
+            $diasAbierta = sapDiasDesde($t['fecha'] ?? null);
             ?>
             <<?= $tag ?> class="sap-list-row" <?= $destino ? 'href="' . htmlspecialchars($destino) . '"' : '' ?>>
                 <span class="sap-list-icon"><i class="bi bi-arrow-left-right"></i></span>
                 <span class="sap-list-main">
-                    <span class="sap-list-title">Traslado #<?= htmlspecialchars($t['docNum'] ?? $t['docEntry'] ?? '-') ?></span><br>
-                    <span class="sap-list-sub"><?= htmlspecialchars($t['almacenOrigen'] ?? '-') ?> → <?= htmlspecialchars($t['almacenDestino'] ?? '-') ?></span>
+                    <span class="sap-list-title">Solicitud de traslado N° <?= htmlspecialchars($t['docNum'] ?? '-') ?></span><br>
+                    <span class="sap-list-sub"><?= htmlspecialchars($t['almacenOrigen'] ?? '-') ?> → <?= htmlspecialchars($t['almacenDestino'] ?? '-') ?><?= $diasAbierta !== null ? ' · abierta hace ' . $diasAbierta . ' día' . ($diasAbierta === 1 ? '' : 's') : '' ?></span>
                 </span>
                 <span class="sap-list-chip"><?= htmlspecialchars($empresa) ?></span>
-                <span class="badge badge-warning">Pendiente</span>
-                <span class="sap-list-date"><?= htmlspecialchars(formatoFechaSap($t['fecha'] ?? null)) ?></span>
+                <?= sapBadgeEstado('bost_Open') ?>
+                <span class="sap-list-date"><?= htmlspecialchars(sapFecha($t['fecha'] ?? null)) ?></span>
                 <?php if ($destino): ?><i class="bi bi-chevron-right sap-list-chevron"></i><?php endif; ?>
             </<?= $tag ?>>
             <?php
@@ -403,23 +406,26 @@ if (!$respuestaTraslados['ok'] || !$respuestaPicking['ok']) {
             <<?= $tag ?> class="sap-list-row" <?= $destino ? 'href="' . htmlspecialchars($destino) . '"' : '' ?>>
                 <span class="sap-list-icon"><i class="bi bi-box-seam"></i></span>
                 <span class="sap-list-main">
-                    <span class="sap-list-title">Picking #<?= htmlspecialchars($pk['absEntry'] ?? '-') ?></span><br>
-                    <span class="sap-list-sub"><?= count($pk['lineas'] ?? []) ?> línea(s)</span>
+                    <span class="sap-list-title">Picking N° <?= htmlspecialchars($pk['absEntry'] ?? '-') ?></span><br>
+                    <span class="sap-list-sub">Lista de picking</span>
                 </span>
                 <span class="sap-list-chip"><?= htmlspecialchars($empresa) ?></span>
-                <span class="badge badge-warning"><?= htmlspecialchars($pk['estado'] ?? '-') ?></span>
-                <span class="sap-list-date"><?= htmlspecialchars(formatoFechaSap($pk['fecha'] ?? null)) ?></span>
+                <?= sapBadgeEstado($pk['estado'] ?? '') ?>
+                <span class="sap-list-date"><?= htmlspecialchars(sapFecha($pk['fecha'] ?? null)) ?></span>
                 <?php if ($destino): ?><i class="bi bi-chevron-right sap-list-chevron"></i><?php endif; ?>
             </<?= $tag ?>>
             <?php
         }
     }
 
-    if ($totalBodega > count($vistaBodegaPreview)) {
+    $bodegaPuedeTenerMas = sapPuedeEstarTruncado(count($trasladosPendientes), $topInicio)
+        || sapPuedeEstarTruncado(count($pickingPendiente), $topInicio);
+
+    if ($totalBodega > count($vistaBodegaPreview) || $bodegaPuedeTenerMas) {
         ?>
         <p style="text-align:center;padding:10px;color:var(--muted);font-size:13px;">
-            Mostrando <?= count($vistaBodegaPreview) ?> de <?= $totalBodega ?>.
-            <?php if ($destino): ?><a href="<?= htmlspecialchars($destino) ?>" style="color:var(--sap-accent);font-weight:700;">Ver todo en Logística →</a><?php endif; ?>
+            Mostrando <?= count($vistaBodegaPreview) ?> de <?= $bodegaPuedeTenerMas ? 'al menos ' . $totalBodega : $totalBodega ?>.
+            <?php if ($destino): ?><a href="<?= htmlspecialchars($destino) ?>" style="color:var(--sap-accent);font-weight:700;">Ver en Logística →</a><?php endif; ?>
         </p>
         <?php
     }
@@ -545,33 +551,34 @@ $htmlComprasAviso = ob_get_clean();
 
         <?php if ($stockItem === ''): ?>
             <p style="color:var(--muted);">Escribe un código de artículo para ver su stock total y por almacén.</p>
-        <?php elseif (!$respuestaStockFicha['ok'] && !$respuestaStockDatos['ok']): ?>
-            <div class="card">
-                <h2>Error de conexión con apifaret</h2>
-                <p>No se pudo consultar el artículo. <?= htmlspecialchars(ApiFaretClient::mensajeError($respuestaStockFicha)) ?></p>
-            </div>
+        <?php elseif (!$respuestaStockDatos['ok']): ?>
+            <?= sapErrorCard('No se pudo consultar el stock del artículo.', $respuestaStockDatos) ?>
         <?php elseif (count($stockDatos) === 0): ?>
             <p>El artículo <?= htmlspecialchars($stockItem) ?> no existe en <?= htmlspecialchars($empresa) ?>.</p>
         <?php else: ?>
-            <?php $stockTotal = array_sum(array_column($stockDatos, 'stockTotal')); ?>
-            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;">
+            <?php
+                // En apifaret "disponible" es el stock físico (InStock de SAP), no lo libre.
+                $almacenesStock = array_merge(...array_map(fn($s) => $s['porAlmacen'] ?? [], $stockDatos));
+                $enStockTotal = array_sum(array_column($almacenesStock, 'disponible'));
+                $comprometidoTotal = array_sum(array_column($almacenesStock, 'comprometido'));
+            ?>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;gap:12px;">
                 <div>
                     <strong style="font-size:18px;"><?= htmlspecialchars($stockItem) ?></strong><br>
                     <span style="color:var(--muted);font-size:13px;"><?= htmlspecialchars($stockFicha[0]['itemName'] ?? $stockDatos[0]['itemName'] ?? '') ?></span>
                 </div>
                 <div style="text-align:right;">
-                    <span style="display:block;font-size:12px;color:var(--muted);">Stock total</span>
-                    <strong style="font-size:22px;"><?= formatoCantidad($stockTotal) ?></strong>
+                    <span style="display:block;font-size:12px;color:var(--muted);">En stock</span>
+                    <strong style="font-size:22px;"><?= sapCantidad($enStockTotal) ?></strong>
+                    <span style="display:block;font-size:12px;color:var(--muted);">Libre: <?= sapCantidad($enStockTotal - $comprometidoTotal) ?> <?= sapAyuda('Libre = en stock menos lo comprometido por notas de venta.') ?></span>
                 </div>
             </div>
 
-            <?php foreach ($stockDatos as $s): ?>
-                <?php foreach (($s['porAlmacen'] ?? []) as $alm): ?>
-                    <div style="display:flex;justify-content:space-between;padding:8px 4px;border-bottom:1px solid var(--border);font-size:13px;">
-                        <span><?= htmlspecialchars($alm['almacen'] ?? '-') ?></span>
-                        <span><?= formatoCantidad($alm['disponible'] ?? 0) ?></span>
-                    </div>
-                <?php endforeach; ?>
+            <?php foreach ($almacenesStock as $alm): ?>
+                <div style="display:flex;justify-content:space-between;padding:8px 4px;border-bottom:1px solid var(--border);font-size:13px;">
+                    <span><?= htmlspecialchars($alm['almacen'] ?? '-') ?></span>
+                    <span><?= sapCantidad($alm['disponible'] ?? 0) ?> en stock</span>
+                </div>
             <?php endforeach; ?>
 
             <p style="margin-top:14px;">
@@ -620,7 +627,7 @@ $htmlComprasAviso = ob_get_clean();
 
 <?php endif; // $verBase ?>
 
-<?php if ($verVentas || $verCompras || $verLogistica || $verCalidad || $verPrecios): ?>
+<?php if ($verVentas || $verCompras || $verLogistica || $verCalidad): ?>
 
     <div class="table-card" style="margin-top:32px;">
         <div class="table-header">
@@ -658,15 +665,21 @@ $htmlComprasAviso = ob_get_clean();
                 </a>
             <?php endif; ?>
 
-            <?php if ($verPrecios): ?>
-                <a href="/modules/sap/precios/?empresa=<?= rawurlencode($empresa) ?>" class="sap-tile">
-                    <span class="sap-tile-icon"><i class="bi bi-tag"></i></span>
-                    <span>Precios</span>
-                </a>
-            <?php endif; ?>
+            <?php // Precios no se destaca aquí: SAP no mantiene precios en el maestro de
+                  // artículos. El módulo sigue disponible desde el menú lateral. ?>
         </div>
     </div>
 
+<?php endif; ?>
+
+<?php if ($verPrecios && !$verBase && !$verVentas && !$verCompras && !$verLogistica && !$verCalidad): ?>
+    <div class="sap-guide">
+        <span class="sap-guide-icon"><i class="bi bi-tag"></i></span>
+        <div>
+            <h3>Precios</h3>
+            <p><a href="/modules/sap/precios/?empresa=<?= rawurlencode($empresa) ?>">Consultar listas de precios →</a></p>
+        </div>
+    </div>
 <?php endif; ?>
 
 <?php

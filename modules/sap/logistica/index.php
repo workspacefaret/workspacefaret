@@ -4,6 +4,7 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/auth.php';
 requireModuleAccess('portal_sap_logistica');
 
 require_once $_SERVER['DOCUMENT_ROOT'] . '/services/ApiFaretClient.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/modules/sap/_ui.php';
 
 ob_start();
 
@@ -34,17 +35,8 @@ $desdeSap = aFechaSap($desdeInput);
 $hastaSap = aFechaSap($hastaInput);
 $rangoValido = $desdeSap !== null && $hastaSap !== null;
 
-function formatoFechaSap($fecha)
-{
-    if (!$fecha) {
-        return '-';
-    }
-
-    $timestamp = strtotime($fecha);
-
-    return $timestamp ? date('d-m-Y', $timestamp) : $fecha;
-}
-
+$topMovimientos = 50;
+$topPendientes = 50;
 $resultadosTraslados = [];
 $resultadosRecepciones = [];
 $resultadosDespachos = [];
@@ -53,7 +45,7 @@ $respuestaRecepciones = null;
 $respuestaDespachos = null;
 
 if ($rangoValido) {
-    $filtroFecha = 'desde=' . $desdeSap . '&hasta=' . $hastaSap . '&top=50';
+    $filtroFecha = 'desde=' . $desdeSap . '&hasta=' . $hastaSap . '&top=' . $topMovimientos;
 
     $respuestaTraslados = ApiFaretClient::get('documentos/traslados?' . $filtroFecha, $empresa);
 
@@ -74,14 +66,14 @@ if ($rangoValido) {
     }
 }
 
-$respuestaPicking = ApiFaretClient::get('documentos/picking/pendientes?top=50', $empresa);
+$respuestaPicking = ApiFaretClient::get('documentos/picking/pendientes?top=' . $topPendientes, $empresa);
 $resultadosPicking = [];
 
 if ($respuestaPicking['ok']) {
     $resultadosPicking = $respuestaPicking['data']['data'] ?? [];
 }
 
-$respuestaSolicitudesTraslado = ApiFaretClient::get('documentos/traslados/pendientes?top=50', $empresa);
+$respuestaSolicitudesTraslado = ApiFaretClient::get('documentos/traslados/pendientes?top=' . $topPendientes, $empresa);
 $resultadosSolicitudesTraslado = [];
 
 if ($respuestaSolicitudesTraslado['ok']) {
@@ -113,7 +105,7 @@ if ($respuestaSolicitudesTraslado['ok']) {
     <div>
         <h3>¿Qué muestra este filtro?</h3>
         <p>Traslados, recepciones y despachos se filtran por el rango de fechas de abajo (por defecto, últimos 7 días).</p>
-        <p>"Solicitudes de traslado pendientes" y "Picking pendiente" no usan este filtro: siempre muestran lo abierto en este momento.</p>
+        <p>"Solicitudes de traslado abiertas" y "Picking liberado" no usan este filtro: siempre muestran lo abierto en SAP en este momento.</p>
     </div>
 </div>
 
@@ -151,35 +143,32 @@ if ($respuestaSolicitudesTraslado['ok']) {
         <div class="table-header">
             <div>
                 <h2>Traslados</h2>
-                <p>Entre bodegas, del <?= htmlspecialchars(formatoFechaSap($desdeSap)) ?> al <?= htmlspecialchars(formatoFechaSap($hastaSap)) ?> en <?= htmlspecialchars($empresa) ?>.</p>
+                <p>Entre bodegas, del <?= htmlspecialchars(sapFecha($desdeSap)) ?> al <?= htmlspecialchars(sapFecha($hastaSap)) ?> en <?= htmlspecialchars($empresa) ?>.</p>
             </div>
         </div>
 
         <?php if (!$respuestaTraslados['ok']): ?>
-            <div class="card">
-                <h2>Error de conexión con apifaret</h2>
-                <p>No se pudo obtener el listado de traslados. <?= htmlspecialchars(ApiFaretClient::mensajeError($respuestaTraslados)) ?></p>
-            </div>
+            <?= sapErrorCard('No se pudo obtener el listado de traslados.', $respuestaTraslados) ?>
         <?php else: ?>
             <div class="table-responsive">
-                <table class="data-table">
+                <table class="data-table sap-tabla">
                     <thead>
                         <tr>
-                            <th>Doc</th>
+                            <th>N°</th>
                             <th>Fecha</th>
-                            <th>Origen</th>
-                            <th>Destino</th>
+                            <th>Origen → Destino</th>
+                            <th class="sap-num">Líneas</th>
                             <th>Comentarios</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($resultadosTraslados as $t): ?>
                             <tr>
-                                <td>#<?= htmlspecialchars($t['docNum'] ?? $t['docEntry'] ?? '-') ?></td>
-                                <td><?= htmlspecialchars(formatoFechaSap($t['fecha'] ?? null)) ?></td>
-                                <td><?= htmlspecialchars($t['almacenOrigen'] ?? '-') ?></td>
-                                <td><?= htmlspecialchars($t['almacenDestino'] ?? '-') ?></td>
-                                <td><?= htmlspecialchars($t['comentarios'] ?? '-') ?></td>
+                                <td><strong><?= htmlspecialchars($t['docNum'] ?? '-') ?></strong></td>
+                                <td><?= htmlspecialchars(sapFecha($t['fecha'] ?? null)) ?></td>
+                                <td><?= htmlspecialchars($t['almacenOrigen'] ?? '-') ?> → <?= htmlspecialchars($t['almacenDestino'] ?? '-') ?></td>
+                                <td class="sap-num"><?= count($t['lineas'] ?? []) ?></td>
+                                <td><?= sapTextoCorto($t['comentarios'] ?? '') ?></td>
                             </tr>
                         <?php endforeach; ?>
 
@@ -191,6 +180,7 @@ if ($respuestaSolicitudesTraslado['ok']) {
                     </tbody>
                 </table>
             </div>
+            <?= sapNotaTruncado(count($resultadosTraslados), $topMovimientos) ?>
         <?php endif; ?>
     </div>
 
@@ -198,44 +188,44 @@ if ($respuestaSolicitudesTraslado['ok']) {
         <div class="table-header">
             <div>
                 <h2>Recepciones</h2>
-                <p>Del <?= htmlspecialchars(formatoFechaSap($desdeSap)) ?> al <?= htmlspecialchars(formatoFechaSap($hastaSap)) ?> en <?= htmlspecialchars($empresa) ?>.</p>
+                <p>Del <?= htmlspecialchars(sapFecha($desdeSap)) ?> al <?= htmlspecialchars(sapFecha($hastaSap)) ?> en <?= htmlspecialchars($empresa) ?>.</p>
             </div>
         </div>
 
         <?php if (!$respuestaRecepciones['ok']): ?>
-            <div class="card">
-                <h2>Error de conexión con apifaret</h2>
-                <p>No se pudo obtener el listado de recepciones. <?= htmlspecialchars(ApiFaretClient::mensajeError($respuestaRecepciones)) ?></p>
-            </div>
+            <?= sapErrorCard('No se pudo obtener el listado de recepciones.', $respuestaRecepciones) ?>
         <?php else: ?>
             <div class="table-responsive">
-                <table class="data-table">
+                <table class="data-table sap-tabla">
                     <thead>
                         <tr>
-                            <th>Doc</th>
+                            <th>N°</th>
                             <th>Proveedor</th>
                             <th>Fecha</th>
+                            <th class="sap-num">Líneas</th>
                             <th>Comentarios</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($resultadosRecepciones as $r): ?>
                             <tr>
-                                <td>#<?= htmlspecialchars($r['docNum'] ?? $r['docEntry'] ?? '-') ?></td>
+                                <td><strong><?= htmlspecialchars($r['docNum'] ?? '-') ?></strong></td>
                                 <td><?= htmlspecialchars($r['proveedorNombre'] ?? $r['proveedorCodigo'] ?? '-') ?></td>
-                                <td><?= htmlspecialchars(formatoFechaSap($r['fecha'] ?? null)) ?></td>
-                                <td><?= htmlspecialchars($r['comentarios'] ?? '-') ?></td>
+                                <td><?= htmlspecialchars(sapFecha($r['fecha'] ?? null)) ?><?= !empty($r['hora']) ? ' <span style="color:var(--muted);">' . htmlspecialchars(substr((string) $r['hora'], 0, 5)) . '</span>' : '' ?></td>
+                                <td class="sap-num"><?= count($r['lineas'] ?? []) ?></td>
+                                <td><?= sapTextoCorto($r['comentarios'] ?? '') ?></td>
                             </tr>
                         <?php endforeach; ?>
 
                         <?php if (count($resultadosRecepciones) === 0): ?>
                             <tr>
-                                <td colspan="4">Sin recepciones en el rango seleccionado.</td>
+                                <td colspan="5">Sin recepciones en el rango seleccionado.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
             </div>
+            <?= sapNotaTruncado(count($resultadosRecepciones), $topMovimientos) ?>
         <?php endif; ?>
     </div>
 
@@ -243,35 +233,32 @@ if ($respuestaSolicitudesTraslado['ok']) {
         <div class="table-header">
             <div>
                 <h2>Despachos</h2>
-                <p>Del <?= htmlspecialchars(formatoFechaSap($desdeSap)) ?> al <?= htmlspecialchars(formatoFechaSap($hastaSap)) ?> en <?= htmlspecialchars($empresa) ?>.</p>
+                <p>Del <?= htmlspecialchars(sapFecha($desdeSap)) ?> al <?= htmlspecialchars(sapFecha($hastaSap)) ?> en <?= htmlspecialchars($empresa) ?>.</p>
             </div>
         </div>
 
         <?php if (!$respuestaDespachos['ok']): ?>
-            <div class="card">
-                <h2>Error de conexión con apifaret</h2>
-                <p>No se pudo obtener el listado de despachos. <?= htmlspecialchars(ApiFaretClient::mensajeError($respuestaDespachos)) ?></p>
-            </div>
+            <?= sapErrorCard('No se pudo obtener el listado de despachos.', $respuestaDespachos) ?>
         <?php else: ?>
             <div class="table-responsive">
-                <table class="data-table">
+                <table class="data-table sap-tabla">
                     <thead>
                         <tr>
-                            <th>Doc</th>
+                            <th>N°</th>
                             <th>Cliente</th>
                             <th>Fecha</th>
-                            <th>Dirección</th>
-                            <th>Comentarios</th>
+                            <th>Dirección de despacho</th>
+                            <th class="sap-num">Líneas</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($resultadosDespachos as $d): ?>
                             <tr>
-                                <td>#<?= htmlspecialchars($d['docNum'] ?? $d['docEntry'] ?? '-') ?></td>
+                                <td><strong><?= htmlspecialchars($d['docNum'] ?? '-') ?></strong></td>
                                 <td><?= htmlspecialchars($d['clienteNombre'] ?? $d['clienteCodigo'] ?? '-') ?></td>
-                                <td><?= htmlspecialchars(formatoFechaSap($d['fecha'] ?? null)) ?></td>
-                                <td><?= htmlspecialchars($d['direccionDespacho'] ?? '-') ?></td>
-                                <td><?= htmlspecialchars($d['comentarios'] ?? '-') ?></td>
+                                <td><?= htmlspecialchars(sapFecha($d['fecha'] ?? null)) ?><?= !empty($d['hora']) ? ' <span style="color:var(--muted);">' . htmlspecialchars(substr((string) $d['hora'], 0, 5)) . '</span>' : '' ?></td>
+                                <td><?= sapTextoCorto($d['direccionDespacho'] ?? '') ?></td>
+                                <td class="sap-num"><?= count($d['lineas'] ?? []) ?></td>
                             </tr>
                         <?php endforeach; ?>
 
@@ -283,6 +270,7 @@ if ($respuestaSolicitudesTraslado['ok']) {
                     </tbody>
                 </table>
             </div>
+            <?= sapNotaTruncado(count($resultadosDespachos), $topMovimientos) ?>
         <?php endif; ?>
     </div>
 
@@ -291,92 +279,90 @@ if ($respuestaSolicitudesTraslado['ok']) {
 <div class="table-card" style="margin-top:32px;">
     <div class="table-header">
         <div>
-            <h2>Solicitudes de traslado pendientes</h2>
-            <p>Abiertas ahora mismo en <?= htmlspecialchars($empresa) ?> (no usa el filtro de fechas de arriba).</p>
+            <h2>Solicitudes de traslado abiertas</h2>
+            <p>
+                Abiertas en SAP en este momento, en <?= htmlspecialchars($empresa) ?> (no usa el filtro de fechas de arriba).
+                <?= sapAyuda('Una solicitud sigue abierta hasta que alguien la cierra en SAP. Algunas pueden estar ya ejecutadas físicamente y no haberse cerrado.') ?>
+            </p>
         </div>
     </div>
 
     <?php if (!$respuestaSolicitudesTraslado['ok']): ?>
-        <div class="card">
-            <h2>Error de conexión con apifaret</h2>
-            <p>No se pudo obtener el listado de solicitudes de traslado. <?= htmlspecialchars(ApiFaretClient::mensajeError($respuestaSolicitudesTraslado)) ?></p>
-        </div>
+        <?= sapErrorCard('No se pudo obtener el listado de solicitudes de traslado.', $respuestaSolicitudesTraslado) ?>
     <?php else: ?>
         <div class="table-responsive">
-            <table class="data-table">
+            <table class="data-table sap-tabla">
                 <thead>
                     <tr>
-                        <th>Doc</th>
+                        <th>N°</th>
                         <th>Fecha</th>
-                        <th>Origen</th>
-                        <th>Destino</th>
+                        <th class="sap-num">Días abierta</th>
+                        <th>Origen → Destino</th>
                         <th>Comentarios</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php foreach ($resultadosSolicitudesTraslado as $s): ?>
+                        <?php $diasAbierta = sapDiasDesde($s['fecha'] ?? null); ?>
                         <tr>
-                            <td>#<?= htmlspecialchars($s['docNum'] ?? $s['docEntry'] ?? '-') ?></td>
-                            <td><?= htmlspecialchars(formatoFechaSap($s['fecha'] ?? null)) ?></td>
-                            <td><?= htmlspecialchars($s['almacenOrigen'] ?? '-') ?></td>
-                            <td><?= htmlspecialchars($s['almacenDestino'] ?? '-') ?></td>
-                            <td><?= htmlspecialchars($s['comentarios'] ?? '-') ?></td>
+                            <td><strong><?= htmlspecialchars($s['docNum'] ?? '-') ?></strong></td>
+                            <td><?= htmlspecialchars(sapFecha($s['fecha'] ?? null)) ?></td>
+                            <td class="sap-num"><?= $diasAbierta !== null ? $diasAbierta : '-' ?></td>
+                            <td><?= htmlspecialchars($s['almacenOrigen'] ?? '-') ?> → <?= htmlspecialchars($s['almacenDestino'] ?? '-') ?></td>
+                            <td><?= sapTextoCorto($s['comentarios'] ?? '') ?></td>
                         </tr>
                     <?php endforeach; ?>
 
                     <?php if (count($resultadosSolicitudesTraslado) === 0): ?>
                         <tr>
-                            <td colspan="5">No hay solicitudes de traslado pendientes en <?= htmlspecialchars($empresa) ?>.</td>
+                            <td colspan="5">No hay solicitudes de traslado abiertas en <?= htmlspecialchars($empresa) ?>.</td>
                         </tr>
                     <?php endif; ?>
                 </tbody>
             </table>
         </div>
+        <?= sapNotaTruncado(count($resultadosSolicitudesTraslado), $topPendientes) ?>
     <?php endif; ?>
 </div>
 
 <div class="table-card" style="margin-top:32px;">
     <div class="table-header">
         <div>
-            <h2>Picking pendiente</h2>
-            <p>Listas liberadas y pendientes de picking en <?= htmlspecialchars($empresa) ?>.</p>
+            <h2>Picking liberado</h2>
+            <p>Listas de picking liberadas en SAP en <?= htmlspecialchars($empresa) ?>.</p>
         </div>
     </div>
 
     <?php if (!$respuestaPicking['ok']): ?>
-        <div class="card">
-            <h2>Error de conexión con apifaret</h2>
-            <p>No se pudo obtener el listado de picking. <?= htmlspecialchars(ApiFaretClient::mensajeError($respuestaPicking)) ?></p>
-        </div>
+        <?= sapErrorCard('No se pudo obtener el listado de picking.', $respuestaPicking) ?>
     <?php else: ?>
         <div class="table-responsive">
-            <table class="data-table">
+            <table class="data-table sap-tabla">
                 <thead>
                     <tr>
                         <th>N°</th>
                         <th>Fecha</th>
                         <th>Estado</th>
-                        <th>Líneas</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php foreach ($resultadosPicking as $pk): ?>
                         <tr>
-                            <td>#<?= htmlspecialchars($pk['absEntry'] ?? '-') ?></td>
-                            <td><?= htmlspecialchars(formatoFechaSap($pk['fecha'] ?? null)) ?></td>
-                            <td><?= htmlspecialchars($pk['estado'] ?? '-') ?></td>
-                            <td><?= count($pk['lineas'] ?? []) ?></td>
+                            <td><strong><?= htmlspecialchars($pk['absEntry'] ?? '-') ?></strong></td>
+                            <td><?= htmlspecialchars(sapFecha($pk['fecha'] ?? null)) ?></td>
+                            <td><?= sapBadgeEstado($pk['estado'] ?? '') ?></td>
                         </tr>
                     <?php endforeach; ?>
 
                     <?php if (count($resultadosPicking) === 0): ?>
                         <tr>
-                            <td colspan="4">No hay picking pendiente en <?= htmlspecialchars($empresa) ?>.</td>
+                            <td colspan="3">No hay picking liberado en <?= htmlspecialchars($empresa) ?>.</td>
                         </tr>
                     <?php endif; ?>
                 </tbody>
             </table>
         </div>
+        <?= sapNotaTruncado(count($resultadosPicking), $topPendientes) ?>
     <?php endif; ?>
 </div>
 
