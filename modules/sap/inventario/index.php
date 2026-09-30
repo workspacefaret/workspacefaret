@@ -12,8 +12,14 @@ $empresa = ApiFaretClient::empresaActual();
 $texto = trim($_GET['texto'] ?? '');
 $item = trim($_GET['item'] ?? '');
 $lote = trim($_GET['lote'] ?? '');
-$topBusqueda = 50;
 $verVentas = hasModuleAccess('portal_sap_ventas');
+
+// "pagina" la usan la búsqueda de artículos y la antigüedad, que nunca se muestran
+// juntas (la antigüedad solo aparece sin búsqueda en curso).
+$pagina = sapLeerPagina();
+$porPagina = sapLeerPorPagina();
+$paramsPagina = sapParamsPaginacion(['pagina' => $pagina], $porPagina);
+$paramsEstado = array_filter(['empresa' => $empresa, 'texto' => $texto, 'item' => $item, 'lote' => $lote], fn($valor) => $valor !== '') + $paramsPagina;
 
 // Arma un link "?empresa=..&texto=..&item=..&lote=.." combinando los filtros ya
 // activos con el nuevo, para que al navegar a un artículo/lote no se pierda de
@@ -33,7 +39,7 @@ $articulos = [];
 $respuestaBusqueda = null;
 
 if ($texto !== '') {
-    $respuestaBusqueda = ApiFaretClient::get('articulos/buscar?texto=' . rawurlencode($texto) . '&top=' . $topBusqueda, $empresa);
+    $respuestaBusqueda = ApiFaretClient::get('articulos/buscar?texto=' . rawurlencode($texto) . '&' . sapQueryPagina($pagina, $porPagina), $empresa);
 
     if ($respuestaBusqueda['ok']) {
         $articulos = $respuestaBusqueda['data']['data'] ?? [];
@@ -63,12 +69,10 @@ if ($item !== '') {
         $stocks = $respuestaStock['data']['data'] ?? [];
     }
 
+    // apifaret trae todos los lotes del artículo (sin paginación en este endpoint);
+    // solo avisa con "truncado" si llegó a su límite interno.
     $resultadoLotesItem = sapResultado($respuestaLotesItem, true);
     $lotesItem = $resultadoLotesItem['filas'];
-
-    // Hasta 20 lotes por empresa por consulta: si alguna empresa llegó al tope puede haber más.
-    $lotesPorEmpresa = array_count_values(array_map(fn($l) => sapEmpresaEtiqueta($l['empresa'] ?? ''), $lotesItem));
-    $lotesItemPuedeTenerMas = count($lotesPorEmpresa) > 0 && max($lotesPorEmpresa) >= SAP_FILAS_MAX_POR_CONSULTA;
 }
 
 // Búsqueda de lote exacto
@@ -87,23 +91,20 @@ if ($lote !== '') {
 $sinFiltros = $texto === '' && $item === '' && $lote === '';
 $respuestaAntiguedad = null;
 $lotesAntiguos = [];
-$totalAntiguos = 0;
+$totalAntiguos = null;
 $lotesSinFecha = 0;
-$antiguedadPuedeFaltar = false;
 $diasAntiguedad = 90;
 
 if ($sinFiltros) {
-    // Se pide sin mínimo de días y el filtro se aplica aquí (mismo criterio que el
-    // Inicio): así se sabe si la consulta llegó al tope antes de filtrar, y se
-    // excluyen los lotes sin fecha de ingreso legible (apifaret los incluye igual).
-    $respuestaAntiguedad = ApiFaretClient::get('inventario/antiguedad?diasMinimos=0&top=' . SAP_FILAS_MAX_POR_CONSULTA, $empresa);
+    // El filtro de días lo aplica apifaret sobre todos los lotes del grupo (más
+    // antiguos primero) y "totalDisponible" es el total real con ese filtro.
+    $respuestaAntiguedad = ApiFaretClient::get('inventario/antiguedad?diasMinimos=' . $diasAntiguedad . '&' . sapQueryPagina($pagina, $porPagina), $empresa);
 
     if ($respuestaAntiguedad['ok']) {
-        $filasAntiguedad = $respuestaAntiguedad['data']['data'] ?? [];
-        $antiguedadPuedeFaltar = sapPuedeEstarTruncado(count($filasAntiguedad), SAP_FILAS_MAX_POR_CONSULTA);
-        $lotesSinFecha = count(array_filter($filasAntiguedad, fn($la) => ($la['diasEnBodega'] ?? null) === null));
-        $lotesAntiguos = array_values(array_filter($filasAntiguedad, fn($la) => ($la['diasEnBodega'] ?? null) !== null && $la['diasEnBodega'] >= $diasAntiguedad));
-        $totalAntiguos = count($lotesAntiguos);
+        $lotesAntiguos = $respuestaAntiguedad['data']['data'] ?? [];
+        $totalAntiguos = sapTotalDisponible($respuestaAntiguedad);
+        // apifaret incluye (al final de la lista) los lotes sin fecha de ingreso legible.
+        $lotesSinFecha = count(array_filter($lotesAntiguos, fn($la) => ($la['diasEnBodega'] ?? null) === null));
     }
 }
 
@@ -130,6 +131,7 @@ if ($sinFiltros) {
 
 <form class="sap-search" method="GET" id="buscarArticulo">
     <input type="hidden" name="empresa" value="<?= htmlspecialchars($empresa) ?>">
+    <?= sapInputPorPagina($porPagina) ?>
     <span class="bi bi-search"></span>
     <input type="text" id="buscarArticuloTexto" name="texto" maxlength="100" placeholder="Buscar artículo por código o nombre..." value="<?= htmlspecialchars($texto) ?>" data-sap-autocomplete="articulos" data-sap-target="item">
     <button type="submit">Buscar</button>
@@ -178,7 +180,7 @@ if ($sinFiltros) {
                     </thead>
                     <tbody>
                         <?php foreach ($articulos as $a): ?>
-                            <?php $urlArticulo = urlInventario($empresa, $texto, $item, $lote, ['item' => $a['itemCode'] ?? '']); ?>
+                            <?php $urlArticulo = urlInventario($empresa, $texto, $item, $lote, ['item' => $a['itemCode'] ?? ''] + $paramsPagina); ?>
                             <tr>
                                 <td><a href="<?= htmlspecialchars($urlArticulo) ?>"><strong><?= htmlspecialchars($a['itemCode'] ?? '-') ?></strong></a></td>
                                 <td><?= htmlspecialchars($a['itemName'] ?? '-') ?></td>
@@ -203,7 +205,7 @@ if ($sinFiltros) {
                 </table>
             </div>
 
-            <?= sapNotaTruncado(count($articulos), $topBusqueda, 'coincidencias') ?>
+            <?= sapPaginador($respuestaBusqueda, $paramsEstado, 'pagina') ?>
 
         <?php endif; ?>
     </div>
@@ -409,9 +411,7 @@ if ($sinFiltros) {
                         </tbody>
                     </table>
                 </div>
-                <?php if ($lotesItemPuedeTenerMas): ?>
-                    <p class="sap-nota"><i class="bi bi-info-circle"></i> Se muestran hasta <?= SAP_FILAS_MAX_POR_CONSULTA ?> lotes por empresa. Puede haber más en SAP.</p>
-                <?php endif; ?>
+                <?= sapNotaTruncadoApi($respuestaLotesItem, 'SAP entregó una lista limitada de lotes para este artículo. Puede haber más lotes en SAP.') ?>
             <?php endif; ?>
 
             <?php if (count($fichas) > 0): ?>
@@ -504,8 +504,8 @@ if ($sinFiltros) {
 <div class="kpi-grid" id="antiguedad">
     <div class="kpi-card">
         <span>Lotes con ingreso inicial hace <?= $diasAntiguedad ?> días o más</span>
-        <?php if ($respuestaAntiguedad['ok']): ?>
-            <strong><?= $antiguedadPuedeFaltar && $totalAntiguos > 0 ? $totalAntiguos . '+' : $totalAntiguos ?></strong>
+        <?php if ($totalAntiguos !== null): ?>
+            <strong><?= sapNumero($totalAntiguos) ?></strong>
         <?php else: ?>
             <strong>—</strong>
         <?php endif; ?>
@@ -573,18 +573,16 @@ if ($sinFiltros) {
 
                     <?php if (count($lotesAntiguos) === 0): ?>
                         <tr>
-                            <td colspan="7">No hay lotes de productos terminados con ingreso inicial hace <?= $diasAntiguedad ?> días o más en <?= htmlspecialchars($empresa) ?><?= $antiguedadPuedeFaltar ? ' entre los consultados' : '' ?>.</td>
+                            <td colspan="7">No hay lotes de productos terminados con ingreso inicial hace <?= $diasAntiguedad ?> días o más en <?= htmlspecialchars($empresa) ?>.</td>
                         </tr>
                     <?php endif; ?>
                 </tbody>
             </table>
         </div>
 
-        <?php if ($antiguedadPuedeFaltar): ?>
-            <p class="sap-nota"><i class="bi bi-info-circle"></i> SAP entregó una muestra parcial de los lotes. Puede haber más lotes antiguos que no aparecen aquí.</p>
-        <?php endif; ?>
+        <?= sapPaginador($respuestaAntiguedad, $paramsEstado, 'pagina', 'antiguedad') ?>
         <?php if ($lotesSinFecha > 0): ?>
-            <p class="sap-nota"><i class="bi bi-info-circle"></i> <?= $lotesSinFecha ?> lote(s) sin fecha de ingreso legible no se incluyen.</p>
+            <p class="sap-nota"><i class="bi bi-info-circle"></i> <?= $lotesSinFecha ?> lote(s) de esta página no tienen fecha de ingreso legible en SAP (se listan al final y se incluyen en el total).</p>
         <?php endif; ?>
 
     <?php endif; ?>

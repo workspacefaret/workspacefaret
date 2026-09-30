@@ -10,7 +10,9 @@ ob_start();
 
 $empresa = ApiFaretClient::empresaActual();
 $texto = trim($_GET['texto'] ?? '');
-$topBusqueda = 50;
+$pagina = sapLeerPagina();
+$porPagina = sapLeerPorPagina();
+$paramsPagina = sapParamsPaginacion(['pagina' => $pagina], $porPagina);
 $proveedor = trim($_GET['proveedor'] ?? '');
 
 // Arma un link "?empresa=..&texto=..&proveedor=.." combinando los filtros ya
@@ -29,7 +31,7 @@ $proveedores = [];
 $respuestaBusqueda = null;
 
 if ($texto !== '') {
-    $respuestaBusqueda = ApiFaretClient::get('proveedores/buscar?texto=' . rawurlencode($texto) . '&top=' . $topBusqueda, $empresa);
+    $respuestaBusqueda = ApiFaretClient::get('proveedores/buscar?texto=' . rawurlencode($texto) . '&' . sapQueryPagina($pagina, $porPagina), $empresa);
 
     if ($respuestaBusqueda['ok']) {
         $proveedores = $respuestaBusqueda['data']['data'] ?? [];
@@ -70,6 +72,7 @@ if ($proveedor !== '') {
 
 <form class="sap-search" method="GET">
     <input type="hidden" name="empresa" value="<?= htmlspecialchars($empresa) ?>">
+    <?= sapInputPorPagina($porPagina) ?>
     <span class="bi bi-search"></span>
     <input type="text" id="buscarProveedorTexto" name="texto" maxlength="100" placeholder="Buscar proveedor por código o nombre..." value="<?= htmlspecialchars($texto) ?>" data-sap-autocomplete="proveedores" data-sap-target="proveedor">
     <button type="submit">Buscar</button>
@@ -86,7 +89,7 @@ if ($proveedor !== '') {
 
 <?php if ($texto !== ''): ?>
 
-    <div class="table-card">
+    <div class="table-card" id="resultados">
         <div class="table-header">
             <div>
                 <h2>Proveedores para "<?= htmlspecialchars($texto) ?>"</h2>
@@ -101,7 +104,7 @@ if ($proveedor !== '') {
         <?php else: ?>
 
             <?php foreach ($proveedores as $p): ?>
-                <a class="sap-list-row" href="<?= htmlspecialchars(urlProveedores($empresa, $texto, $proveedor, ['proveedor' => $p['cardCode'] ?? ''])) ?>" aria-label="Ver ficha de <?= htmlspecialchars($p['cardCode'] ?? '') ?>">
+                <a class="sap-list-row" href="<?= htmlspecialchars(urlProveedores($empresa, $texto, $proveedor, ['proveedor' => $p['cardCode'] ?? ''] + $paramsPagina)) ?>" aria-label="Ver ficha de <?= htmlspecialchars($p['cardCode'] ?? '') ?>">
                     <span class="sap-list-icon"><i class="bi bi-truck"></i></span>
                     <span class="sap-list-main">
                         <span class="sap-list-title"><?= htmlspecialchars($p['cardName'] ?? '-') ?></span><br>
@@ -110,7 +113,7 @@ if ($proveedor !== '') {
                     <i class="bi bi-chevron-right sap-list-chevron"></i>
                 </a>
             <?php endforeach; ?>
-            <?= sapNotaTruncado(count($proveedores), $topBusqueda, 'coincidencias') ?>
+            <?= sapPaginador($respuestaBusqueda, array_filter(['empresa' => $empresa, 'texto' => $texto, 'proveedor' => $proveedor], fn($v) => $v !== '') + $paramsPagina, 'pagina', 'resultados') ?>
         <?php endif; ?>
     </div>
 

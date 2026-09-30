@@ -190,7 +190,7 @@ if ($empresaSoportada && $itemLote !== '' && $fechaLote !== '') {
                         </tbody>
                     </table>
                 </div>
-                <?= sapNotaTruncado(count($resultadosBobinas), SAP_FILAS_MAX_POR_CONSULTA, 'rango') ?>
+                <?= sapNotaTruncadoApi($respuestaBobinas, 'SAP entregó una lista limitada de recepciones. Acota el rango de fechas para verlas todas.') ?>
             <?php endif; ?>
         </div>
 

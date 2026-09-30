@@ -33,6 +33,13 @@
 
             var params = new URLSearchParams(window.location.search);
             params.set('empresa', selector.value);
+
+            // Cambiar de empresa vuelve a la página 1 de cada listado paginado.
+            Array.from(params.keys()).forEach(function (clave) {
+                if (clave.indexOf('pagina') === 0) {
+                    params.delete(clave);
+                }
+            });
             window.location.href = window.location.pathname + '?' + params.toString();
         });
     });

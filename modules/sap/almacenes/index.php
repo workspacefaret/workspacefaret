@@ -11,6 +11,10 @@ ob_start();
 $empresa = ApiFaretClient::empresaActual();
 $almacen = trim($_GET['almacen'] ?? '');
 $item = trim($_GET['item'] ?? '');
+$pagina = sapLeerPagina();
+$porPagina = sapLeerPorPagina();
+$paramsEstado = array_filter(['empresa' => $empresa, 'almacen' => $almacen, 'item' => $item], fn($valor) => $valor !== '')
+    + sapParamsPaginacion(['pagina' => $pagina], $porPagina);
 
 // Arma un link "?empresa=..&almacen=..&item=.." combinando los filtros ya
 // activos con el nuevo, mismo patrón que urlInventario() en inventario/index.php.
@@ -35,10 +39,12 @@ $stockAlmacen = [];
 $respuestaStock = null;
 
 if ($almacen !== '') {
-    $endpointStock = 'almacenes/' . rawurlencode($almacen) . '/stock';
+    // apifaret pagina este mapa en memoria y avisa con "truncado" cuando la consulta
+    // de SAP llegó a su tope (300 filas): ahí el total informado no es el total real.
+    $endpointStock = 'almacenes/' . rawurlencode($almacen) . '/stock?' . sapQueryPagina($pagina, $porPagina);
 
     if ($item !== '') {
-        $endpointStock .= '?item=' . rawurlencode($item);
+        $endpointStock .= '&item=' . rawurlencode($item);
     }
 
     $respuestaStock = ApiFaretClient::get($endpointStock, $empresa);
@@ -100,6 +106,7 @@ if ($almacen !== '') {
     <form class="filter-card" method="GET">
         <input type="hidden" name="empresa" value="<?= htmlspecialchars($empresa) ?>">
         <input type="hidden" name="almacen" value="<?= htmlspecialchars($almacen) ?>">
+        <?= sapInputPorPagina($porPagina) ?>
 
         <div class="filter-group">
             <label>Filtrar por artículo (opcional)</label>
@@ -118,7 +125,7 @@ if ($almacen !== '') {
         </div>
     </form>
 
-    <div class="table-card">
+    <div class="table-card" id="stockAlmacen">
         <div class="table-header">
             <div>
                 <h2>Stock en <?= htmlspecialchars($almacen) ?></h2>
@@ -171,9 +178,8 @@ if ($almacen !== '') {
                     </tbody>
                 </table>
             </div>
-            <?php if (sapPuedeEstarTruncado(count($stockAlmacen), SAP_FILAS_MAX_POR_CONSULTA)): ?>
-                <p class="sap-nota"><i class="bi bi-info-circle"></i> Se muestran las primeras <?= count($stockAlmacen) ?> filas. Puede haber más stock en este almacén: filtra por artículo para ver uno puntual.</p>
-            <?php endif; ?>
+            <?= sapPaginador($respuestaStock, $paramsEstado, 'pagina', 'stockAlmacen') ?>
+            <?= sapNotaTruncadoApi($respuestaStock, 'SAP entrega como máximo 300 filas del mapa de este almacén, así que el total mostrado puede ser menor al real. Filtra por artículo para ver su stock completo.') ?>
 
         <?php endif; ?>
     </div>

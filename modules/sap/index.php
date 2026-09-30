@@ -29,7 +29,7 @@ $empresa = ApiFaretClient::empresaActual();
 
 $respuestaTraslados = null;
 $trasladosPendientes = [];
-$totalTraslados = 0;
+$totalTraslados = null;
 $respuestaAntiguedad = null;
 $totalAntiguos = null;
 $respuestaPicking = null;
@@ -56,46 +56,33 @@ $respuestaStockDatos = null;
 // Todo lo de abajo (KPIs, búsqueda global, accesos frecuentes, traslados) es
 // contenido del acceso base "portal_sap" — se omite por completo si el usuario
 // solo tiene una o más de las claves de área (Ventas/Compras/Logística/Calidad).
-// Tope pedido a cada consulta del Inicio. apifaret entrega como máximo 20 filas
-// por consulta (ver SAP_FILAS_MAX_POR_CONSULTA en _ui.php), así que los conteos
-// se muestran con sapConteo() ("20+") y nunca como total exacto de SAP.
-$topInicio = SAP_FILAS_MAX_POR_CONSULTA;
-$lotesAntiguos = [];
-$antiguedadPuedeFaltar = false;
+// Conteos del Inicio: se leen del total real que informa apifaret ("paginacion"
+// .totalDisponible), sin descargar los registros. Traslados y picking piden además
+// la primera página chica para la vista previa de "Pendientes operativos".
+$filasVistaPrevia = 8;
 
 if ($verBase) {
-    $respuestaTraslados = ApiFaretClient::get('documentos/traslados/pendientes?top=' . $topInicio, $empresa);
+    $respuestaTraslados = ApiFaretClient::get('documentos/traslados/pendientes?' . sapQueryPagina(1, $filasVistaPrevia), $empresa);
 
     if ($respuestaTraslados['ok']) {
         $trasladosPendientes = $respuestaTraslados['data']['data'] ?? [];
-        $totalTraslados = count($trasladosPendientes);
+        $totalTraslados = sapTotalDisponible($respuestaTraslados);
     }
 
-    // Se pide sin mínimo de días y el filtro de 90 días se aplica aquí: así se sabe
-    // si la consulta llegó al tope (puede haber más lotes) antes de filtrar.
-    // Se excluyen lotes sin fecha de ingreso legible (apifaret los incluye igual).
-    $respuestaAntiguedad = ApiFaretClient::get('inventario/antiguedad?diasMinimos=0&top=' . $topInicio, $empresa);
+    // diasMinimos=90 lo filtra la API sobre el conjunto completo; solo se pide el total.
+    $respuestaAntiguedad = ApiFaretClient::get('inventario/antiguedad?diasMinimos=90&' . sapQueryPagina(1, 1), $empresa);
+    $totalAntiguos = sapTotalDisponible($respuestaAntiguedad);
 
-    if ($respuestaAntiguedad['ok']) {
-        $filasAntiguedad = $respuestaAntiguedad['data']['data'] ?? [];
-        $antiguedadPuedeFaltar = sapPuedeEstarTruncado(count($filasAntiguedad), $topInicio);
-        $lotesAntiguos = array_filter($filasAntiguedad, fn($la) => ($la['diasEnBodega'] ?? null) !== null && $la['diasEnBodega'] >= 90);
-        $totalAntiguos = count($lotesAntiguos);
-    }
-
-    $respuestaPicking = ApiFaretClient::get('documentos/picking/pendientes?top=' . $topInicio, $empresa);
+    $respuestaPicking = ApiFaretClient::get('documentos/picking/pendientes?' . sapQueryPagina(1, $filasVistaPrevia), $empresa);
 
     if ($respuestaPicking['ok']) {
         $pickingPendiente = $respuestaPicking['data']['data'] ?? [];
-        $totalPicking = count($pickingPendiente);
+        $totalPicking = sapTotalDisponible($respuestaPicking);
     }
 
     $hoySap = date('Ymd');
-    $respuestaRecepciones = ApiFaretClient::get('documentos/recepciones?desde=' . $hoySap . '&hasta=' . $hoySap . '&top=' . $topInicio, $empresa);
-
-    if ($respuestaRecepciones['ok']) {
-        $totalRecepcionesHoy = count($respuestaRecepciones['data']['data'] ?? []);
-    }
+    $respuestaRecepciones = ApiFaretClient::get('documentos/recepciones?desde=' . $hoySap . '&hasta=' . $hoySap . '&' . sapQueryPagina(1, 1), $empresa);
+    $totalRecepcionesHoy = sapTotalDisponible($respuestaRecepciones);
 
     // Estado de conexión del header: si alguna de las 4 consultas base falló, se
     // avisa de forma genérica (sin exponer detalle técnico) en vez de mostrar solo
@@ -300,9 +287,8 @@ if ($verBase) {
         <span class="sap-kpi-icon icon-green"><i class="bi bi-arrow-left-right"></i></span>
         <span class="sap-kpi-body">
             <span>Solicitudes de traslado abiertas</span>
-            <?php if ($respuestaTraslados['ok']): ?>
-                <strong><?= htmlspecialchars(sapConteo($totalTraslados, $topInicio)) ?></strong>
-                <?php if (sapPuedeEstarTruncado($totalTraslados, $topInicio)): ?><span class="sap-kpi-nota">Puede haber más en SAP</span><?php endif; ?>
+            <?php if ($totalTraslados !== null): ?>
+                <strong><?= sapNumero($totalTraslados) ?></strong>
             <?php else: ?>
                 <strong>—</strong><span class="sap-kpi-nota">No disponible ahora</span>
             <?php endif; ?>
@@ -314,8 +300,7 @@ if ($verBase) {
         <span class="sap-kpi-body">
             <span>Picking liberado</span>
             <?php if ($totalPicking !== null): ?>
-                <strong><?= htmlspecialchars(sapConteo($totalPicking, $topInicio)) ?></strong>
-                <?php if (sapPuedeEstarTruncado($totalPicking, $topInicio)): ?><span class="sap-kpi-nota">Puede haber más en SAP</span><?php endif; ?>
+                <strong><?= sapNumero($totalPicking) ?></strong>
             <?php else: ?>
                 <strong>—</strong><span class="sap-kpi-nota">No disponible ahora</span>
             <?php endif; ?>
@@ -327,8 +312,7 @@ if ($verBase) {
         <span class="sap-kpi-body">
             <span>Recepciones con fecha de hoy</span>
             <?php if ($totalRecepcionesHoy !== null): ?>
-                <strong><?= htmlspecialchars(sapConteo($totalRecepcionesHoy, $topInicio)) ?></strong>
-                <?php if (sapPuedeEstarTruncado($totalRecepcionesHoy, $topInicio)): ?><span class="sap-kpi-nota">Puede haber más en SAP</span><?php endif; ?>
+                <strong><?= sapNumero($totalRecepcionesHoy) ?></strong>
             <?php else: ?>
                 <strong>—</strong><span class="sap-kpi-nota">No disponible ahora</span>
             <?php endif; ?>
@@ -338,10 +322,10 @@ if ($verBase) {
     <a class="sap-kpi-card" href="/modules/sap/inventario/?empresa=<?= rawurlencode($empresa) ?>#antiguedad">
         <span class="sap-kpi-icon icon-purple"><i class="bi bi-hourglass-split"></i></span>
         <span class="sap-kpi-body">
-            <span>Lotes con ingreso inicial hace más de 90 días</span>
+            <span>Lotes con ingreso inicial hace 90 días o más</span>
             <?php if ($totalAntiguos !== null): ?>
-                <strong><?= $antiguedadPuedeFaltar && $totalAntiguos > 0 ? $totalAntiguos . '+' : $totalAntiguos ?></strong>
-                <span class="sap-kpi-nota"><?= $antiguedadPuedeFaltar ? 'Muestra parcial de SAP · ' : '' ?>Productos terminados</span>
+                <strong><?= sapNumero($totalAntiguos) ?></strong>
+                <span class="sap-kpi-nota">Productos terminados</span>
             <?php else: ?>
                 <strong>—</strong><span class="sap-kpi-nota">No disponible ahora</span>
             <?php endif; ?>
@@ -378,8 +362,10 @@ if (!$respuestaTraslados['ok'] && !$respuestaPicking['ok']) {
         array_map(fn($t) => ['tipo' => 'traslado', 'item' => $t], $trasladosPendientes),
         array_map(fn($pk) => ['tipo' => 'picking', 'item' => $pk], $pickingPendiente)
     );
-    $totalBodega = count($vistaBodega);
-    $vistaBodegaPreview = array_slice($vistaBodega, 0, 8);
+    // Total real de ambas listas (lo informa apifaret); si una consulta falló se
+    // cuenta solo la otra, que es lo que se está mostrando.
+    $totalBodega = ($totalTraslados ?? count($trasladosPendientes)) + ($totalPicking ?? count($pickingPendiente));
+    $vistaBodegaPreview = array_slice($vistaBodega, 0, $filasVistaPrevia);
     $destino = $verLogistica ? '/modules/sap/logistica/?empresa=' . rawurlencode($empresa) : null;
     $tag = $destino ? 'a' : 'div';
 
@@ -418,13 +404,10 @@ if (!$respuestaTraslados['ok'] && !$respuestaPicking['ok']) {
         }
     }
 
-    $bodegaPuedeTenerMas = sapPuedeEstarTruncado(count($trasladosPendientes), $topInicio)
-        || sapPuedeEstarTruncado(count($pickingPendiente), $topInicio);
-
-    if ($totalBodega > count($vistaBodegaPreview) || $bodegaPuedeTenerMas) {
+    if ($totalBodega > count($vistaBodegaPreview)) {
         ?>
         <p style="text-align:center;padding:10px;color:var(--muted);font-size:13px;">
-            Mostrando <?= count($vistaBodegaPreview) ?> de <?= $bodegaPuedeTenerMas ? 'al menos ' . $totalBodega : $totalBodega ?>.
+            Mostrando <?= count($vistaBodegaPreview) ?> de <?= sapNumero($totalBodega) ?>.
             <?php if ($destino): ?><a href="<?= htmlspecialchars($destino) ?>" style="color:var(--sap-accent);font-weight:700;">Ver en Logística →</a><?php endif; ?>
         </p>
         <?php

@@ -1,19 +1,13 @@
 <?php
 
 // Helpers de presentación compartidos por Portal SAP (modules/sap/**): fechas,
-// cantidades, estados, empresa, conteos que pueden venir truncados y avisos de
-// error/parcial. Solo formato y semántica — no llama a apifaret ni decide permisos.
+// cantidades, estados, empresa, paginación y avisos de error/parcial. Solo formato y semántica — no llama a apifaret ni decide permisos.
 // Requiere services/ApiFaretClient.php cargado antes (usa EMPRESAS_VALIDAS).
 
 if (realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === realpath(__FILE__)) {
     http_response_code(404);
     exit;
 }
-
-// apifaret devuelve como máximo 20 filas por empresa en cada consulta, aunque se
-// pida un top mayor (verificado 2026-09-30 contra producción: top=50/200 → 20 filas,
-// top=10 → 10). Su campo "total" es la cantidad descargada, no el total real en SAP.
-const SAP_FILAS_MAX_POR_CONSULTA = 20;
 
 // Traducciones solo para estados cuyo significado está confirmado. Cualquier otro
 // valor se muestra tal cual, sin inventar una traducción.
@@ -103,38 +97,6 @@ function sapEmpresaEtiqueta($valor): string
     return sapEmpresa($valor) ?? ((string) $valor !== '' ? (string) $valor : '-');
 }
 
-// ¿Puede haber más filas en SAP que las recibidas? Sí cuando se llegó al tope
-// pedido o al máximo que entrega apifaret por consulta.
-function sapPuedeEstarTruncado(int $filas, int $topPedido): bool
-{
-    return $filas >= min($topPedido, SAP_FILAS_MAX_POR_CONSULTA);
-}
-
-// "7" cuando el conteo es exacto, "20+" cuando puede haber más.
-function sapConteo(int $filas, int $topPedido): string
-{
-    return $filas . (sapPuedeEstarTruncado($filas, $topPedido) ? '+' : '');
-}
-
-// Nota bajo una lista que puede estar incompleta. $orden describe cómo vienen
-// ordenadas: 'recientes' (documentos, DocEntry desc), 'coincidencias' (búsquedas
-// por texto) o 'rango' (consultas por fechas sin un orden garantizado).
-function sapNotaTruncado(int $filas, int $topPedido, string $orden = 'recientes'): string
-{
-    if (!sapPuedeEstarTruncado($filas, $topPedido)) {
-        return '';
-    }
-
-    $textos = [
-        'recientes' => 'Se muestran los ' . $filas . ' resultados más recientes. Puede haber más en SAP.',
-        'coincidencias' => 'Se muestran los primeros ' . $filas . ' resultados. Si no ves lo que buscas, afina la búsqueda.',
-        'rango' => 'Se muestran los primeros ' . $filas . ' resultados. Puede haber más en SAP: acota el rango de fechas para verlos.',
-    ];
-    $texto = $textos[$orden] ?? $textos['recientes'];
-
-    return '<p class="sap-nota"><i class="bi bi-info-circle"></i> ' . htmlspecialchars($texto) . '</p>';
-}
-
 // Clasifica una respuesta de ApiFaretClient: 'ok', 'parcial' (consulta multiempresa
 // con datos válidos donde fallaron solo algunas compañías) o 'error'.
 function sapResultado(array $respuesta, bool $multiempresa = false): array
@@ -216,4 +178,208 @@ function sapTextoCorto($texto, int $max = 60): string
 function sapAyuda(string $texto): string
 {
     return '<i class="bi bi-question-circle sap-ayuda" title="' . htmlspecialchars($texto) . '" aria-label="' . htmlspecialchars($texto) . '"></i>';
+}
+
+// Paginación pública de apifaret (A4): con pagina/porPagina la API devuelve el bloque
+// "paginacion" {pagina, porPagina, devueltos, totalDisponible, hayMas} con el total real
+// según los filtros. Exige empresa, no se combina con top y porPagina ≤ 100. Los listados
+// de documentos paginados traen solo la cabecera (sin "lineas"): las líneas van en la ficha.
+const SAP_POR_PAGINA_OPCIONES = [25, 50, 100];
+const SAP_POR_PAGINA_DEFAULT = 25;
+const SAP_PAGINA_MAX = 100000;
+
+// Número de página desde $_GET[$param]: solo dígitos, entre 1 y SAP_PAGINA_MAX; si no, 1.
+function sapLeerPagina(string $param = 'pagina'): int
+{
+    $valor = $_GET[$param] ?? '';
+
+    if (!is_string($valor) || !ctype_digit($valor) || strlen($valor) > 6) {
+        return 1;
+    }
+
+    $pagina = (int) $valor;
+
+    return ($pagina >= 1 && $pagina <= SAP_PAGINA_MAX) ? $pagina : 1;
+}
+
+// Filas por página desde $_GET['porPagina']: solo 25, 50 o 100; si no, 25.
+function sapLeerPorPagina(): int
+{
+    $valor = $_GET['porPagina'] ?? '';
+
+    if (!is_string($valor) || !ctype_digit($valor) || strlen($valor) > 3) {
+        return SAP_POR_PAGINA_DEFAULT;
+    }
+
+    return in_array((int) $valor, SAP_POR_PAGINA_OPCIONES, true) ? (int) $valor : SAP_POR_PAGINA_DEFAULT;
+}
+
+// Fragmento de query para apifaret. Un endpoint que lleva esto nunca lleva también "top".
+function sapQueryPagina(int $pagina, int $porPagina): string
+{
+    return 'pagina=' . $pagina . '&porPagina=' . $porPagina;
+}
+
+// Parámetros de paginación que viajan en la URL de la página, solo los distintos del
+// valor por defecto (URLs limpias). $paginas = ['paramDePagina' => n, ...].
+function sapParamsPaginacion(array $paginas, int $porPagina): array
+{
+    $params = [];
+
+    foreach ($paginas as $param => $pagina) {
+        if ($pagina > 1) {
+            $params[$param] = $pagina;
+        }
+    }
+
+    if ($porPagina !== SAP_POR_PAGINA_DEFAULT) {
+        $params['porPagina'] = $porPagina;
+    }
+
+    return $params;
+}
+
+// Campo oculto para que un formulario de filtros conserve el tamaño de página elegido.
+// Los números de página no se incluyen: cambiar un filtro vuelve siempre a la página 1.
+function sapInputPorPagina(int $porPagina): string
+{
+    return $porPagina !== SAP_POR_PAGINA_DEFAULT
+        ? '<input type="hidden" name="porPagina" value="' . $porPagina . '">'
+        : '';
+}
+
+// Bloque "paginacion" normalizado de una respuesta, o null si no vino (error o modo legacy).
+function sapPaginacion(array $respuesta): ?array
+{
+    $bloque = is_array($respuesta['data'] ?? null) ? ($respuesta['data']['paginacion'] ?? null) : null;
+
+    if (!is_array($bloque) || !isset($bloque['pagina'], $bloque['porPagina'])) {
+        return null;
+    }
+
+    $porPagina = max(1, (int) $bloque['porPagina']);
+    $total = isset($bloque['totalDisponible']) && is_numeric($bloque['totalDisponible']) ? (int) $bloque['totalDisponible'] : null;
+
+    return [
+        'pagina' => max(1, (int) $bloque['pagina']),
+        'porPagina' => $porPagina,
+        'devueltos' => (int) ($bloque['devueltos'] ?? 0),
+        'total' => $total,
+        'hayMas' => !empty($bloque['hayMas']),
+        'totalPaginas' => $total !== null ? max(1, (int) ceil($total / $porPagina)) : null,
+    ];
+}
+
+// Total real de una consulta hecha solo para contar (pagina=1&porPagina=1). null si no vino.
+function sapTotalDisponible(array $respuesta): ?int
+{
+    if (!($respuesta['ok'] ?? false)) {
+        return null;
+    }
+
+    return sapPaginacion($respuesta)['total'] ?? null;
+}
+
+function sapNumero(int $n): string
+{
+    return number_format($n, 0, ',', '.');
+}
+
+// Controles bajo una tabla paginada: "Mostrando 26–50 de 4.022", Anterior | Página 2
+// de 161 | Siguiente y el selector 25 | 50 | 100. $params es el estado actual de la URL
+// (empresa, filtros y páginas de otras tablas de la misma pantalla); $paramPagina es el
+// parámetro de esta tabla y $ancla el id al que vuelve la pantalla tras navegar.
+function sapPaginador(array $respuesta, array $params, string $paramPagina = 'pagina', string $ancla = ''): string
+{
+    $p = sapPaginacion($respuesta);
+
+    if ($p === null || ($p['devueltos'] === 0 && $p['pagina'] === 1)) {
+        return '';
+    }
+
+    $sufijo = $ancla !== '' ? '#' . rawurlencode($ancla) : '';
+    $url = function (array $cambios) use ($params, $sufijo): string {
+        foreach ($cambios as $clave => $valor) {
+            if ($valor === null) {
+                unset($params[$clave]);
+            } else {
+                $params[$clave] = $valor;
+            }
+        }
+
+        return '?' . http_build_query($params) . $sufijo;
+    };
+    $urlPagina = fn(int $n) => $url([$paramPagina => $n > 1 ? $n : null]);
+
+    $html = '<nav class="sap-paginacion" aria-label="Paginación">';
+
+    if ($p['devueltos'] === 0) {
+        // Página fuera de rango (ej. URL vieja o editada a mano): solo el aviso y el
+        // link a la última página que sí tiene resultados.
+        $destino = $p['totalPaginas'] !== null && $p['total'] > 0 ? $p['totalPaginas'] : 1;
+
+        return $html . '<span class="sap-paginacion-resumen">No hay resultados en la página ' . sapNumero($p['pagina']) . '. '
+            . '<a href="' . htmlspecialchars($urlPagina($destino)) . '">Ir a la página ' . sapNumero($destino) . '</a></span></nav>';
+    }
+
+    $desde = ($p['pagina'] - 1) * $p['porPagina'] + 1;
+    $hasta = $desde + $p['devueltos'] - 1;
+    $html .= '<span class="sap-paginacion-resumen">Mostrando ' . sapNumero($desde) . '–' . sapNumero($hasta)
+        . ($p['total'] !== null ? ' de ' . sapNumero($p['total']) : '') . '</span>';
+
+    $hayAnterior = $p['pagina'] > 1;
+    $haySiguiente = $p['totalPaginas'] !== null ? $p['pagina'] < $p['totalPaginas'] : $p['hayMas'];
+
+    if ($hayAnterior || $haySiguiente) {
+        $html .= '<span class="sap-paginacion-nav">';
+        $html .= $hayAnterior
+            ? '<a class="btn-secondary" rel="prev" href="' . htmlspecialchars($urlPagina($p['pagina'] - 1)) . '"><i class="bi bi-chevron-left"></i> Anterior</a>'
+            : '<span class="btn-secondary sap-paginacion-off" aria-disabled="true"><i class="bi bi-chevron-left"></i> Anterior</span>';
+        $html .= '<span class="sap-paginacion-actual">Página ' . sapNumero($p['pagina'])
+            . ($p['totalPaginas'] !== null ? ' de ' . sapNumero($p['totalPaginas']) : '') . '</span>';
+        $html .= $haySiguiente
+            ? '<a class="btn-secondary" rel="next" href="' . htmlspecialchars($urlPagina($p['pagina'] + 1)) . '">Siguiente <i class="bi bi-chevron-right"></i></a>'
+            : '<span class="btn-secondary sap-paginacion-off" aria-disabled="true">Siguiente <i class="bi bi-chevron-right"></i></span>';
+        $html .= '</span>';
+    }
+
+    // El selector solo aparece si hay más filas que la opción más chica (o no se sabe).
+    if ($p['total'] === null || $p['total'] > SAP_POR_PAGINA_OPCIONES[0]) {
+        // Cambiar el tamaño vuelve a la página 1 en todas las tablas de la pantalla.
+        $cambiosBase = [];
+
+        foreach (array_keys($params) as $clave) {
+            if (str_starts_with((string) $clave, 'pagina')) {
+                $cambiosBase[$clave] = null;
+            }
+        }
+
+        $html .= '<span class="sap-paginacion-tamano">Por página:';
+
+        foreach (SAP_POR_PAGINA_OPCIONES as $opcion) {
+            if ($opcion === $p['porPagina']) {
+                $html .= ' <strong aria-current="true">' . $opcion . '</strong>';
+            } else {
+                $cambios = $cambiosBase + [$paramPagina => null, 'porPagina' => $opcion === SAP_POR_PAGINA_DEFAULT ? null : $opcion];
+                $html .= ' <a href="' . htmlspecialchars($url($cambios)) . '">' . $opcion . '</a>';
+            }
+        }
+
+        $html .= '</span>';
+    }
+
+    return $html . '</nav>';
+}
+
+// Nota cuando la propia API avisa que el resultado quedó limitado ("truncado": true).
+// No muestra las advertencias técnicas de apifaret: $texto explica qué hacer.
+function sapNotaTruncadoApi(array $respuesta, string $texto): string
+{
+    $cuerpo = is_array($respuesta['data'] ?? null) ? $respuesta['data'] : [];
+
+    if (($cuerpo['truncado'] ?? false) !== true) {
+        return '';
+    }
+
+    return '<p class="sap-nota"><i class="bi bi-info-circle"></i> ' . htmlspecialchars($texto) . '</p>';
 }

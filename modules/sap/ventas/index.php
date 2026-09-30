@@ -20,7 +20,14 @@ $tipo = in_array($_GET['tipo'] ?? '', $tiposValidos, true) ? $_GET['tipo'] : '';
 $buscarNV = $tipo === '' || $tipo === 'nv';
 $buscarCotizaciones = $tipo === '' || $tipo === 'cotizaciones';
 $buscarFacturas = $tipo === '' || $tipo === 'facturas';
-$topVentas = 30;
+
+// Cada tipo de documento se pagina por separado (total real en "paginacion").
+$porPagina = sapLeerPorPagina();
+$paginas = [
+    'paginaNV' => sapLeerPagina('paginaNV'),
+    'paginaCotizaciones' => sapLeerPagina('paginaCotizaciones'),
+    'paginaFacturas' => sapLeerPagina('paginaFacturas'),
+];
 
 $resultadosNV = [];
 $resultadosCotizaciones = [];
@@ -40,10 +47,10 @@ if (!$docNumInvalido && ($docNum !== '' || $cliente !== '')) {
         $params[] = 'cliente=' . rawurlencode($cliente);
     }
 
-    $filtro = implode('&', $params) . '&top=' . $topVentas;
+    $filtro = implode('&', $params);
 
     if ($buscarNV) {
-        $respuestaNV = ApiFaretClient::get('ventas/notaventa/buscar?' . $filtro, $empresa);
+        $respuestaNV = ApiFaretClient::get('ventas/notaventa/buscar?' . $filtro . '&' . sapQueryPagina($paginas['paginaNV'], $porPagina), $empresa);
 
         if ($respuestaNV['ok']) {
             $resultadosNV = $respuestaNV['data']['data'] ?? [];
@@ -51,7 +58,7 @@ if (!$docNumInvalido && ($docNum !== '' || $cliente !== '')) {
     }
 
     if ($buscarCotizaciones) {
-        $respuestaCotizaciones = ApiFaretClient::get('ventas/cotizaciones/buscar?' . $filtro, $empresa);
+        $respuestaCotizaciones = ApiFaretClient::get('ventas/cotizaciones/buscar?' . $filtro . '&' . sapQueryPagina($paginas['paginaCotizaciones'], $porPagina), $empresa);
 
         if ($respuestaCotizaciones['ok']) {
             $resultadosCotizaciones = $respuestaCotizaciones['data']['data'] ?? [];
@@ -59,7 +66,7 @@ if (!$docNumInvalido && ($docNum !== '' || $cliente !== '')) {
     }
 
     if ($buscarFacturas) {
-        $respuestaFacturas = ApiFaretClient::get('ventas/facturas/buscar?' . $filtro, $empresa);
+        $respuestaFacturas = ApiFaretClient::get('ventas/facturas/buscar?' . $filtro . '&' . sapQueryPagina($paginas['paginaFacturas'], $porPagina), $empresa);
 
         if ($respuestaFacturas['ok']) {
             $resultadosFacturas = $respuestaFacturas['data']['data'] ?? [];
@@ -86,8 +93,9 @@ if ($verDocEntry !== null && $buscarNV) {
     }
 }
 
-// Conserva los filtros activos (incluido "tipo") en los links internos de la página.
-$paramsBusqueda = array_filter(['empresa' => $empresa, 'docNum' => $docNum, 'cliente' => $cliente, 'tipo' => $tipo], fn($v) => $v !== '');
+// Conserva los filtros activos (incluido "tipo") y las páginas en los links internos de la página.
+$paramsBusqueda = array_filter(['empresa' => $empresa, 'docNum' => $docNum, 'cliente' => $cliente, 'tipo' => $tipo], fn($v) => $v !== '')
+    + sapParamsPaginacion($paginas, $porPagina);
 
 ?>
 
@@ -122,6 +130,7 @@ $paramsBusqueda = array_filter(['empresa' => $empresa, 'docNum' => $docNum, 'cli
 
 <form class="filter-card" method="GET">
     <input type="hidden" name="empresa" value="<?= htmlspecialchars($empresa) ?>">
+    <?= sapInputPorPagina($porPagina) ?>
 
     <div class="filter-group">
         <label>N° de documento</label>
@@ -173,7 +182,7 @@ $paramsBusqueda = array_filter(['empresa' => $empresa, 'docNum' => $docNum, 'cli
 
     <?php if ($buscarNV): ?>
 
-    <div class="table-card">
+    <div class="table-card" id="notasVenta">
         <div class="table-header">
             <div>
                 <h2>Notas de venta</h2>
@@ -217,7 +226,7 @@ $paramsBusqueda = array_filter(['empresa' => $empresa, 'docNum' => $docNum, 'cli
                     </tbody>
                 </table>
             </div>
-            <?= sapNotaTruncado(count($resultadosNV), $topVentas) ?>
+            <?= sapPaginador($respuestaNV, $paramsBusqueda, 'paginaNV', 'notasVenta') ?>
         <?php endif; ?>
     </div>
 
@@ -285,7 +294,7 @@ $paramsBusqueda = array_filter(['empresa' => $empresa, 'docNum' => $docNum, 'cli
 
     <?php if ($buscarCotizaciones): ?>
 
-    <div class="table-card" style="margin-top:32px;">
+    <div class="table-card" style="margin-top:32px;" id="cotizaciones">
         <div class="table-header">
             <div>
                 <h2>Cotizaciones</h2>
@@ -323,7 +332,7 @@ $paramsBusqueda = array_filter(['empresa' => $empresa, 'docNum' => $docNum, 'cli
                     </tbody>
                 </table>
             </div>
-            <?= sapNotaTruncado(count($resultadosCotizaciones), $topVentas) ?>
+            <?= sapPaginador($respuestaCotizaciones, $paramsBusqueda, 'paginaCotizaciones', 'cotizaciones') ?>
         <?php endif; ?>
     </div>
 
@@ -331,7 +340,7 @@ $paramsBusqueda = array_filter(['empresa' => $empresa, 'docNum' => $docNum, 'cli
 
     <?php if ($buscarFacturas): ?>
 
-    <div class="table-card" style="margin-top:32px;">
+    <div class="table-card" style="margin-top:32px;" id="facturas">
         <div class="table-header">
             <div>
                 <h2>Facturas</h2>
@@ -369,7 +378,7 @@ $paramsBusqueda = array_filter(['empresa' => $empresa, 'docNum' => $docNum, 'cli
                     </tbody>
                 </table>
             </div>
-            <?= sapNotaTruncado(count($resultadosFacturas), $topVentas) ?>
+            <?= sapPaginador($respuestaFacturas, $paramsBusqueda, 'paginaFacturas', 'facturas') ?>
         <?php endif; ?>
     </div>
 

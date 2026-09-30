@@ -35,8 +35,20 @@ $desdeSap = aFechaSap($desdeInput);
 $hastaSap = aFechaSap($hastaInput);
 $rangoValido = $desdeSap !== null && $hastaSap !== null;
 
-$topMovimientos = 50;
-$topPendientes = 50;
+// Cada tabla se pagina por separado en apifaret (pagina/porPagina, total real en
+// "paginacion"). Los documentos paginados vienen solo con cabecera: las líneas se
+// verán en la ficha del documento, no en este listado.
+$porPagina = sapLeerPorPagina();
+$paginas = [
+    'paginaTraslados' => sapLeerPagina('paginaTraslados'),
+    'paginaRecepciones' => sapLeerPagina('paginaRecepciones'),
+    'paginaDespachos' => sapLeerPagina('paginaDespachos'),
+    'paginaSolicitudes' => sapLeerPagina('paginaSolicitudes'),
+    'paginaPicking' => sapLeerPagina('paginaPicking'),
+];
+// Estado de la URL que conserva cada link de paginación.
+$paramsEstado = ['empresa' => $empresa, 'desde' => $desdeInput, 'hasta' => $hastaInput] + sapParamsPaginacion($paginas, $porPagina);
+
 $resultadosTraslados = [];
 $resultadosRecepciones = [];
 $resultadosDespachos = [];
@@ -45,35 +57,35 @@ $respuestaRecepciones = null;
 $respuestaDespachos = null;
 
 if ($rangoValido) {
-    $filtroFecha = 'desde=' . $desdeSap . '&hasta=' . $hastaSap . '&top=' . $topMovimientos;
+    $filtroFecha = 'desde=' . $desdeSap . '&hasta=' . $hastaSap;
 
-    $respuestaTraslados = ApiFaretClient::get('documentos/traslados?' . $filtroFecha, $empresa);
+    $respuestaTraslados = ApiFaretClient::get('documentos/traslados?' . $filtroFecha . '&' . sapQueryPagina($paginas['paginaTraslados'], $porPagina), $empresa);
 
     if ($respuestaTraslados['ok']) {
         $resultadosTraslados = $respuestaTraslados['data']['data'] ?? [];
     }
 
-    $respuestaRecepciones = ApiFaretClient::get('documentos/recepciones?' . $filtroFecha, $empresa);
+    $respuestaRecepciones = ApiFaretClient::get('documentos/recepciones?' . $filtroFecha . '&' . sapQueryPagina($paginas['paginaRecepciones'], $porPagina), $empresa);
 
     if ($respuestaRecepciones['ok']) {
         $resultadosRecepciones = $respuestaRecepciones['data']['data'] ?? [];
     }
 
-    $respuestaDespachos = ApiFaretClient::get('documentos/despachos?' . $filtroFecha, $empresa);
+    $respuestaDespachos = ApiFaretClient::get('documentos/despachos?' . $filtroFecha . '&' . sapQueryPagina($paginas['paginaDespachos'], $porPagina), $empresa);
 
     if ($respuestaDespachos['ok']) {
         $resultadosDespachos = $respuestaDespachos['data']['data'] ?? [];
     }
 }
 
-$respuestaPicking = ApiFaretClient::get('documentos/picking/pendientes?top=' . $topPendientes, $empresa);
+$respuestaPicking = ApiFaretClient::get('documentos/picking/pendientes?' . sapQueryPagina($paginas['paginaPicking'], $porPagina), $empresa);
 $resultadosPicking = [];
 
 if ($respuestaPicking['ok']) {
     $resultadosPicking = $respuestaPicking['data']['data'] ?? [];
 }
 
-$respuestaSolicitudesTraslado = ApiFaretClient::get('documentos/traslados/pendientes?top=' . $topPendientes, $empresa);
+$respuestaSolicitudesTraslado = ApiFaretClient::get('documentos/traslados/pendientes?' . sapQueryPagina($paginas['paginaSolicitudes'], $porPagina), $empresa);
 $resultadosSolicitudesTraslado = [];
 
 if ($respuestaSolicitudesTraslado['ok']) {
@@ -111,6 +123,7 @@ if ($respuestaSolicitudesTraslado['ok']) {
 
 <form class="filter-card" method="GET">
     <input type="hidden" name="empresa" value="<?= htmlspecialchars($empresa) ?>">
+    <?= sapInputPorPagina($porPagina) ?>
 
     <div class="filter-group">
         <label>Desde</label>
@@ -139,7 +152,7 @@ if ($respuestaSolicitudesTraslado['ok']) {
 
 <?php else: ?>
 
-    <div class="table-card">
+    <div class="table-card" id="traslados">
         <div class="table-header">
             <div>
                 <h2>Traslados</h2>
@@ -157,7 +170,6 @@ if ($respuestaSolicitudesTraslado['ok']) {
                             <th>N°</th>
                             <th>Fecha</th>
                             <th>Origen → Destino</th>
-                            <th class="sap-num">Líneas</th>
                             <th>Comentarios</th>
                         </tr>
                     </thead>
@@ -167,24 +179,23 @@ if ($respuestaSolicitudesTraslado['ok']) {
                                 <td><strong><?= htmlspecialchars($t['docNum'] ?? '-') ?></strong></td>
                                 <td><?= htmlspecialchars(sapFecha($t['fecha'] ?? null)) ?></td>
                                 <td><?= htmlspecialchars($t['almacenOrigen'] ?? '-') ?> → <?= htmlspecialchars($t['almacenDestino'] ?? '-') ?></td>
-                                <td class="sap-num"><?= count($t['lineas'] ?? []) ?></td>
                                 <td><?= sapTextoCorto($t['comentarios'] ?? '') ?></td>
                             </tr>
                         <?php endforeach; ?>
 
                         <?php if (count($resultadosTraslados) === 0): ?>
                             <tr>
-                                <td colspan="5">Sin traslados en el rango seleccionado.</td>
+                                <td colspan="4">Sin traslados en el rango seleccionado.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
             </div>
-            <?= sapNotaTruncado(count($resultadosTraslados), $topMovimientos) ?>
+            <?= sapPaginador($respuestaTraslados, $paramsEstado, 'paginaTraslados', 'traslados') ?>
         <?php endif; ?>
     </div>
 
-    <div class="table-card" style="margin-top:32px;">
+    <div class="table-card" style="margin-top:32px;" id="recepciones">
         <div class="table-header">
             <div>
                 <h2>Recepciones</h2>
@@ -202,7 +213,6 @@ if ($respuestaSolicitudesTraslado['ok']) {
                             <th>N°</th>
                             <th>Proveedor</th>
                             <th>Fecha</th>
-                            <th class="sap-num">Líneas</th>
                             <th>Comentarios</th>
                         </tr>
                     </thead>
@@ -212,24 +222,23 @@ if ($respuestaSolicitudesTraslado['ok']) {
                                 <td><strong><?= htmlspecialchars($r['docNum'] ?? '-') ?></strong></td>
                                 <td><?= htmlspecialchars($r['proveedorNombre'] ?? $r['proveedorCodigo'] ?? '-') ?></td>
                                 <td><?= htmlspecialchars(sapFecha($r['fecha'] ?? null)) ?><?= !empty($r['hora']) ? ' <span style="color:var(--muted);">' . htmlspecialchars(substr((string) $r['hora'], 0, 5)) . '</span>' : '' ?></td>
-                                <td class="sap-num"><?= count($r['lineas'] ?? []) ?></td>
                                 <td><?= sapTextoCorto($r['comentarios'] ?? '') ?></td>
                             </tr>
                         <?php endforeach; ?>
 
                         <?php if (count($resultadosRecepciones) === 0): ?>
                             <tr>
-                                <td colspan="5">Sin recepciones en el rango seleccionado.</td>
+                                <td colspan="4">Sin recepciones en el rango seleccionado.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
             </div>
-            <?= sapNotaTruncado(count($resultadosRecepciones), $topMovimientos) ?>
+            <?= sapPaginador($respuestaRecepciones, $paramsEstado, 'paginaRecepciones', 'recepciones') ?>
         <?php endif; ?>
     </div>
 
-    <div class="table-card" style="margin-top:32px;">
+    <div class="table-card" style="margin-top:32px;" id="despachos">
         <div class="table-header">
             <div>
                 <h2>Despachos</h2>
@@ -248,7 +257,6 @@ if ($respuestaSolicitudesTraslado['ok']) {
                             <th>Cliente</th>
                             <th>Fecha</th>
                             <th>Dirección de despacho</th>
-                            <th class="sap-num">Líneas</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -258,25 +266,24 @@ if ($respuestaSolicitudesTraslado['ok']) {
                                 <td><?= htmlspecialchars($d['clienteNombre'] ?? $d['clienteCodigo'] ?? '-') ?></td>
                                 <td><?= htmlspecialchars(sapFecha($d['fecha'] ?? null)) ?><?= !empty($d['hora']) ? ' <span style="color:var(--muted);">' . htmlspecialchars(substr((string) $d['hora'], 0, 5)) . '</span>' : '' ?></td>
                                 <td><?= sapTextoCorto($d['direccionDespacho'] ?? '') ?></td>
-                                <td class="sap-num"><?= count($d['lineas'] ?? []) ?></td>
                             </tr>
                         <?php endforeach; ?>
 
                         <?php if (count($resultadosDespachos) === 0): ?>
                             <tr>
-                                <td colspan="5">Sin despachos en el rango seleccionado.</td>
+                                <td colspan="4">Sin despachos en el rango seleccionado.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
             </div>
-            <?= sapNotaTruncado(count($resultadosDespachos), $topMovimientos) ?>
+            <?= sapPaginador($respuestaDespachos, $paramsEstado, 'paginaDespachos', 'despachos') ?>
         <?php endif; ?>
     </div>
 
 <?php endif; ?>
 
-<div class="table-card" style="margin-top:32px;">
+<div class="table-card" style="margin-top:32px;" id="solicitudes">
     <div class="table-header">
         <div>
             <h2>Solicitudes de traslado abiertas</h2>
@@ -321,11 +328,11 @@ if ($respuestaSolicitudesTraslado['ok']) {
                 </tbody>
             </table>
         </div>
-        <?= sapNotaTruncado(count($resultadosSolicitudesTraslado), $topPendientes) ?>
+        <?= sapPaginador($respuestaSolicitudesTraslado, $paramsEstado, 'paginaSolicitudes', 'solicitudes') ?>
     <?php endif; ?>
 </div>
 
-<div class="table-card" style="margin-top:32px;">
+<div class="table-card" style="margin-top:32px;" id="picking">
     <div class="table-header">
         <div>
             <h2>Picking liberado</h2>
@@ -362,7 +369,7 @@ if ($respuestaSolicitudesTraslado['ok']) {
                 </tbody>
             </table>
         </div>
-        <?= sapNotaTruncado(count($resultadosPicking), $topPendientes) ?>
+        <?= sapPaginador($respuestaPicking, $paramsEstado, 'paginaPicking', 'picking') ?>
     <?php endif; ?>
 </div>
 

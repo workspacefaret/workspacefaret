@@ -12,7 +12,8 @@ $empresa = ApiFaretClient::empresaActual();
 $docNum = trim($_GET['docNum'] ?? '');
 $proveedor = trim($_GET['proveedor'] ?? '');
 $docNumInvalido = $docNum !== '' && !ctype_digit($docNum);
-$topCompras = 30;
+$pagina = sapLeerPagina();
+$porPagina = sapLeerPorPagina();
 
 $resultadosPedidos = [];
 $respuestaPedidos = null;
@@ -28,7 +29,7 @@ if (!$docNumInvalido && ($docNum !== '' || $proveedor !== '')) {
         $params[] = 'proveedor=' . rawurlencode($proveedor);
     }
 
-    $filtro = implode('&', $params) . '&top=' . $topCompras;
+    $filtro = implode('&', $params) . '&' . sapQueryPagina($pagina, $porPagina);
 
     $respuestaPedidos = ApiFaretClient::get('compras/pedidos/buscar?' . $filtro, $empresa);
 
@@ -55,6 +56,10 @@ if ($verDocEntry !== null) {
         $lineasPedido = $fichaPedido['lineas'] ?? [];
     }
 }
+
+// Conserva filtros y página en los links internos de la página.
+$paramsBusqueda = array_filter(['empresa' => $empresa, 'docNum' => $docNum, 'proveedor' => $proveedor], fn($v) => $v !== '')
+    + sapParamsPaginacion(['pagina' => $pagina], $porPagina);
 
 ?>
 
@@ -89,6 +94,7 @@ if ($verDocEntry !== null) {
 
 <form class="filter-card" method="GET">
     <input type="hidden" name="empresa" value="<?= htmlspecialchars($empresa) ?>">
+    <?= sapInputPorPagina($porPagina) ?>
 
     <div class="filter-group">
         <label>N° de documento</label>
@@ -121,7 +127,7 @@ if ($verDocEntry !== null) {
 
 <?php elseif ($docNum !== '' || $proveedor !== ''): ?>
 
-    <div class="table-card">
+    <div class="table-card" id="pedidos">
         <div class="table-header">
             <div>
                 <h2>Pedidos de compra</h2>
@@ -152,7 +158,7 @@ if ($verDocEntry !== null) {
                                 <td><?= htmlspecialchars(sapFecha($p['fecha'] ?? null)) ?></td>
                                 <td><?= sapBadgeEstado($p['estado'] ?? '') ?></td>
                                 <td>
-                                    <a class="btn-secondary" href="?empresa=<?= rawurlencode($empresa) ?>&docNum=<?= rawurlencode($docNum) ?>&proveedor=<?= rawurlencode($proveedor) ?>&verDocEntry=<?= (int) ($p['docEntry'] ?? 0) ?>#lineasPedido">
+                                    <a class="btn-secondary" href="?<?= htmlspecialchars(http_build_query($paramsBusqueda + ['verDocEntry' => (int) ($p['docEntry'] ?? 0)])) ?>#lineasPedido">
                                         Ver líneas
                                     </a>
                                 </td>
@@ -161,7 +167,7 @@ if ($verDocEntry !== null) {
                     </tbody>
                 </table>
             </div>
-            <?= sapNotaTruncado(count($resultadosPedidos), $topCompras) ?>
+            <?= sapPaginador($respuestaPedidos, $paramsBusqueda, 'pagina', 'pedidos') ?>
         <?php endif; ?>
     </div>
 
