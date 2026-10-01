@@ -61,6 +61,11 @@ if ($verDocEntry !== null) {
 $paramsBusqueda = array_filter(['empresa' => $empresa, 'docNum' => $docNum, 'proveedor' => $proveedor], fn($v) => $v !== '')
     + sapParamsPaginacion(['pagina' => $pagina], $porPagina);
 
+// Link a la ficha unificada (empresa + flujo documental), con "volver" apuntando a esta misma búsqueda.
+$urlFicha = fn(string $tipoDoc, int $docEntry) => '/modules/sap/documento/?' . http_build_query([
+    'empresa' => $empresa, 'tipo' => $tipoDoc, 'docEntry' => $docEntry, 'volver' => $_SERVER['REQUEST_URI'],
+]);
+
 ?>
 
 <div class="hero">
@@ -167,6 +172,9 @@ $paramsBusqueda = array_filter(['empresa' => $empresa, 'docNum' => $docNum, 'pro
                                 <td>
                                     <a class="btn-secondary" href="?<?= htmlspecialchars(http_build_query($paramsBusqueda + ['verDocEntry' => (int) ($p['docEntry'] ?? 0)])) ?>#lineasPedido">
                                         Ver líneas
+                                    </a>
+                                    <a class="btn-secondary" href="<?= htmlspecialchars($urlFicha('pedidocompra', (int) ($p['docEntry'] ?? 0))) ?>">
+                                        Ficha y flujo
                                     </a>
                                 </td>
                             </tr>

@@ -97,6 +97,11 @@ if ($verDocEntry !== null && $buscarNV) {
 $paramsBusqueda = array_filter(['empresa' => $empresa, 'docNum' => $docNum, 'cliente' => $cliente, 'tipo' => $tipo], fn($v) => $v !== '')
     + sapParamsPaginacion($paginas, $porPagina);
 
+// Link a la ficha unificada (empresa + flujo documental), con "volver" apuntando a esta misma búsqueda.
+$urlFicha = fn(string $tipoDoc, int $docEntry) => '/modules/sap/documento/?' . http_build_query([
+    'empresa' => $empresa, 'tipo' => $tipoDoc, 'docEntry' => $docEntry, 'volver' => $_SERVER['REQUEST_URI'],
+]);
+
 ?>
 
 <div class="hero">
@@ -225,6 +230,9 @@ $paramsBusqueda = array_filter(['empresa' => $empresa, 'docNum' => $docNum, 'cli
                                     <a class="btn-secondary" href="?<?= htmlspecialchars(http_build_query($paramsBusqueda + ['verDocEntry' => (int) ($nv['docEntry'] ?? 0)])) ?>#lineasNV">
                                         Ver líneas
                                     </a>
+                                    <a class="btn-secondary" href="<?= htmlspecialchars($urlFicha('notaventa', (int) ($nv['docEntry'] ?? 0))) ?>">
+                                        Ficha y flujo
+                                    </a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -344,6 +352,7 @@ $paramsBusqueda = array_filter(['empresa' => $empresa, 'docNum' => $docNum, 'cli
                             <th>Válida hasta</th>
                             <th>Estado</th>
                             <th>Comentarios</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -359,6 +368,11 @@ $paramsBusqueda = array_filter(['empresa' => $empresa, 'docNum' => $docNum, 'cli
                                 <td><?= htmlspecialchars(sapFecha($cot['validaHasta'] ?? null)) ?></td>
                                 <td><?= sapBadgeEstado($cot['estado'] ?? '') ?></td>
                                 <td><?= sapTextoCorto($cot['comentarios'] ?? '') ?></td>
+                                <td>
+                                    <a class="btn-secondary" href="<?= htmlspecialchars($urlFicha('cotizacion', (int) ($cot['docEntry'] ?? 0))) ?>">
+                                        Ficha y flujo
+                                    </a>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -395,6 +409,7 @@ $paramsBusqueda = array_filter(['empresa' => $empresa, 'docNum' => $docNum, 'cli
                             <th>Vencimiento</th>
                             <th>Estado <?= sapAyuda('Estado del documento en SAP. En facturas, "Abierta" normalmente indica saldo pendiente de pago.') ?></th>
                             <th>Comentarios</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -410,6 +425,11 @@ $paramsBusqueda = array_filter(['empresa' => $empresa, 'docNum' => $docNum, 'cli
                                 <td><?= htmlspecialchars(sapFecha($f['fechaVencimiento'] ?? null)) ?></td>
                                 <td><?= sapBadgeEstado($f['estado'] ?? '') ?></td>
                                 <td><?= sapTextoCorto($f['comentarios'] ?? '') ?></td>
+                                <td>
+                                    <a class="btn-secondary" href="<?= htmlspecialchars($urlFicha('factura', (int) ($f['docEntry'] ?? 0))) ?>">
+                                        Ficha y flujo
+                                    </a>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>

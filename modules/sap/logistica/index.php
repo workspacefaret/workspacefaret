@@ -49,6 +49,11 @@ $paginas = [
 // Estado de la URL que conserva cada link de paginación.
 $paramsEstado = ['empresa' => $empresa, 'desde' => $desdeInput, 'hasta' => $hastaInput] + sapParamsPaginacion($paginas, $porPagina);
 
+// Link a la ficha unificada (empresa + flujo documental), con "volver" apuntando a esta misma búsqueda.
+$urlFicha = fn(string $tipoDoc, int $docEntry) => '/modules/sap/documento/?' . http_build_query([
+    'empresa' => $empresa, 'tipo' => $tipoDoc, 'docEntry' => $docEntry, 'volver' => $_SERVER['REQUEST_URI'],
+]);
+
 $resultadosTraslados = [];
 $resultadosRecepciones = [];
 $resultadosDespachos = [];
@@ -171,6 +176,7 @@ if ($respuestaSolicitudesTraslado['ok']) {
                             <th>Fecha</th>
                             <th>Origen → Destino</th>
                             <th>Comentarios</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -180,12 +186,17 @@ if ($respuestaSolicitudesTraslado['ok']) {
                                 <td><?= htmlspecialchars(sapFecha($t['fecha'] ?? null)) ?></td>
                                 <td><?= htmlspecialchars($t['almacenOrigen'] ?? '-') ?> → <?= htmlspecialchars($t['almacenDestino'] ?? '-') ?></td>
                                 <td><?= sapTextoCorto($t['comentarios'] ?? '') ?></td>
+                                <td>
+                                    <a class="btn-secondary" href="<?= htmlspecialchars($urlFicha('traslado', (int) ($t['docEntry'] ?? 0))) ?>">
+                                        Ficha y flujo
+                                    </a>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
 
                         <?php if (count($resultadosTraslados) === 0): ?>
                             <tr>
-                                <td colspan="4">Sin traslados en el rango seleccionado.</td>
+                                <td colspan="5">Sin traslados en el rango seleccionado.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
@@ -215,6 +226,7 @@ if ($respuestaSolicitudesTraslado['ok']) {
                             <th>Ref. proveedor</th>
                             <th>Fecha</th>
                             <th>Comentarios</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -228,12 +240,17 @@ if ($respuestaSolicitudesTraslado['ok']) {
                                 <td><?= htmlspecialchars($r['referenciaProveedor'] ?? '-') ?></td>
                                 <td><?= htmlspecialchars(sapFecha($r['fecha'] ?? null)) ?><?= !empty($r['hora']) ? ' <span style="color:var(--muted);">' . htmlspecialchars(substr((string) $r['hora'], 0, 5)) . '</span>' : '' ?></td>
                                 <td><?= sapTextoCorto($r['comentarios'] ?? '') ?></td>
+                                <td>
+                                    <a class="btn-secondary" href="<?= htmlspecialchars($urlFicha('recepcion', (int) ($r['docEntry'] ?? 0))) ?>">
+                                        Ficha y flujo
+                                    </a>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
 
                         <?php if (count($resultadosRecepciones) === 0): ?>
                             <tr>
-                                <td colspan="5">Sin recepciones en el rango seleccionado.</td>
+                                <td colspan="6">Sin recepciones en el rango seleccionado.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
@@ -263,6 +280,7 @@ if ($respuestaSolicitudesTraslado['ok']) {
                             <th>Ref. cliente</th>
                             <th>Fecha</th>
                             <th>Dirección de despacho</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -276,12 +294,17 @@ if ($respuestaSolicitudesTraslado['ok']) {
                                 <td><?= htmlspecialchars($d['referenciaCliente'] ?? '-') ?></td>
                                 <td><?= htmlspecialchars(sapFecha($d['fecha'] ?? null)) ?><?= !empty($d['hora']) ? ' <span style="color:var(--muted);">' . htmlspecialchars(substr((string) $d['hora'], 0, 5)) . '</span>' : '' ?></td>
                                 <td><?= sapTextoCorto($d['direccionDespacho'] ?? '') ?></td>
+                                <td>
+                                    <a class="btn-secondary" href="<?= htmlspecialchars($urlFicha('despacho', (int) ($d['docEntry'] ?? 0))) ?>">
+                                        Ficha y flujo
+                                    </a>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
 
                         <?php if (count($resultadosDespachos) === 0): ?>
                             <tr>
-                                <td colspan="5">Sin despachos en el rango seleccionado.</td>
+                                <td colspan="6">Sin despachos en el rango seleccionado.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
@@ -316,6 +339,7 @@ if ($respuestaSolicitudesTraslado['ok']) {
                         <th class="sap-num">Días abierta</th>
                         <th>Origen → Destino</th>
                         <th>Comentarios</th>
+                        <th></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -327,12 +351,17 @@ if ($respuestaSolicitudesTraslado['ok']) {
                             <td class="sap-num"><?= $diasAbierta !== null ? $diasAbierta : '-' ?></td>
                             <td><?= htmlspecialchars($s['almacenOrigen'] ?? '-') ?> → <?= htmlspecialchars($s['almacenDestino'] ?? '-') ?></td>
                             <td><?= sapTextoCorto($s['comentarios'] ?? '') ?></td>
+                            <td>
+                                <a class="btn-secondary" href="<?= htmlspecialchars($urlFicha('solicitudtraslado', (int) ($s['docEntry'] ?? 0))) ?>">
+                                    Ficha y flujo
+                                </a>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
 
                     <?php if (count($resultadosSolicitudesTraslado) === 0): ?>
                         <tr>
-                            <td colspan="5">No hay solicitudes de traslado abiertas en <?= htmlspecialchars($empresa) ?>.</td>
+                            <td colspan="6">No hay solicitudes de traslado abiertas en <?= htmlspecialchars($empresa) ?>.</td>
                         </tr>
                     <?php endif; ?>
                 </tbody>
@@ -360,6 +389,7 @@ if ($respuestaSolicitudesTraslado['ok']) {
                         <th>N°</th>
                         <th>Fecha</th>
                         <th>Estado</th>
+                        <th></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -368,12 +398,17 @@ if ($respuestaSolicitudesTraslado['ok']) {
                             <td><strong><?= htmlspecialchars($pk['absEntry'] ?? '-') ?></strong></td>
                             <td><?= htmlspecialchars(sapFecha($pk['fecha'] ?? null)) ?></td>
                             <td><?= sapBadgeEstado($pk['estado'] ?? '') ?></td>
+                            <td>
+                                <a class="btn-secondary" href="<?= htmlspecialchars($urlFicha('picking', (int) ($pk['absEntry'] ?? 0))) ?>">
+                                    Ficha y flujo
+                                </a>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
 
                     <?php if (count($resultadosPicking) === 0): ?>
                         <tr>
-                            <td colspan="3">No hay picking liberado en <?= htmlspecialchars($empresa) ?>.</td>
+                            <td colspan="4">No hay picking liberado en <?= htmlspecialchars($empresa) ?>.</td>
                         </tr>
                     <?php endif; ?>
                 </tbody>
