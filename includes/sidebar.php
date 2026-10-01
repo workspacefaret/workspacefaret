@@ -54,6 +54,13 @@
                         </a>
                     <?php endif; ?>
 
+                    <?php if (hasModuleAccess('portal_sap_ventas') || hasModuleAccess('portal_sap_compras')): ?>
+                        <a href="/modules/sap/pendientes/">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            Pendientes
+                        </a>
+                    <?php endif; ?>
+
                     <?php if (hasModuleAccess('portal_sap_ventas')): ?>
                         <a href="/modules/sap/ventas/">
                             <i class="bi bi-graph-up"></i>

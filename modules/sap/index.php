@@ -52,6 +52,8 @@ $stockFicha = [];
 $stockDatos = [];
 $respuestaStockFicha = null;
 $respuestaStockDatos = null;
+$resumenNV = null;
+$resumenOC = null;
 
 // Todo lo de abajo (KPIs, búsqueda global, accesos frecuentes, traslados) es
 // contenido del acceso base "portal_sap" — se omite por completo si el usuario
@@ -131,6 +133,24 @@ if ($verBase) {
 
         if ($respuestaStockDatos['ok']) {
             $stockDatos = $respuestaStockDatos['data']['data'] ?? [];
+        }
+    }
+
+    // Resumen real de pendientes (A15) para los tabs Ventas/Compras de abajo — solo conteos,
+    // sin descargar listados (el detalle está en /modules/sap/pendientes/).
+    if ($verVentas) {
+        $respuestaResumenNV = ApiFaretClient::get('ventas/pendientes/resumen?empresa=' . rawurlencode($empresa), $empresa);
+
+        if ($respuestaResumenNV['ok']) {
+            $resumenNV = $respuestaResumenNV['data']['data'][0] ?? null;
+        }
+    }
+
+    if ($verCompras) {
+        $respuestaResumenOC = ApiFaretClient::get('compras/pendientes/resumen?empresa=' . rawurlencode($empresa), $empresa);
+
+        if ($respuestaResumenOC['ok']) {
+            $resumenOC = $respuestaResumenOC['data']['data'][0] ?? null;
         }
     }
 }
@@ -416,24 +436,26 @@ if (!$respuestaTraslados['ok'] && !$respuestaPicking['ok']) {
 
 $htmlBodega = ob_get_clean();
 
-// Ventas/Compras: apifaret exige docNum y/o cliente-proveedor exacto para buscar
-// (VentasController.cs/ComprasController.cs) — no hay forma de listar "todo lo
-// abierto" sin ese filtro, así que este tab explica la limitación en vez de
-// simular una lista vacía.
+// Ventas/Compras: resumen real de pendientes (A15, ventas/pendientes/resumen y
+// compras/pendientes/resumen) en vez del aviso estático de antes — el listado
+// completo con filtros vive en /modules/sap/pendientes/.
 ob_start();
 ?>
 <div class="sap-guide">
     <span class="sap-guide-icon"><i class="bi bi-graph-up"></i></span>
     <div>
         <h3>Ventas</h3>
-        <p>
-            SAP no permite listar todas las notas de venta/cotizaciones/facturas abiertas sin indicar
-            un N° de documento o un cliente puntual.
-        </p>
-        <?php if ($verVentas): ?>
-            <a href="/modules/sap/ventas/?empresa=<?= rawurlencode($empresa) ?>">Ir a Ventas para buscar por documento o cliente →</a>
+        <?php if (!$verVentas): ?>
+            <p>Pide acceso al área Ventas para ver notas de venta pendientes.</p>
+        <?php elseif ($resumenNV === null): ?>
+            <p>No se pudo obtener el resumen de notas de venta pendientes ahora.</p>
         <?php else: ?>
-            <p>Pide acceso al área Ventas para consultar documentos puntuales.</p>
+            <p>
+                <strong><?= sapNumero($resumenNV['vencidas'] ?? 0) ?></strong> vencidas,
+                <strong><?= sapNumero($resumenNV['porVencer'] ?? 0) ?></strong> por vencer en 7 días,
+                <strong><?= sapNumero($resumenNV['abiertas']) ?></strong> abiertas en total.
+            </p>
+            <a href="/modules/sap/pendientes/?empresa=<?= rawurlencode($empresa) ?>#ventas">Ver notas de venta pendientes →</a>
         <?php endif; ?>
     </div>
 </div>
@@ -446,14 +468,17 @@ ob_start();
     <span class="sap-guide-icon"><i class="bi bi-cart"></i></span>
     <div>
         <h3>Compras</h3>
-        <p>
-            SAP no permite listar todos los pedidos de compra abiertos sin indicar un N° de documento
-            o un proveedor puntual.
-        </p>
-        <?php if ($verCompras): ?>
-            <a href="/modules/sap/compras/?empresa=<?= rawurlencode($empresa) ?>">Ir a Compras para buscar por documento o proveedor →</a>
+        <?php if (!$verCompras): ?>
+            <p>Pide acceso al área Compras para ver pedidos de compra pendientes.</p>
+        <?php elseif ($resumenOC === null): ?>
+            <p>No se pudo obtener el resumen de pedidos de compra pendientes ahora.</p>
         <?php else: ?>
-            <p>Pide acceso al área Compras para consultar documentos puntuales.</p>
+            <p>
+                <strong><?= sapNumero($resumenOC['vencidas'] ?? 0) ?></strong> vencidos,
+                <strong><?= sapNumero($resumenOC['porVencer'] ?? 0) ?></strong> por vencer en 7 días,
+                <strong><?= sapNumero($resumenOC['abiertas']) ?></strong> abiertos en total.
+            </p>
+            <a href="/modules/sap/pendientes/?empresa=<?= rawurlencode($empresa) ?>#compras">Ver pedidos de compra pendientes →</a>
         <?php endif; ?>
     </div>
 </div>
