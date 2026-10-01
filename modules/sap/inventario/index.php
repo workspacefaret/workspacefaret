@@ -86,6 +86,20 @@ if ($lote !== '') {
     $resultadosLote = $resultadoLote['filas'];
 }
 
+// A17: trazabilidad comprobable del lote — exige los 3 (empresa + artículo + lote), porque el
+// número de lote no es único entre artículos. Se activa cuando item y lote vienen juntos en la
+// URL (ya pasa al usar "Ver ubicación"/"Ver artículo" de abajo, o el link de Antigüedad).
+$trazabilidad = null;
+$respuestaTrazabilidad = null;
+
+if ($item !== '' && $lote !== '') {
+    $respuestaTrazabilidad = ApiFaretClient::get('lotes/' . rawurlencode($lote) . '/trazabilidad?empresa=' . rawurlencode($empresa) . '&articulo=' . rawurlencode($item), $empresa);
+
+    if ($respuestaTrazabilidad['ok']) {
+        $trazabilidad = $respuestaTrazabilidad['data']['data'][0] ?? null;
+    }
+}
+
 // Antigüedad de inventario: solo cuando no hay una búsqueda puntual en curso,
 // para no pedirle a SAP este listado en cada búsqueda de artículo/lote.
 $sinFiltros = $texto === '' && $item === '' && $lote === '';
@@ -398,7 +412,7 @@ if ($sinFiltros) {
                                     <td class="sap-num"><?= sapCantidad($l['stock'] ?? 0) ?></td>
                                     <td><?= htmlspecialchars($l['unidad'] ?? '-') ?></td>
                                     <td>
-                                        <a class="btn-secondary" href="<?= htmlspecialchars(urlInventario($empresa, $texto, $item, $lote, ['lote' => $l['lote'] ?? ''])) ?>" aria-label="Ver ubicación del lote <?= htmlspecialchars($l['lote'] ?? '') ?>">Ver ubicación</a>
+                                        <a class="btn-secondary" href="<?= htmlspecialchars(urlInventario(sapEmpresa($l['empresa'] ?? '', $empresa), $texto, $item, $lote, ['lote' => $l['lote'] ?? ''])) ?>" aria-label="Ver trazabilidad del lote <?= htmlspecialchars($l['lote'] ?? '') ?>">Ver ubicación y trazabilidad</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -492,6 +506,138 @@ if ($sinFiltros) {
 
 <?php endif; ?>
 
+<?php if ($item !== '' && $lote !== ''): ?>
+
+    <div class="table-card" id="trazabilidad">
+        <div class="table-header">
+            <div>
+                <h2>Trazabilidad del lote <?= htmlspecialchars($lote) ?></h2>
+                <p>Artículo <?= htmlspecialchars($item) ?> en <?= htmlspecialchars($empresa) ?>. Solo lo que SAP demuestra — no es el historial completo del lote.</p>
+            </div>
+        </div>
+
+        <?php if (!$respuestaTrazabilidad['ok']): ?>
+            <?= sapErrorCard('No se pudo obtener la trazabilidad del lote.', $respuestaTrazabilidad) ?>
+        <?php elseif ($trazabilidad === null): ?>
+            <p>No se encontró este lote para este artículo en <?= htmlspecialchars($empresa) ?>.</p>
+        <?php else: ?>
+            <?php $maestro = $trazabilidad['maestro'] ?? []; ?>
+            <?php $stockLote = $trazabilidad['stock'] ?? []; ?>
+            <?php $origen = $trazabilidad['origen'] ?? []; ?>
+            <?php $nvLote = $trazabilidad['notaVenta'] ?? []; ?>
+            <?php
+                // El origen de un lote puede resolver a un tipo que A14/W2 no soporta como ficha
+                // propia (ej. "entradamercaderia" = entrada directa de mercadería, sin documento de
+                // compra asociado) — mismos 14 tipos navegables que SAP_DOC_TIPOS en documento/index.php.
+                $tiposNavegables = ['notaventa', 'cotizacion', 'factura', 'notacredito', 'devolucion', 'pedidocompra', 'facturaproveedor', 'notacreditoproveedor', 'devolucionproveedor', 'despacho', 'recepcion', 'traslado', 'solicitudtraslado', 'picking'];
+                $urlDocumentoTraza = fn(array $doc) => '/modules/sap/documento/?' . http_build_query(['empresa' => sapEmpresa($doc['empresa'] ?? $empresa, $empresa), 'tipo' => $doc['tipo'], 'docEntry' => $doc['docEntry'] ?? 0, 'volver' => $_SERVER['REQUEST_URI']]);
+            ?>
+
+            <h3>Maestro</h3>
+            <p class="sap-nota">
+                <?php if (!empty($maestro['estado'])): ?>Estado: <?= sapBadgeEstado($maestro['estado']) ?>. <?php endif; ?>
+                <?php if (!empty($maestro['fechaFabricacion'])): ?>Fabricación: <?= htmlspecialchars(sapFecha($maestro['fechaFabricacion'])) ?>. <?php endif; ?>
+                <?php if (!empty($maestro['fechaIngreso'])): ?>Ingreso: <?= htmlspecialchars(sapFecha($maestro['fechaIngreso'])) ?>. <?php endif; ?>
+                <?php if (!empty($maestro['fechaVencimiento'])): ?>Vencimiento: <?= htmlspecialchars(sapFecha($maestro['fechaVencimiento'])) ?>. <?php endif; ?>
+                <?php if (!empty($maestro['folioCC'])): ?>Folio Cert. Calidad (dato técnico, sin validar contra QCS): <?= htmlspecialchars((string) $maestro['folioCC']) ?>.<?php endif; ?>
+            </p>
+
+            <h3>Stock actual</h3>
+            <p>
+                <strong><?= sapCantidad($stockLote['total'] ?? 0) ?></strong> <?= htmlspecialchars($stockLote['unidad'] ?? '') ?> en total.
+            </p>
+            <?php if (count($stockLote['bins'] ?? []) > 0): ?>
+                <div class="table-responsive">
+                    <table class="data-table sap-tabla">
+                        <thead>
+                            <tr>
+                                <th>Almacén</th>
+                                <th>Ubicación</th>
+                                <th class="sap-num">Cantidad</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($stockLote['bins'] as $bin): ?>
+                                <tr>
+                                    <td><?= htmlspecialchars($bin['almacen'] ?? '-') ?></td>
+                                    <td><?= htmlspecialchars($bin['binCodigo'] ?? '-') ?></td>
+                                    <td class="sap-num"><?= sapCantidad($bin['cantidad'] ?? 0) ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+
+            <h3 style="margin-top:24px;">Origen del lote</h3>
+            <?php
+                $origenEstado = $origen['estado'] ?? 'no_resuelto';
+                $origenClase = ['confirmado' => 'badge-success', 'ambiguo' => 'badge-warning'][$origenEstado] ?? '';
+                $origenTexto = ['confirmado' => 'Confirmado', 'ambiguo' => 'Ambiguo', 'no_resuelto' => 'No resuelto'][$origenEstado] ?? $origenEstado;
+            ?>
+            <p>
+                <span class="badge <?= htmlspecialchars($origenClase) ?>"><?= htmlspecialchars($origenTexto) ?></span>
+                <?php if (!empty($origen['motivo'])): ?> (<?= htmlspecialchars($origen['motivo']) ?>)<?php endif; ?>
+            </p>
+            <?php if (!empty($origen['documento']['resuelto']) && in_array($origen['documento']['tipo'] ?? '', $tiposNavegables, true)): ?>
+                <p>
+                    <a class="btn-secondary" href="<?= htmlspecialchars($urlDocumentoTraza($origen['documento'])) ?>">
+                        Ver documento de origen <?= htmlspecialchars((string) ($origen['documento']['docNum'] ?? $origen['documento']['docEntry'] ?? '')) ?>
+                    </a>
+                </p>
+            <?php elseif (!empty($origen['documento'])): ?>
+                <p class="sap-nota">
+                    <i class="bi bi-info-circle"></i>
+                    Documento N° <?= htmlspecialchars((string) ($origen['documento']['docNum'] ?? $origen['documento']['docEntry'] ?? '-')) ?> (objeto SAP <?= htmlspecialchars($origen['documento']['objetoSap'] ?? '-') ?>) — sin ficha disponible en Portal SAP para este tipo de documento.
+                </p>
+            <?php endif; ?>
+            <?php if ($origenEstado === 'ambiguo' && count($origen['confirmados'] ?? []) > 0): ?>
+                <p class="sap-nota">Más de un documento contiene este lote, no se puede determinar cuál es el origen real:</p>
+                <?php foreach ($origen['confirmados'] as $doc): ?>
+                    <?php if (in_array($doc['tipo'] ?? '', $tiposNavegables, true)): ?>
+                        <a class="sap-list-row" href="<?= htmlspecialchars($urlDocumentoTraza($doc)) ?>">
+                            <span class="sap-list-icon"><i class="bi bi-file-text"></i></span>
+                            <span class="sap-list-main">
+                                <span class="sap-list-title">N° <?= htmlspecialchars((string) ($doc['docNum'] ?? $doc['docEntry'] ?? '-')) ?></span>
+                            </span>
+                            <i class="bi bi-chevron-right sap-list-chevron"></i>
+                        </a>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            <?php endif; ?>
+
+            <h3 style="margin-top:24px;">Nota de venta asociada</h3>
+            <?php
+                $nvEstado = $nvLote['estado'] ?? 'sin_referencia';
+                $nvClase = ['comprobada' => 'badge-success', 'no_comprobada' => 'badge-warning'][$nvEstado] ?? '';
+                $nvTexto = ['comprobada' => 'Comprobada', 'no_comprobada' => 'No comprobada', 'sin_referencia' => 'Sin referencia'][$nvEstado] ?? $nvEstado;
+            ?>
+            <p>
+                <span class="badge <?= htmlspecialchars($nvClase) ?>"><?= htmlspecialchars($nvTexto) ?></span>
+                <?php if (!empty($nvLote['valor'])): ?> — referencia registrada en el lote: <?= htmlspecialchars($nvLote['valor']) ?><?php endif; ?>
+            </p>
+            <?php if (!empty($nvLote['documento']['resuelto']) && in_array($nvLote['documento']['tipo'] ?? '', $tiposNavegables, true)): ?>
+                <p>
+                    <a class="btn-secondary" href="<?= htmlspecialchars($urlDocumentoTraza($nvLote['documento'])) ?>">
+                        Ver nota de venta <?= htmlspecialchars((string) ($nvLote['documento']['docNum'] ?? $nvLote['documento']['docEntry'] ?? '')) ?>
+                    </a>
+                </p>
+            <?php endif; ?>
+
+            <?php if (!empty($trazabilidad['datosComercialesOmitidos']) && count($trazabilidad['datosComercialesOmitidos']) > 0): ?>
+                <p class="sap-nota" style="margin-top:24px;"><i class="bi bi-info-circle"></i> Algunos datos comerciales de este lote no se muestran: tu acceso no incluye el permiso necesario para esa compañía (<?= htmlspecialchars(implode(', ', $trazabilidad['datosComercialesOmitidos'])) ?>).</p>
+            <?php endif; ?>
+
+            <?php if (count($trazabilidad['relacionesNoDisponibles'] ?? []) > 0): ?>
+                <?php foreach ($trazabilidad['relacionesNoDisponibles'] as $texto): ?>
+                    <p class="sap-nota" style="margin-top:8px;"><i class="bi bi-info-circle"></i> <?= htmlspecialchars($texto) ?></p>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        <?php endif; ?>
+    </div>
+
+<?php endif; ?>
+
 <?php if (!$sinFiltros): ?>
 
     <div class="card" id="antiguedad">
@@ -549,7 +695,7 @@ if ($sinFiltros) {
                                 <span style="color:var(--muted);font-size:13px;"><?= htmlspecialchars($la['itemName'] ?? '-') ?></span>
                             </td>
                             <td>
-                                <a href="<?= htmlspecialchars(urlInventario($empresaFila, '', '', '', ['lote' => $la['lote'] ?? ''])) ?>"><?= htmlspecialchars($la['lote'] ?? '-') ?></a>
+                                <a href="<?= htmlspecialchars(urlInventario($empresaFila, '', '', '', ['lote' => $la['lote'] ?? '', 'item' => $la['itemCode'] ?? ''])) ?>"><?= htmlspecialchars($la['lote'] ?? '-') ?></a>
                             </td>
                             <td><?= htmlspecialchars($la['almacen'] ?? '-') ?><br><span style="color:var(--muted);font-size:13px;"><?= htmlspecialchars($la['bin'] ?? '') ?></span></td>
                             <td class="sap-num"><?= sapCantidad($la['cantidad'] ?? 0) ?></td>
