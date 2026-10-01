@@ -145,7 +145,9 @@ $paramsBusqueda = array_filter(['empresa' => $empresa, 'docNum' => $docNum, 'pro
                         <tr>
                             <th>N°</th>
                             <th>Proveedor</th>
+                            <th>Ref. proveedor</th>
                             <th>Fecha</th>
+                            <th>Entrega</th>
                             <th>Estado</th>
                             <th></th>
                         </tr>
@@ -153,9 +155,14 @@ $paramsBusqueda = array_filter(['empresa' => $empresa, 'docNum' => $docNum, 'pro
                     <tbody>
                         <?php foreach ($resultadosPedidos as $p): ?>
                             <tr>
-                                <td><strong><?= htmlspecialchars($p['docNum'] ?? '-') ?></strong></td>
+                                <td>
+                                    <strong><?= htmlspecialchars($p['docNum'] ?? '-') ?></strong>
+                                    <?php if (!empty($p['cancelado'])): ?> <span class="badge badge-danger">Cancelado</span><?php endif; ?>
+                                </td>
                                 <td><?= htmlspecialchars($p['proveedorNombre'] ?? $p['proveedorCodigo'] ?? '-') ?></td>
+                                <td><?= htmlspecialchars($p['referenciaProveedor'] ?? '-') ?></td>
                                 <td><?= htmlspecialchars(sapFecha($p['fecha'] ?? null)) ?></td>
+                                <td><?= htmlspecialchars(sapFecha($p['fechaEntrega'] ?? null)) ?></td>
                                 <td><?= sapBadgeEstado($p['estado'] ?? '') ?></td>
                                 <td>
                                     <a class="btn-secondary" href="?<?= htmlspecialchars(http_build_query($paramsBusqueda + ['verDocEntry' => (int) ($p['docEntry'] ?? 0)])) ?>#lineasPedido">
@@ -178,6 +185,15 @@ $paramsBusqueda = array_filter(['empresa' => $empresa, 'docNum' => $docNum, 'pro
                 <div>
                     <h2>Líneas del pedido de compra N° <?= htmlspecialchars($fichaPedido['docNum'] ?? '') ?></h2>
                     <p>Pendiente: cantidad que según SAP aún falta recibir en cada línea.</p>
+                    <?php if (!empty($fichaPedido['cancelado'])): ?>
+                        <p><span class="badge badge-danger">Documento cancelado en SAP</span></p>
+                    <?php endif; ?>
+                    <?php if (!empty($fichaPedido['referenciaProveedor']) || !empty($fichaPedido['fechaActualizacion'])): ?>
+                        <p class="sap-nota">
+                            <?php if (!empty($fichaPedido['referenciaProveedor'])): ?>Ref. proveedor: <strong><?= htmlspecialchars($fichaPedido['referenciaProveedor']) ?></strong>. <?php endif; ?>
+                            <?php if (!empty($fichaPedido['fechaActualizacion'])): ?>Actualizado en SAP: <?= htmlspecialchars(sapFecha($fichaPedido['fechaActualizacion'])) ?>.<?php endif; ?>
+                        </p>
+                    <?php endif; ?>
                 </div>
             </div>
 
@@ -197,6 +213,7 @@ $paramsBusqueda = array_filter(['empresa' => $empresa, 'docNum' => $docNum, 'pro
                                 <th>Almacén</th>
                                 <th class="sap-num">Cantidad</th>
                                 <th class="sap-num">Pendiente</th>
+                                <th>Entrega línea</th>
                                 <th>Estado línea</th>
                             </tr>
                         </thead>
@@ -210,6 +227,7 @@ $paramsBusqueda = array_filter(['empresa' => $empresa, 'docNum' => $docNum, 'pro
                                     <td><?= htmlspecialchars($ln['almacen'] ?? '-') ?></td>
                                     <td class="sap-num"><?= sapCantidad($ln['cantidad'] ?? null) ?> <?= htmlspecialchars($ln['unidad'] ?? '') ?></td>
                                     <td class="sap-num"><?= sapCantidad($ln['cantidadPendiente'] ?? null) ?></td>
+                                    <td><?= htmlspecialchars(sapFecha($ln['fechaEntrega'] ?? null)) ?></td>
                                     <td>
                                         <span class="status-badge <?= empty($ln['cerrada']) ? 'status-pending' : 'status-ok' ?>">
                                             <?= empty($ln['cerrada']) ? 'Abierta' : 'Cerrada' ?>
@@ -220,7 +238,7 @@ $paramsBusqueda = array_filter(['empresa' => $empresa, 'docNum' => $docNum, 'pro
 
                             <?php if (count($lineasPedido) === 0): ?>
                                 <tr>
-                                    <td colspan="5">Sin líneas.</td>
+                                    <td colspan="6">Sin líneas.</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>

@@ -212,6 +212,7 @@ if ($respuestaSolicitudesTraslado['ok']) {
                         <tr>
                             <th>N°</th>
                             <th>Proveedor</th>
+                            <th>Ref. proveedor</th>
                             <th>Fecha</th>
                             <th>Comentarios</th>
                         </tr>
@@ -219,8 +220,12 @@ if ($respuestaSolicitudesTraslado['ok']) {
                     <tbody>
                         <?php foreach ($resultadosRecepciones as $r): ?>
                             <tr>
-                                <td><strong><?= htmlspecialchars($r['docNum'] ?? '-') ?></strong></td>
+                                <td>
+                                    <strong><?= htmlspecialchars($r['docNum'] ?? '-') ?></strong>
+                                    <?php if (!empty($r['cancelado'])): ?> <span class="badge badge-danger">Cancelado</span><?php endif; ?>
+                                </td>
                                 <td><?= htmlspecialchars($r['proveedorNombre'] ?? $r['proveedorCodigo'] ?? '-') ?></td>
+                                <td><?= htmlspecialchars($r['referenciaProveedor'] ?? '-') ?></td>
                                 <td><?= htmlspecialchars(sapFecha($r['fecha'] ?? null)) ?><?= !empty($r['hora']) ? ' <span style="color:var(--muted);">' . htmlspecialchars(substr((string) $r['hora'], 0, 5)) . '</span>' : '' ?></td>
                                 <td><?= sapTextoCorto($r['comentarios'] ?? '') ?></td>
                             </tr>
@@ -228,7 +233,7 @@ if ($respuestaSolicitudesTraslado['ok']) {
 
                         <?php if (count($resultadosRecepciones) === 0): ?>
                             <tr>
-                                <td colspan="4">Sin recepciones en el rango seleccionado.</td>
+                                <td colspan="5">Sin recepciones en el rango seleccionado.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
@@ -255,6 +260,7 @@ if ($respuestaSolicitudesTraslado['ok']) {
                         <tr>
                             <th>N°</th>
                             <th>Cliente</th>
+                            <th>Ref. cliente</th>
                             <th>Fecha</th>
                             <th>Dirección de despacho</th>
                         </tr>
@@ -262,8 +268,12 @@ if ($respuestaSolicitudesTraslado['ok']) {
                     <tbody>
                         <?php foreach ($resultadosDespachos as $d): ?>
                             <tr>
-                                <td><strong><?= htmlspecialchars($d['docNum'] ?? '-') ?></strong></td>
+                                <td>
+                                    <strong><?= htmlspecialchars($d['docNum'] ?? '-') ?></strong>
+                                    <?php if (!empty($d['cancelado'])): ?> <span class="badge badge-danger">Cancelado</span><?php endif; ?>
+                                </td>
                                 <td><?= htmlspecialchars($d['clienteNombre'] ?? $d['clienteCodigo'] ?? '-') ?></td>
+                                <td><?= htmlspecialchars($d['referenciaCliente'] ?? '-') ?></td>
                                 <td><?= htmlspecialchars(sapFecha($d['fecha'] ?? null)) ?><?= !empty($d['hora']) ? ' <span style="color:var(--muted);">' . htmlspecialchars(substr((string) $d['hora'], 0, 5)) . '</span>' : '' ?></td>
                                 <td><?= sapTextoCorto($d['direccionDespacho'] ?? '') ?></td>
                             </tr>
@@ -271,7 +281,7 @@ if ($respuestaSolicitudesTraslado['ok']) {
 
                         <?php if (count($resultadosDespachos) === 0): ?>
                             <tr>
-                                <td colspan="4">Sin despachos en el rango seleccionado.</td>
+                                <td colspan="5">Sin despachos en el rango seleccionado.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>

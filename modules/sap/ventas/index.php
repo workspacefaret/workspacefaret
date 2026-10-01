@@ -200,6 +200,7 @@ $paramsBusqueda = array_filter(['empresa' => $empresa, 'docNum' => $docNum, 'cli
                         <tr>
                             <th>N°</th>
                             <th>Cliente</th>
+                            <th>Ref. cliente</th>
                             <th>Fecha</th>
                             <th>Entrega</th>
                             <th>Estado</th>
@@ -210,8 +211,12 @@ $paramsBusqueda = array_filter(['empresa' => $empresa, 'docNum' => $docNum, 'cli
                     <tbody>
                         <?php foreach ($resultadosNV as $nv): ?>
                             <tr>
-                                <td><strong><?= htmlspecialchars($nv['docNum'] ?? '-') ?></strong></td>
+                                <td>
+                                    <strong><?= htmlspecialchars($nv['docNum'] ?? '-') ?></strong>
+                                    <?php if (!empty($nv['cancelado'])): ?> <span class="badge badge-danger">Cancelado</span><?php endif; ?>
+                                </td>
                                 <td><?= htmlspecialchars($nv['clienteNombre'] ?? $nv['clienteCodigo'] ?? '-') ?></td>
+                                <td><?= htmlspecialchars($nv['referenciaCliente'] ?? '-') ?></td>
                                 <td><?= htmlspecialchars(sapFecha($nv['fecha'] ?? null)) ?></td>
                                 <td><?= htmlspecialchars(sapFecha($nv['fechaEntrega'] ?? null)) ?></td>
                                 <td><?= sapBadgeEstado($nv['estado'] ?? '') ?></td>
@@ -237,6 +242,17 @@ $paramsBusqueda = array_filter(['empresa' => $empresa, 'docNum' => $docNum, 'cli
                 <div>
                     <h2>Líneas de la nota de venta N° <?= htmlspecialchars($fichaNV['docNum'] ?? '') ?></h2>
                     <p>Pendiente: cantidad que según SAP aún falta entregar en cada línea.</p>
+                    <?php if (!empty($fichaNV['cancelado'])): ?>
+                        <p><span class="badge badge-danger">Documento cancelado en SAP</span></p>
+                    <?php endif; ?>
+                    <?php if (!empty($fichaNV['referenciaCliente']) || !empty($fichaNV['fechaActualizacion']) || !empty($fichaNV['cartulinaAsignada']) || !empty($fichaNV['fechaSolicitadaCliente'])): ?>
+                        <p class="sap-nota">
+                            <?php if (!empty($fichaNV['referenciaCliente'])): ?>Ref. cliente: <strong><?= htmlspecialchars($fichaNV['referenciaCliente']) ?></strong>. <?php endif; ?>
+                            <?php if (!empty($fichaNV['fechaSolicitadaCliente'])): ?>Fecha solicitada por el cliente: <?= htmlspecialchars(sapFecha($fichaNV['fechaSolicitadaCliente'])) ?>. <?php endif; ?>
+                            <?php if (!empty($fichaNV['cartulinaAsignada'])): ?>Cartulina asignada: <?= htmlspecialchars($fichaNV['cartulinaAsignada']) ?>. <?php endif; ?>
+                            <?php if (!empty($fichaNV['fechaActualizacion'])): ?>Actualizado en SAP: <?= htmlspecialchars(sapFecha($fichaNV['fechaActualizacion'])) ?>.<?php endif; ?>
+                        </p>
+                    <?php endif; ?>
                 </div>
             </div>
 
@@ -257,6 +273,8 @@ $paramsBusqueda = array_filter(['empresa' => $empresa, 'docNum' => $docNum, 'cli
                                 <th class="sap-num">Cantidad</th>
                                 <th class="sap-num">Pendiente</th>
                                 <th>Estado línea</th>
+                                <th>Picking</th>
+                                <th>OT / Certificación</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -274,12 +292,21 @@ $paramsBusqueda = array_filter(['empresa' => $empresa, 'docNum' => $docNum, 'cli
                                             <?= empty($ln['cerrada']) ? 'Abierta' : 'Cerrada' ?>
                                         </span>
                                     </td>
+                                    <td><?= htmlspecialchars($ln['estadoPicking'] ?? '-') ?></td>
+                                    <td>
+                                        <?php if (!empty($ln['numeroOT']) || !empty($ln['certificacion'])): ?>
+                                            <?= htmlspecialchars($ln['numeroOT'] ?? '-') ?>
+                                            <?php if (!empty($ln['certificacion'])): ?> · <?= htmlspecialchars($ln['certificacion']) ?><?= !empty($ln['porcentajeCertificacion']) ? ' (' . htmlspecialchars($ln['porcentajeCertificacion']) . ')' : '' ?><?php endif; ?>
+                                        <?php else: ?>
+                                            -
+                                        <?php endif; ?>
+                                    </td>
                                 </tr>
                             <?php endforeach; ?>
 
                             <?php if (count($lineasNV) === 0): ?>
                                 <tr>
-                                    <td colspan="5">Sin líneas.</td>
+                                    <td colspan="7">Sin líneas.</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -312,6 +339,7 @@ $paramsBusqueda = array_filter(['empresa' => $empresa, 'docNum' => $docNum, 'cli
                         <tr>
                             <th>N°</th>
                             <th>Cliente</th>
+                            <th>Ref. cliente</th>
                             <th>Fecha</th>
                             <th>Válida hasta</th>
                             <th>Estado</th>
@@ -321,8 +349,12 @@ $paramsBusqueda = array_filter(['empresa' => $empresa, 'docNum' => $docNum, 'cli
                     <tbody>
                         <?php foreach ($resultadosCotizaciones as $cot): ?>
                             <tr>
-                                <td><strong><?= htmlspecialchars($cot['docNum'] ?? '-') ?></strong></td>
+                                <td>
+                                    <strong><?= htmlspecialchars($cot['docNum'] ?? '-') ?></strong>
+                                    <?php if (!empty($cot['cancelado'])): ?> <span class="badge badge-danger">Cancelado</span><?php endif; ?>
+                                </td>
                                 <td><?= htmlspecialchars($cot['clienteNombre'] ?? $cot['clienteCodigo'] ?? '-') ?></td>
+                                <td><?= htmlspecialchars($cot['referenciaCliente'] ?? '-') ?></td>
                                 <td><?= htmlspecialchars(sapFecha($cot['fecha'] ?? null)) ?></td>
                                 <td><?= htmlspecialchars(sapFecha($cot['validaHasta'] ?? null)) ?></td>
                                 <td><?= sapBadgeEstado($cot['estado'] ?? '') ?></td>
@@ -358,6 +390,7 @@ $paramsBusqueda = array_filter(['empresa' => $empresa, 'docNum' => $docNum, 'cli
                         <tr>
                             <th>N°</th>
                             <th>Cliente</th>
+                            <th>Ref. cliente</th>
                             <th>Fecha</th>
                             <th>Vencimiento</th>
                             <th>Estado <?= sapAyuda('Estado del documento en SAP. En facturas, "Abierta" normalmente indica saldo pendiente de pago.') ?></th>
@@ -367,8 +400,12 @@ $paramsBusqueda = array_filter(['empresa' => $empresa, 'docNum' => $docNum, 'cli
                     <tbody>
                         <?php foreach ($resultadosFacturas as $f): ?>
                             <tr>
-                                <td><strong><?= htmlspecialchars($f['docNum'] ?? '-') ?></strong></td>
+                                <td>
+                                    <strong><?= htmlspecialchars($f['docNum'] ?? '-') ?></strong>
+                                    <?php if (!empty($f['cancelado'])): ?> <span class="badge badge-danger">Cancelado</span><?php endif; ?>
+                                </td>
                                 <td><?= htmlspecialchars($f['clienteNombre'] ?? $f['clienteCodigo'] ?? '-') ?></td>
+                                <td><?= htmlspecialchars($f['referenciaCliente'] ?? '-') ?></td>
                                 <td><?= htmlspecialchars(sapFecha($f['fecha'] ?? null)) ?></td>
                                 <td><?= htmlspecialchars(sapFecha($f['fechaVencimiento'] ?? null)) ?></td>
                                 <td><?= sapBadgeEstado($f['estado'] ?? '') ?></td>
