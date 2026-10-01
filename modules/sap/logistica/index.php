@@ -45,6 +45,8 @@ $paginas = [
     'paginaDespachos' => sapLeerPagina('paginaDespachos'),
     'paginaSolicitudes' => sapLeerPagina('paginaSolicitudes'),
     'paginaPicking' => sapLeerPagina('paginaPicking'),
+    'paginaLineasPicking' => sapLeerPagina('paginaLineasPicking'),
+    'paginaLineasSolicitudes' => sapLeerPagina('paginaLineasSolicitudes'),
 ];
 // Estado de la URL que conserva cada link de paginación.
 $paramsEstado = ['empresa' => $empresa, 'desde' => $desdeInput, 'hasta' => $hastaInput] + sapParamsPaginacion($paginas, $porPagina);
@@ -95,6 +97,26 @@ $resultadosSolicitudesTraslado = [];
 
 if ($respuestaSolicitudesTraslado['ok']) {
     $resultadosSolicitudesTraslado = $respuestaSolicitudesTraslado['data']['data'] ?? [];
+}
+
+// A16: líneas planas (artículo/cliente/almacén/bins ya resueltos por apifaret, sin N+1) —
+// se agregan debajo de los listados de cabecera de arriba, no los reemplazan.
+$respuestaLineasPicking = null;
+$resultadosLineasPicking = [];
+
+if ($rangoValido) {
+    $respuestaLineasPicking = ApiFaretClient::get('documentos/picking/lineas?empresa=' . rawurlencode($empresa) . '&desde=' . $desdeSap . '&hasta=' . $hastaSap . '&estado=abiertas&' . sapQueryPagina($paginas['paginaLineasPicking'], $porPagina), $empresa);
+
+    if ($respuestaLineasPicking['ok']) {
+        $resultadosLineasPicking = $respuestaLineasPicking['data']['data'] ?? [];
+    }
+}
+
+$respuestaLineasSolicitudes = ApiFaretClient::get('documentos/solicitudes-traslado/lineas?empresa=' . rawurlencode($empresa) . '&' . sapQueryPagina($paginas['paginaLineasSolicitudes'], $porPagina), $empresa);
+$resultadosLineasSolicitudes = [];
+
+if ($respuestaLineasSolicitudes['ok']) {
+    $resultadosLineasSolicitudes = $respuestaLineasSolicitudes['data']['data'] ?? [];
 }
 
 ?>
@@ -371,6 +393,52 @@ if ($respuestaSolicitudesTraslado['ok']) {
     <?php endif; ?>
 </div>
 
+<div class="table-card" style="margin-top:32px;" id="lineas-solicitudes">
+    <div class="table-header">
+        <div>
+            <h2>Qué falta trasladar</h2>
+            <p>Líneas abiertas de las solicitudes de arriba, con artículo y cantidad pendiente ya resueltos.</p>
+        </div>
+    </div>
+
+    <?php if (!$respuestaLineasSolicitudes['ok']): ?>
+        <?= sapErrorCard('No se pudo obtener el detalle de líneas de solicitudes de traslado.', $respuestaLineasSolicitudes) ?>
+    <?php elseif (count($resultadosLineasSolicitudes) === 0): ?>
+        <p>No hay líneas abiertas de solicitudes de traslado en <?= htmlspecialchars($empresa) ?>.</p>
+    <?php else: ?>
+        <div class="table-responsive">
+            <table class="data-table sap-tabla">
+                <thead>
+                    <tr>
+                        <th>Solicitud</th>
+                        <th>Artículo</th>
+                        <th>Origen → Destino</th>
+                        <th class="sap-num">Cantidad</th>
+                        <th class="sap-num">Pendiente</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($resultadosLineasSolicitudes as $ln): ?>
+                        <tr>
+                            <td>
+                                <a href="<?= htmlspecialchars($urlFicha('solicitudtraslado', (int) ($ln['docEntry'] ?? 0))) ?>"><?= htmlspecialchars((string) ($ln['docNum'] ?? $ln['docEntry'] ?? '-')) ?></a>
+                            </td>
+                            <td>
+                                <strong><?= htmlspecialchars($ln['itemCode'] ?? '-') ?></strong>
+                                <?php if (!empty($ln['descripcion'])): ?><br><span style="color:var(--muted);font-size:13px;"><?= htmlspecialchars($ln['descripcion']) ?></span><?php endif; ?>
+                            </td>
+                            <td><?= htmlspecialchars($ln['almacenOrigen'] ?? '-') ?> → <?= htmlspecialchars($ln['almacenDestino'] ?? '-') ?></td>
+                            <td class="sap-num"><?= sapCantidad($ln['cantidad'] ?? null) ?> <?= htmlspecialchars($ln['unidad'] ?? '') ?></td>
+                            <td class="sap-num"><?= sapCantidad($ln['cantidadPendiente'] ?? null) ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+        <?= sapPaginador($respuestaLineasSolicitudes, $paramsEstado, 'paginaLineasSolicitudes', 'lineas-solicitudes') ?>
+    <?php endif; ?>
+</div>
+
 <div class="table-card" style="margin-top:32px;" id="picking">
     <div class="table-header">
         <div>
@@ -415,6 +483,58 @@ if ($respuestaSolicitudesTraslado['ok']) {
             </table>
         </div>
         <?= sapPaginador($respuestaPicking, $paramsEstado, 'paginaPicking', 'picking') ?>
+    <?php endif; ?>
+</div>
+
+<div class="table-card" style="margin-top:32px;" id="lineas-picking">
+    <div class="table-header">
+        <div>
+            <h2>Qué hay que preparar</h2>
+            <p>Líneas abiertas de picking, del <?= htmlspecialchars(sapFecha($desdeSap)) ?> al <?= htmlspecialchars(sapFecha($hastaSap)) ?> en <?= htmlspecialchars($empresa) ?> — artículo, cliente y cantidad liberada ya resueltos.</p>
+        </div>
+    </div>
+
+    <?php if (!$rangoValido): ?>
+        <p>Corrige el rango de fechas de arriba para ver las líneas de picking.</p>
+    <?php elseif (!$respuestaLineasPicking['ok']): ?>
+        <?= sapErrorCard('No se pudo obtener el detalle de líneas de picking.', $respuestaLineasPicking) ?>
+    <?php elseif (count($resultadosLineasPicking) === 0): ?>
+        <p>No hay líneas de picking abiertas en el rango seleccionado en <?= htmlspecialchars($empresa) ?>.</p>
+    <?php else: ?>
+        <div class="table-responsive">
+            <table class="data-table sap-tabla">
+                <thead>
+                    <tr>
+                        <th>Lista</th>
+                        <th>NV</th>
+                        <th>Cliente</th>
+                        <th>Artículo</th>
+                        <th>Almacén</th>
+                        <th class="sap-num">Liberada</th>
+                        <th class="sap-num">Recogida</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($resultadosLineasPicking as $ln): ?>
+                        <tr>
+                            <td>
+                                <a href="<?= htmlspecialchars($urlFicha('picking', (int) ($ln['absEntry'] ?? 0))) ?>"><?= htmlspecialchars((string) ($ln['absEntry'] ?? '-')) ?></a>
+                            </td>
+                            <td><?= htmlspecialchars((string) ($ln['documentoBaseNumero'] ?? '-')) ?></td>
+                            <td><?= htmlspecialchars($ln['clienteNombre'] ?? $ln['clienteCodigo'] ?? '-') ?></td>
+                            <td>
+                                <strong><?= htmlspecialchars($ln['itemCode'] ?? '-') ?></strong>
+                                <?php if (!empty($ln['descripcion'])): ?><br><span style="color:var(--muted);font-size:13px;"><?= htmlspecialchars($ln['descripcion']) ?></span><?php endif; ?>
+                            </td>
+                            <td><?= htmlspecialchars($ln['almacen'] ?? '-') ?></td>
+                            <td class="sap-num"><?= sapCantidad($ln['cantidadLiberada'] ?? null) ?> <?= htmlspecialchars($ln['unidad'] ?? '') ?></td>
+                            <td class="sap-num"><?= sapCantidad($ln['cantidadRecogida'] ?? null) ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+        <?= sapPaginador($respuestaLineasPicking, $paramsEstado, 'paginaLineasPicking', 'lineas-picking') ?>
     <?php endif; ?>
 </div>
 
