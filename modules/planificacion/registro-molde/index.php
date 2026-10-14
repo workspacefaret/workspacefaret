@@ -4,7 +4,13 @@ requireModuleAccess('planificacion');
 
 require_once $_SERVER['DOCUMENT_ROOT'] . '/config/api.php';
 
+$secretsPath = $_SERVER['DOCUMENT_ROOT'] . '/config/secrets.php';
+if (file_exists($secretsPath)) {
+    require_once $secretsPath;
+}
+
 $nombreUsuarioActual = currentUser()['nombre'];
+$puedeEliminar = moduleAccessLevel('planificacion') === 'gestionar';
 
 ob_start();
 ?>
@@ -395,6 +401,10 @@ ob_start();
 <script>
     window.API_FORMULARIOS = '<?= htmlspecialchars(API_FORMULARIOS) ?>';
     window.currentUserNombre = <?= json_encode($nombreUsuarioActual) ?>;
+    window.puedeEliminarRegistro = <?= $puedeEliminar ? 'true' : 'false' ?>;
+    <?php if ($puedeEliminar): ?>
+    window.API_ADMIN_DELETE_KEY = <?= json_encode(defined('API_ADMIN_DELETE_KEY') ? API_ADMIN_DELETE_KEY : '') ?>;
+    <?php endif; ?>
 </script>
 <script src="/assets/js/planificacion/print-tabla.js"></script>
 <script src="/assets/js/planificacion/multi-select-filtro.js"></script>

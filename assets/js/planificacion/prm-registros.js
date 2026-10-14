@@ -1,6 +1,8 @@
 (function () {
     const apiBaseUrl = window.API_FORMULARIOS || 'https://api.faret.cl/formularios/api/';
     const usuarioActual = window.currentUserNombre || '';
+    const puedeEliminar = window.puedeEliminarRegistro === true;
+    const adminDeleteKey = window.API_ADMIN_DELETE_KEY || '';
 
     let paginaActual = 1;
     const porPagina = 50;
@@ -147,6 +149,7 @@
                 '<div class="admin-row-actions">' +
                     '<button type="button" class="admin-icon-btn" data-editar="' + item.id + '" title="Editar"><i class="bi bi-pencil"></i></button>' +
                     '<button type="button" class="admin-icon-btn" data-historial="' + item.id + '" data-historial-codigo="' + escaparHtml(item.np) + '" title="Historial"><i class="bi bi-clock-history"></i></button>' +
+                    (puedeEliminar ? '<button type="button" class="admin-icon-btn admin-icon-btn-danger" data-eliminar="' + item.id + '" data-eliminar-codigo="' + escaparHtml(item.np) + '" title="Eliminar registro"><i class="bi bi-trash"></i></button>' : '') +
                 '</div>' +
             '</td>' +
         '</tr>';
@@ -314,6 +317,11 @@
             if (botonHistorial) {
                 await abrirHistorial(botonHistorial.dataset.historial, botonHistorial.dataset.historialCodigo);
             }
+
+            const botonEliminar = evento.target.closest('[data-eliminar]');
+            if (botonEliminar) {
+                await eliminarRegistro(botonEliminar.dataset.eliminar, botonEliminar.dataset.eliminarCodigo);
+            }
         });
 
         document.getElementById('btnCerrarModalEditarRegistro').addEventListener('click', function () {
@@ -377,6 +385,29 @@
 
         ocultarAlerta('alertaEditarRegistro');
         document.getElementById('modalEditarRegistro').classList.remove('hidden');
+    }
+
+    async function eliminarRegistro(id, referencia) {
+        const confirmado = confirm(
+            '¿Eliminar definitivamente el registro del NP ' + (referencia || id) + '?' + String.fromCharCode(10, 10) + 'Esta acción NO se puede deshacer (queda un respaldo en el historial).'
+        );
+        if (!confirmado) return;
+
+        try {
+            const response = await fetch(apiBaseUrl + 'prm/registros/' + id + '?usuario=' + encodeURIComponent(usuarioActual), {
+                method: 'DELETE',
+                headers: { 'X-Admin-Key': adminDeleteKey }
+            });
+
+            if (!response.ok) {
+                const mensaje = await response.text().catch(function () { return ''; });
+                throw new Error(mensaje || 'No se pudo eliminar el registro.');
+            }
+
+            await cargarRegistros(paginaActual);
+        } catch (error) {
+            alert(error.message);
+        }
     }
 
     async function abrirHistorial(id, codigo) {
