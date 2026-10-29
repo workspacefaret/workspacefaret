@@ -144,8 +144,32 @@
         el.style.display = mensaje ? 'block' : 'none';
     }
 
+    // Aviso flotante de éxito/error (se cierra solo; los de error duran más). tipo: 'success' | 'error'.
+    function toast(mensaje, tipo) {
+        let caja = document.getElementById('prToasts');
+        if (!caja) {
+            caja = document.createElement('div');
+            caja.id = 'prToasts';
+            caja.className = 'pr-toasts';
+            caja.setAttribute('aria-live', 'polite');
+            document.body.appendChild(caja);
+        }
+        const t = document.createElement('div');
+        t.className = 'pr-toast pr-toast-' + (tipo === 'success' ? 'success' : 'error');
+        t.setAttribute('role', tipo === 'success' ? 'status' : 'alert');
+        t.innerHTML = '<i class="bi ' + (tipo === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-octagon-fill') + '"></i>' +
+            '<span>' + escapeHtml(mensaje) + '</span>';
+        caja.appendChild(t);
+        const cerrar = function () {
+            t.classList.add('pr-toast-salir');
+            setTimeout(function () { t.remove(); }, 250);
+        };
+        t.addEventListener('click', cerrar);
+        setTimeout(cerrar, tipo === 'success' ? 4000 : 8000);
+    }
+
     window.PrExt = {
-        api, enviarJson, escapeHtml, formatearFecha, formatearFechaHora, formatearPeriodo, etiquetaTipo,
+        toast, api, enviarJson, escapeHtml, formatearFecha, formatearFechaHora, formatearPeriodo, etiquetaTipo,
         estadoDe, diasParaVencer, badge, badgeEstado, badgeResultado, badgeVencimiento, leerError,
         plantaGuardada, guardarPlanta, llenarSelectPlantas, mostrarAlerta, ESTADOS, RESULTADOS
     };

@@ -2258,3 +2258,292 @@
     background: rgba(15, 23, 42, .04);
 }
 
+/* ============================================================
+   PREVENCION DE RIESGOS - panel e inventario de extintores
+   ============================================================ */
+
+.pr-muted {
+    color: #94a3b8;
+}
+
+.pr-check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.pr-check input {
+    width: 20px;
+    height: 20px;
+    accent-color: #2563eb;
+}
+
+/* ---- MODO CLARO: Prevencion de Riesgos (admin) ---- */
+
+[data-theme="light"] .pr-muted {
+    color: #64748b;
+}
+
+/* ============================================================
+   PREVENCION DE RIESGOS - dashboard del panel y avisos (toast)
+   ============================================================ */
+
+.pr-toasts {
+    position: fixed;
+    top: 84px;
+    right: 20px;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: min(380px, calc(100vw - 32px));
+}
+
+.pr-toast {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    color: #fff;
+    font-size: 14px;
+    line-height: 1.35;
+    cursor: pointer;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, .35);
+    animation: pr-toast-entrar .25s ease;
+}
+
+.pr-toast i {
+    font-size: 18px;
+    margin-top: 1px;
+}
+
+.pr-toast-success {
+    background: #15803d;
+    border: 1px solid #22c55e;
+}
+
+.pr-toast-error {
+    background: #b91c1c;
+    border: 1px solid #f87171;
+}
+
+.pr-toast-salir {
+    opacity: 0;
+    transform: translateX(16px);
+    transition: opacity .25s ease, transform .25s ease;
+}
+
+@keyframes pr-toast-entrar {
+    from { opacity: 0; transform: translateX(16px); }
+    to { opacity: 1; transform: none; }
+}
+
+.pr-kpi-click {
+    cursor: pointer;
+}
+
+.pr-kpi-click:focus-visible {
+    outline: 2px solid #60a5fa;
+    outline-offset: 2px;
+}
+
+.pr-hint {
+    margin: 10px 2px 0;
+    font-size: 13px;
+    color: #94a3b8;
+}
+
+.pr-hint i {
+    margin-right: 6px;
+}
+
+.pr-cumplimiento {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) 2fr auto;
+    align-items: center;
+    gap: 20px;
+}
+
+.pr-cumplimiento h3 {
+    margin: 0 0 4px;
+}
+
+.pr-cumplimiento-sub {
+    margin: 0;
+    font-size: 13px;
+    color: #cbd5e1;
+}
+
+.pr-cumplimiento-pct {
+    font-size: 30px;
+    color: #fff;
+}
+
+.pr-progreso {
+    height: 14px;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, .2);
+    overflow: hidden;
+}
+
+.pr-progreso-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #22c55e, #16a34a);
+    transition: width .5s ease;
+}
+
+.pr-sin-info {
+    margin: 0;
+    padding: 28px 8px;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 14px;
+}
+
+.pr-plantas {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.pr-planta-cab {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 13px;
+    color: #e2e8f0;
+    margin-bottom: 5px;
+}
+
+.pr-planta-barra {
+    display: flex;
+    height: 14px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(148, 163, 184, .2);
+}
+
+.pr-planta-barra i {
+    display: block;
+    height: 100%;
+}
+
+.pr-leyenda {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 14px;
+    font-size: 12px;
+    color: #cbd5e1;
+}
+
+.pr-leyenda i {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 6px;
+}
+
+.pr-lista {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.pr-lista li,
+.pr-lista-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(148, 163, 184, .08);
+    color: inherit;
+    text-decoration: none;
+}
+
+.pr-lista li:has(.pr-lista-link) {
+    padding: 0;
+}
+
+.pr-lista-link {
+    width: 100%;
+}
+
+.pr-lista-link:hover {
+    background: rgba(148, 163, 184, .16);
+}
+
+.pr-lista strong {
+    display: block;
+    font-size: 13px;
+    color: #f1f5f9;
+}
+
+.pr-lista small {
+    display: block;
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+.pr-mas {
+    margin: 10px 2px 0;
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+@media (max-width: 800px) {
+    .pr-cumplimiento {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .pr-toasts {
+        top: 70px;
+        right: 16px;
+        left: 16px;
+        max-width: none;
+    }
+}
+
+/* ---- MODO CLARO: dashboard y avisos de Prevencion de Riesgos ---- */
+
+[data-theme="light"] .pr-hint,
+[data-theme="light"] .pr-sin-info,
+[data-theme="light"] .pr-mas,
+[data-theme="light"] .pr-lista small {
+    color: #64748b;
+}
+
+[data-theme="light"] .pr-cumplimiento-sub,
+[data-theme="light"] .pr-leyenda {
+    color: #475569;
+}
+
+[data-theme="light"] .pr-cumplimiento-pct,
+[data-theme="light"] .pr-planta-cab,
+[data-theme="light"] .pr-lista strong {
+    color: #0f172a;
+}
+
+[data-theme="light"] .pr-progreso,
+[data-theme="light"] .pr-planta-barra {
+    background: #e2e8f0;
+}
+
+[data-theme="light"] .pr-lista li,
+[data-theme="light"] .pr-lista-link {
+    background: #f1f5f9;
+}
+
+[data-theme="light"] .pr-lista-link:hover {
+    background: #e2e8f0;
+}

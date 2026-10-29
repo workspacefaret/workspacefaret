@@ -36,6 +36,112 @@
         });
     }
 
+    // ---------- Dashboard (reutiliza DashboardCharts; depende solo de periodo y planta, no de los filtros de la tabla) ----------
+
+    const COLORES_ESTADO = { 'Conformes': '#22c55e', 'Con hallazgos': '#ef4444', 'Pendientes': '#f59e0b' };
+    const SIN_INFO = '<p class="pr-sin-info">Sin información</p>';
+
+    function pintar(id, html) { $(id).innerHTML = html; }
+
+    function esPorVencer(f) {
+        const d = PR.diasParaVencer(f.vencimiento);
+        return d !== null && d >= 0 && d <= 60;
+    }
+
+    function listaTarjetas(items) {
+        return '<ul class="pr-lista">' + items.join('') + '</ul>';
+    }
+
+    function dibujarDashboard() {
+        const total = filas.length;
+        const estado = function (f) { return PR.estadoDe(f); };
+        const conformes = filas.filter(function (f) { return estado(f) === 'CONFORME'; }).length;
+        const conHallazgos = filas.filter(function (f) { return estado(f) === 'CON_HALLAZGOS'; }).length;
+        const pendientes = filas.filter(function (f) { return estado(f) === 'PENDIENTE'; }).length;
+
+        // Avance del mes
+        const inspeccionados = conformes + conHallazgos;
+        const pct = total ? Math.round((inspeccionados / total) * 100) : 0;
+        $('avanceTexto').textContent = total
+            ? inspeccionados + ' de ' + total + ' extintores inspeccionados en ' + PR.formatearPeriodo($('filtroPeriodo').value)
+            : 'Sin información';
+        $('avanceBarra').style.width = pct + '%';
+        $('avancePct').textContent = total ? pct + '%' : '-';
+
+        if (!total) {
+            ['chartEstados', 'chartTipos', 'chartCriterios', 'chartPlantas', 'chartAreas', 'listaVencimientos', 'listaHallazgos']
+                .forEach(function (id) { pintar(id, SIN_INFO); });
+            return;
+        }
+
+        // Estado de los extintores
+        window.DashboardCharts.renderDonut('chartEstados', { 'Conformes': conformes, 'Con hallazgos': conHallazgos, 'Pendientes': pendientes }, { colores: COLORES_ESTADO });
+
+        // Por tipo
+        window.DashboardCharts.renderDonut('chartTipos', window.DashboardCharts.contarPorCampo(filas, 'tipo'));
+
+        // Criterios con más hallazgos (respuestas «No» del periodo)
+        const porCriterio = {};
+        filas.forEach(function (f) {
+            f.resultados.forEach(function (r) {
+                if (r.resultado !== 'NO') return;
+                const c = criterios.find(function (x) { return x.id === r.criterioId; });
+                const nombre = c ? c.orden + '. ' + c.nombre : 'Criterio ' + r.orden;
+                porCriterio[nombre] = (porCriterio[nombre] || 0) + 1;
+            });
+        });
+        if (Object.keys(porCriterio).length) window.DashboardCharts.renderRanking('chartCriterios', porCriterio, { limite: 6 });
+        else pintar('chartCriterios', SIN_INFO);
+
+        // Cumplimiento por planta (barra apilada: conformes / con hallazgos / pendientes)
+        const plantas = {};
+        filas.forEach(function (f) {
+            const p = plantas[f.plantaNombre] || (plantas[f.plantaNombre] = { c: 0, h: 0, p: 0 });
+            const e = estado(f);
+            if (e === 'CONFORME') p.c++; else if (e === 'CON_HALLAZGOS') p.h++; else p.p++;
+        });
+        const ancho = function (n, t) { return (n / t * 100).toFixed(2) + '%'; };
+        pintar('chartPlantas', '<div class="pr-plantas">' + Object.keys(plantas).map(function (nombre) {
+            const p = plantas[nombre];
+            const t = p.c + p.h + p.p;
+            return '<div class="pr-planta">' +
+                '<div class="pr-planta-cab"><span>' + PR.escapeHtml(nombre) + '</span><strong>' + (p.c + p.h) + ' / ' + t + '</strong></div>' +
+                '<div class="pr-planta-barra" title="Conformes ' + p.c + ' · Con hallazgos ' + p.h + ' · Pendientes ' + p.p + '">' +
+                (p.c ? '<i style="width:' + ancho(p.c, t) + ';background:#22c55e"></i>' : '') +
+                (p.h ? '<i style="width:' + ancho(p.h, t) + ';background:#ef4444"></i>' : '') +
+                (p.p ? '<i style="width:' + ancho(p.p, t) + ';background:#f59e0b"></i>' : '') +
+                '</div></div>';
+        }).join('') + '</div>' +
+            '<div class="pr-leyenda"><span><i style="background:#22c55e"></i>Conformes</span><span><i style="background:#ef4444"></i>Con hallazgos</span><span><i style="background:#f59e0b"></i>Pendientes</span></div>');
+
+        // Pendientes por área
+        const pendPorArea = {};
+        filas.filter(function (f) { return estado(f) === 'PENDIENTE'; }).forEach(function (f) {
+            const a = f.areaNombre || 'Sin área';
+            pendPorArea[a] = (pendPorArea[a] || 0) + 1;
+        });
+        if (Object.keys(pendPorArea).length) window.DashboardCharts.renderRanking('chartAreas', pendPorArea, { total: pendientes, limite: 8 });
+        else pintar('chartAreas', SIN_INFO);
+
+        // Vencidos y por vencer
+        const venc = filas.filter(function (f) { return esVencido(f) || esPorVencer(f); })
+            .sort(function (a, b) { return PR.diasParaVencer(a.vencimiento) - PR.diasParaVencer(b.vencimiento); });
+        pintar('listaVencimientos', venc.length ? listaTarjetas(venc.slice(0, 8).map(function (f) {
+            return '<li><div><strong>N° ' + f.numero + ' · ' + PR.escapeHtml(f.ubicacion) + '</strong>' +
+                '<small>' + PR.escapeHtml(f.plantaNombre) + ' · ' + PR.escapeHtml(PR.etiquetaTipo(f)) + '</small></div>' +
+                PR.badgeVencimiento(f.vencimiento) + '</li>';
+        })) + (venc.length > 8 ? '<p class="pr-mas">y ' + (venc.length - 8) + ' más. Usa el filtro «Vencido» en la tabla.</p>' : '') : SIN_INFO);
+
+        // Hallazgos
+        const hall = filas.filter(function (f) { return estado(f) === 'CON_HALLAZGOS' && f.inspeccionId; });
+        pintar('listaHallazgos', hall.length ? listaTarjetas(hall.slice(0, 8).map(function (f) {
+            return '<li><a class="pr-lista-link" href="/modules/prevencion/extintores/admin/detalle.php?id=' + f.inspeccionId + '">' +
+                '<div><strong>N° ' + f.numero + ' · ' + PR.escapeHtml(f.ubicacion) + '</strong>' +
+                '<small>' + PR.escapeHtml(f.plantaNombre) + ' · ' + PR.escapeHtml(f.inspeccionUsuario || '-') + '</small></div>' +
+                '<span class="badge badge-danger">' + hallazgos(f) + (hallazgos(f) === 1 ? ' hallazgo' : ' hallazgos') + '</span></a></li>';
+        })) + (hall.length > 8 ? '<p class="pr-mas">y ' + (hall.length - 8) + ' más. Usa el filtro «Con hallazgos» en la tabla.</p>' : '') : SIN_INFO);
+    }
+
     function filtrar() {
         const estado = $('filtroEstado').value;
         const tipo = $('filtroTipo').value;
@@ -86,10 +192,12 @@
             filas = await PR.api('consolidado?periodo=' + encodeURIComponent(periodo) +
                 (planta ? '&plantaId=' + encodeURIComponent(planta) : ''));
             dibujarKpis();
+            dibujarDashboard();
             dibujarTabla();
         } catch (error) {
             filas = [];
             dibujarKpis();
+            dibujarDashboard();
             dibujarTabla();
             alertaListado(error.message);
         }
@@ -151,6 +259,18 @@
     $('tablaBody').addEventListener('click', function (ev) {
         const fila = ev.target.closest('tr[data-id]');
         if (fila) window.location.href = '/modules/prevencion/extintores/admin/detalle.php?id=' + fila.dataset.id;
+    });
+    // Los KPI de estado filtran la tabla y llevan hasta ella.
+    function filtrarDesdeKpi(tarjeta) {
+        $('filtroEstado').value = tarjeta.dataset.filtro;
+        dibujarTabla();
+        $('seccionTabla').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    document.querySelectorAll('.pr-kpi-click').forEach(function (t) {
+        t.addEventListener('click', function () { filtrarDesdeKpi(t); });
+        t.addEventListener('keydown', function (ev) {
+            if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); filtrarDesdeKpi(t); }
+        });
     });
     $('filtroPeriodo').addEventListener('change', cargar);
     $('filtroPlanta').addEventListener('change', cargar);

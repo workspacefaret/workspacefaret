@@ -136,9 +136,11 @@
         try {
             await PR.enviarJson(id ? 'PUT' : 'POST', id || '', cuerpo);
             cerrarModal();
+            PR.toast(id ? 'Extintor actualizado correctamente.' : 'Extintor creado correctamente.', 'success');
             await cargar();
         } catch (error) {
             alerta('alertaModal', error.message);
+            PR.toast('No se pudo guardar el extintor.', 'error');
         } finally {
             boton.disabled = false;
         }
@@ -172,9 +174,11 @@
             e.areaId = nueva;
             const area = areas.find(function (a) { return a.id === nueva; });
             e.areaNombre = area ? area.nombre : null;
+            PR.toast(area ? 'Área «' + area.nombre + '» asignada al extintor N° ' + e.numero + '.' : 'Se quitó el área del extintor N° ' + e.numero + '.', 'success');
         } catch (error) {
             select.value = e.areaId ? String(e.areaId) : '';
             alerta('alertaListado', error.message);
+            PR.toast('No se pudo cambiar el área: ' + error.message, 'error');
         } finally {
             select.disabled = false;
         }

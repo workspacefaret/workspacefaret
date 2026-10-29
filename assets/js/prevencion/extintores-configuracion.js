@@ -96,9 +96,11 @@
                 areaIds: areaIds
             });
             $('modalBrigadista').classList.add('hidden');
+            PR.toast(id ? 'Brigadista actualizado correctamente.' : 'Brigadista creado correctamente.', 'success');
             await cargar();
         } catch (error) {
             alerta('alertaModalBrigadista', error.message);
+            PR.toast('No se pudo guardar el brigadista.', 'error');
         } finally {
             boton.disabled = false;
         }
@@ -128,9 +130,11 @@
                 activo: $('areaActiva').checked
             });
             $('modalArea').classList.add('hidden');
+            PR.toast(id ? 'Área actualizada correctamente.' : 'Área creada correctamente.', 'success');
             await cargar();
         } catch (error) {
             alerta('alertaModalArea', error.message);
+            PR.toast('No se pudo guardar el área.', 'error');
         } finally {
             boton.disabled = false;
         }
