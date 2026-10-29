@@ -618,3 +618,560 @@
 [data-theme="light"] .upload-card.is-dragover {
     background: rgba(96, 165, 250, .1);
 }
+
+/* ============================================================
+   PILAS CARTULINA DIMENSIONADO (entrega / recepción)
+   Solo lo que no existe en el formulario móvil base.
+   ============================================================ */
+
+.pc-np-row {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+}
+
+.pc-np-row input {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.pc-buscar-btn {
+    flex: 0 0 auto;
+    min-height: 54px;
+    padding: 0 18px;
+    border: 0;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: #fff;
+    font-weight: 850;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.pc-buscar-btn:disabled {
+    opacity: .6;
+    cursor: wait;
+}
+
+.pc-resumen {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.pc-dato {
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: rgba(15, 23, 42, .55);
+    border: 1px solid rgba(148, 163, 184, .18);
+    min-width: 0;
+}
+
+.pc-dato-full {
+    grid-column: 1 / -1;
+}
+
+.pc-dato span {
+    display: block;
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+}
+
+.pc-dato strong {
+    display: block;
+    color: #f8fafc;
+    font-size: 15px;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.pc-dato strong.pc-destacado {
+    font-size: 22px;
+    color: #93c5fd;
+}
+
+.pc-proceso {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    border-radius: 16px;
+    background: rgba(15, 23, 42, .55);
+    border: 1px solid rgba(148, 163, 184, .18);
+    cursor: pointer;
+    color: #e5e7eb;
+}
+
+.pc-proceso input {
+    flex: 0 0 auto;
+    width: 20px;
+    height: 20px;
+    accent-color: #2563eb;
+}
+
+.pc-proceso.is-selected {
+    border-color: #60a5fa;
+    background: rgba(37, 99, 235, .16);
+}
+
+.pc-proceso strong {
+    display: block;
+    color: #f8fafc;
+}
+
+.pc-proceso small {
+    display: block;
+    color: #94a3b8;
+    font-size: 12px;
+}
+
+.pc-firma-img {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 16px;
+    background: #fff;
+    border: 1px solid rgba(148, 163, 184, .35);
+}
+
+.pc-lista-pendientes {
+    display: grid;
+    gap: 12px;
+}
+
+.pc-pendiente {
+    display: block;
+    padding: 16px;
+    border-radius: 20px;
+    background: rgba(15, 23, 42, .55);
+    border: 1px solid rgba(148, 163, 184, .18);
+    color: #e5e7eb;
+    text-decoration: none;
+}
+
+.pc-pendiente:hover {
+    border-color: #60a5fa;
+}
+
+.pc-pendiente strong {
+    color: #93c5fd;
+    font-size: 17px;
+}
+
+.pc-pendiente p {
+    margin: 6px 0 0;
+    color: #cbd5e1;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.pc-pendiente small {
+    color: #94a3b8;
+}
+
+.autocomplete-item.pc-item {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.pc-item-eliminar {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    border: 1px solid rgba(248, 113, 113, .35);
+    background: transparent;
+    color: #fca5a5;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.pc-item-eliminar:hover {
+    background: rgba(220, 38, 38, .18);
+}
+
+@media (min-width: 720px) {
+    .pc-resumen {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+/* ---- MODO CLARO: Pilas Cartulina ---- */
+
+[data-theme="light"] .pc-dato,
+[data-theme="light"] .pc-proceso,
+[data-theme="light"] .pc-pendiente {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+    color: #1e293b;
+}
+
+[data-theme="light"] .pc-dato strong,
+[data-theme="light"] .pc-proceso strong {
+    color: #0f172a;
+}
+
+[data-theme="light"] .pc-dato strong.pc-destacado,
+[data-theme="light"] .pc-pendiente strong {
+    color: #1d4ed8;
+}
+
+[data-theme="light"] .pc-dato span,
+[data-theme="light"] .pc-proceso small,
+[data-theme="light"] .pc-pendiente small {
+    color: #64748b;
+}
+
+[data-theme="light"] .pc-pendiente p {
+    color: #334155;
+}
+
+[data-theme="light"] .pc-proceso.is-selected {
+    background: rgba(37, 99, 235, .08);
+    border-color: #2563eb;
+}
+
+[data-theme="light"] .pc-firma-img {
+    border-color: #cbd5e1;
+}
+
+[data-theme="light"] .pc-item-eliminar {
+    color: #b91c1c;
+    border-color: rgba(185, 28, 28, .35);
+}
+
+/* ============================================================
+   PREVENCION DE RIESGOS - Inspeccion de extintores (movil)
+   Reutiliza .pc-dato / .pc-resumen de Pilas Cartulina para el resumen del extintor.
+   ============================================================ */
+
+.pr-muted {
+    color: #94a3b8;
+    font-size: 14px;
+}
+
+.pr-vencido {
+    color: #fca5a5;
+    font-weight: 800;
+}
+
+.pr-progreso {
+    margin: 16px 0 6px;
+}
+
+.pr-progreso-texto {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    color: #e5e7eb;
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.pr-progreso-texto span {
+    color: #94a3b8;
+    text-transform: capitalize;
+}
+
+.pr-progreso-barra {
+    height: 10px;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, .22);
+    overflow: hidden;
+}
+
+.pr-progreso-barra div {
+    height: 100%;
+    width: 0;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #22c55e, #16a34a);
+    transition: width .3s ease;
+}
+
+.pr-filtros {
+    display: flex;
+    gap: 8px;
+    margin: 14px 0;
+}
+
+.pr-chip {
+    min-height: 40px;
+    padding: 0 18px;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, .3);
+    background: transparent;
+    color: #cbd5e1;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.pr-chip.is-active {
+    background: rgba(37, 99, 235, .22);
+    border-color: #60a5fa;
+    color: #bfdbfe;
+}
+
+.pr-lista {
+    display: grid;
+    gap: 10px;
+}
+
+.pr-ext {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 18px;
+    background: rgba(15, 23, 42, .55);
+    border: 1px solid rgba(148, 163, 184, .18);
+    color: #e5e7eb;
+    text-decoration: none;
+}
+
+.pr-ext:hover {
+    border-color: #60a5fa;
+}
+
+.pr-ext-num {
+    flex: 0 0 auto;
+    min-width: 42px;
+    height: 42px;
+    padding: 0 8px;
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(37, 99, 235, .2);
+    color: #93c5fd;
+    font-weight: 900;
+}
+
+.pr-ext-info {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.pr-ext-info strong {
+    display: block;
+    color: #f8fafc;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.pr-ext-info small {
+    color: #94a3b8;
+}
+
+.pr-todo-cumple {
+    width: 100%;
+    min-height: 52px;
+    margin-bottom: 14px;
+    border-radius: 18px;
+    border: 1px solid rgba(34, 197, 94, .5);
+    background: rgba(34, 197, 94, .14);
+    color: #86efac;
+    font-weight: 900;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.pr-crit {
+    padding: 14px;
+    margin-bottom: 12px;
+    border-radius: 18px;
+    background: rgba(15, 23, 42, .55);
+    border: 1px solid rgba(148, 163, 184, .18);
+}
+
+.pr-crit.is-error {
+    border-color: #f87171;
+    background: rgba(220, 38, 38, .1);
+}
+
+.pr-crit h3 {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    margin: 0 0 12px;
+    color: #f8fafc;
+    font-size: 15px;
+    line-height: 1.35;
+}
+
+.pr-crit h3 span {
+    flex: 0 0 auto;
+    color: #93c5fd;
+}
+
+.pr-opciones {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.pr-opcion {
+    position: relative;
+    display: block;
+}
+
+.pr-opcion input {
+    position: absolute;
+    opacity: 0;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    cursor: pointer;
+}
+
+.pr-opcion span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 50px;
+    border-radius: 14px;
+    border: 1px solid rgba(148, 163, 184, .3);
+    color: #cbd5e1;
+    font-weight: 850;
+    text-align: center;
+}
+
+.pr-opcion input:focus-visible + span {
+    outline: 2px solid #60a5fa;
+    outline-offset: 2px;
+}
+
+.pr-opcion input:checked + span.si {
+    background: rgba(34, 197, 94, .2);
+    border-color: #22c55e;
+    color: #86efac;
+}
+
+.pr-opcion input:checked + span.no {
+    background: rgba(220, 38, 38, .22);
+    border-color: #f87171;
+    color: #fecaca;
+}
+
+.pr-opcion input:checked + span.na {
+    background: rgba(148, 163, 184, .22);
+    border-color: #94a3b8;
+    color: #e2e8f0;
+}
+
+.pr-extra {
+    margin-top: 12px;
+}
+
+.pr-extra[hidden] {
+    display: none;
+}
+
+.pr-noaplica {
+    margin: 4px 2px 16px;
+}
+
+/* ---- MODO CLARO: Prevencion de Riesgos (movil) ---- */
+
+[data-theme="light"] .pr-muted,
+[data-theme="light"] .pr-ext-info small,
+[data-theme="light"] .pr-progreso-texto span {
+    color: #64748b;
+}
+
+[data-theme="light"] .pr-vencido {
+    color: #b91c1c;
+}
+
+[data-theme="light"] .pr-progreso-texto {
+    color: #1e293b;
+}
+
+[data-theme="light"] .pr-progreso-barra {
+    background: #e2e8f0;
+}
+
+[data-theme="light"] .pr-chip {
+    color: #475569;
+    border-color: #cbd5e1;
+}
+
+[data-theme="light"] .pr-chip.is-active {
+    background: rgba(37, 99, 235, .1);
+    border-color: #2563eb;
+    color: #1d4ed8;
+}
+
+[data-theme="light"] .pr-ext,
+[data-theme="light"] .pr-crit {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+    color: #1e293b;
+}
+
+[data-theme="light"] .pr-ext-num {
+    background: rgba(37, 99, 235, .1);
+    color: #1d4ed8;
+}
+
+[data-theme="light"] .pr-ext-info strong,
+[data-theme="light"] .pr-crit h3 {
+    color: #0f172a;
+}
+
+[data-theme="light"] .pr-crit h3 span {
+    color: #1d4ed8;
+}
+
+[data-theme="light"] .pr-crit.is-error {
+    background: rgba(220, 38, 38, .06);
+    border-color: #dc2626;
+}
+
+[data-theme="light"] .pr-todo-cumple {
+    background: rgba(22, 163, 74, .1);
+    border-color: rgba(22, 163, 74, .45);
+    color: #15803d;
+}
+
+[data-theme="light"] .pr-opcion span {
+    color: #475569;
+    border-color: #cbd5e1;
+}
+
+[data-theme="light"] .pr-opcion input:checked + span.si {
+    background: rgba(22, 163, 74, .14);
+    border-color: #16a34a;
+    color: #15803d;
+}
+
+[data-theme="light"] .pr-opcion input:checked + span.no {
+    background: rgba(220, 38, 38, .12);
+    border-color: #dc2626;
+    color: #b91c1c;
+}
+
+[data-theme="light"] .pr-opcion input:checked + span.na {
+    background: rgba(100, 116, 139, .16);
+    border-color: #64748b;
+    color: #334155;
+}
+
+/* Extintores: criterio que no aplica al tipo del extintor (se muestra fijo en «No aplica»). Sin colores: sirve en ambos temas. */
+.pr-crit.is-na {
+    opacity: .6;
+}
