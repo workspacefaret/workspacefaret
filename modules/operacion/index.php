@@ -23,6 +23,7 @@ $verControlMoldes = hasModuleAccess('control_moldes');
 $verStockMoldes = hasModuleAccess('stock_moldes');
 $verMoldes = $verCpmPrm || $verControlMoldes || $verStockMoldes;
 $verLogistica = hasModuleAccess('logistica');
+$verPilasCartulina = hasModuleAccess('pilas_cartulina');
 
 // ---------------- Mejora Continua: 1 sola llamada a la API, reutilizada para KPIs + alerta + donut ----------------
 $ncTotal = 0;
@@ -120,6 +121,11 @@ if ($verRecorridos) {
     $kpis[] = ['id' => null, 'valor' => $recorridosHoy, 'titulo' => 'Recorridos guardia hoy', 'desc' => 'Registros del día en curso', 'icono' => 'bi-shield-check', 'color' => '#2563eb', 'url' => "/modules/rrhh/guardias/registros/?fecha_desde={$hoy}&fecha_hasta={$hoy}"];
 }
 
+if ($verPilasCartulina) {
+    // Conteo client-side (operacion-pendientes.js), misma razón que Desarrollo: API browser-direct.
+    $kpis[] = ['id' => 'pendPilasCartulina', 'valor' => null, 'titulo' => 'Pilas pendientes de recepción', 'desc' => 'Pilas Cartulina Dimensionado', 'icono' => 'bi-layers-fill', 'color' => '#f59e0b', 'url' => '/modules/formularios/pilas-cartulina/recepcion/'];
+}
+
 // ---------------- Alertas ----------------
 $alertas = [];
 
@@ -133,6 +139,7 @@ $areas = [
     ['titulo' => 'Logística', 'descripcion' => 'Formularios y recursos del área logística.', 'url' => '/modules/operacion/logistica/', 'icono' => 'bi-truck', 'ver' => $verLogistica],
     ['titulo' => 'Desarrollo', 'descripcion' => 'Solicitudes y seguimiento gráfico y estructural.', 'url' => '/modules/formularios/desarrollo/', 'icono' => 'bi-palette-fill', 'ver' => $verDesarrollo],
     ['titulo' => 'RRHH', 'descripcion' => 'Guardias, desgaje y administración de RRHH.', 'url' => '/modules/rrhh/', 'icono' => 'bi-people-fill', 'ver' => $verRrhh],
+    ['titulo' => 'Pilas Cartulina', 'descripcion' => 'Entrega y recepción firmada de pilas de cartulina por NP.', 'url' => '/modules/formularios/pilas-cartulina/', 'icono' => 'bi-layers-fill', 'ver' => $verPilasCartulina],
 ];
 
 $areas = array_filter($areas, fn($a) => $a['ver']);
@@ -358,6 +365,7 @@ $novedades = obtenerNovedadesActivas(5, $usuario);
     window.homeVerMoldesCpmPrm = <?= $verCpmPrm ? 'true' : 'false' ?>;
     window.homeVerControlMoldes = <?= $verControlMoldes ? 'true' : 'false' ?>;
     window.homeVerStockMoldes = <?= $verStockMoldes ? 'true' : 'false' ?>;
+    window.homeVerPilasCartulina = <?= $verPilasCartulina ? 'true' : 'false' ?>;
     window.homeNcPorEstado = <?= json_encode($ncPorEstado) ?>;
     window.homeNcPorSeveridad = <?= json_encode($ncPorSeveridad) ?>;
     window.homeRecorridosPorEstado = <?= json_encode($recorridosPorEstado) ?>;

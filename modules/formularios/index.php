@@ -21,6 +21,16 @@ ob_start();
             <p>Solicitudes de desarrollo gráfico, registros, adjuntos y seguimiento operacional.</p>
         </a>
 
+        <?php if (hasModuleAccess('pilas_cartulina')): ?>
+        <a class="action-card" href="/modules/formularios/pilas-cartulina/">
+            <div class="action-card-icon">
+                <i class="bi bi-layers-fill"></i>
+            </div>
+            <h3>Pilas Cartulina Dimensionado</h3>
+            <p>Entrega y recepción firmada de pilas de cartulina por NP, con registro administrable.</p>
+        </a>
+        <?php endif; ?>
+
         <a class="action-card" href="/modules/en-proceso/?modulo=Formularios Comercial">
             <div class="action-card-icon">
                 <i class="bi bi-briefcase-fill"></i>

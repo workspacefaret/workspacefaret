@@ -173,6 +173,27 @@
                 </div>
             <?php endif; ?>
 
+            <?php if (hasModuleAccess('pilas_cartulina')): ?>
+                <a href="/modules/formularios/pilas-cartulina/">
+                    <i class="bi bi-layers-fill"></i>
+                    Pilas Cartulina
+                </a>
+                <div class="menu-submenu">
+                    <a href="/modules/formularios/pilas-cartulina/entrega/">
+                        <i class="bi bi-box-arrow-right"></i>
+                        Nueva entrega
+                    </a>
+                    <a href="/modules/formularios/pilas-cartulina/recepcion/">
+                        <i class="bi bi-pen"></i>
+                        Recepción
+                    </a>
+                    <a href="/modules/formularios/pilas-cartulina/admin/">
+                        <i class="bi bi-table"></i>
+                        Registros Pilas
+                    </a>
+                </div>
+            <?php endif; ?>
+
             <?php if (hasModuleAccess('prevencion_riesgos')): ?>
                 <a href="/modules/prevencion/">
                     <i class="bi bi-shield-check"></i>

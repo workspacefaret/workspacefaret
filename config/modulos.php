@@ -6,6 +6,7 @@ return [
     'stock_moldes' => ['label' => 'Stock de Moldes', 'icono' => 'bi-archive'],
     'logistica' => ['label' => 'Logística', 'icono' => 'bi-truck'],
     'desarrollo' => ['label' => 'Desarrollo', 'icono' => 'bi-palette-fill'],
+    'pilas_cartulina' => ['label' => 'Pilas Cartulina Dimensionado', 'icono' => 'bi-layers-fill'],
     'prevencion_riesgos' => ['label' => 'Prevención de Riesgos', 'icono' => 'bi-shield-check'],
     'rrhh' => ['label' => 'RRHH', 'icono' => 'bi-people-fill'],
     'datos' => ['label' => 'Centro de Control', 'icono' => 'bi-database-fill'],

@@ -117,4 +117,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.homeVerStockMoldes) {
         contarTotal(`${apiBaseUrl}mre/registros?porPagina=1`).then(n => setText('homeMoldesStock', n));
     }
+
+    // ---------------- Pilas Cartulina: solo el total de pendientes (porPagina=1) ----------------
+    if (window.homeVerPilasCartulina) {
+        fetch(`${apiBaseUrl}pilas-cartulina/registros?estado=PENDIENTE_RECEPCION&porPagina=1`)
+            .then(r => r.ok ? r.json() : { totalPendientes: 0 })
+            .then(d => d.totalPendientes || 0)
+            .catch(() => 0)
+            .then(pendientes => {
+                setText('pendPilasCartulina', pendientes);
+                if (pendientes > 0) {
+                    agregarAlerta(`Entregas de pilas pendientes de recepción: ${pendientes}`, '/modules/formularios/pilas-cartulina/recepcion/', 'atencion');
+                }
+            });
+    }
 });
