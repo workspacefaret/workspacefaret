@@ -25,32 +25,12 @@ ob_start();
 
     <a href="/modules/prevencion/extintores/admin/" class="module-card">
         <div class="module-icon">
-            <i class="bi bi-table"></i>
+            <i class="bi bi-speedometer2"></i>
         </div>
 
-        <h2>Panel de inspecciones</h2>
-        <p>Pendientes, hallazgos y vencimientos por planta y mes, con exportación a Excel.</p>
+        <h2>Panel de administración</h2>
+        <p>Dashboard de inspecciones, pendientes y vencimientos, con exportación a Excel<?= $puedeGestionar ? '. También administra el inventario de extintores, los brigadistas y las áreas' : '' ?>.</p>
     </a>
-
-    <?php if ($puedeGestionar): ?>
-        <a href="/modules/prevencion/extintores/inventario/" class="module-card">
-            <div class="module-icon">
-                <i class="bi bi-boxes"></i>
-            </div>
-
-            <h2>Inventario de extintores</h2>
-            <p>Agrega extintores, corrige ubicación, tipo y vencimiento, o dalos de baja.</p>
-        </a>
-
-        <a href="/modules/prevencion/extintores/configuracion/" class="module-card">
-            <div class="module-icon">
-                <i class="bi bi-people"></i>
-            </div>
-
-            <h2>Brigadistas y áreas</h2>
-            <p>Define qué áreas ve cada brigadista en el formulario de inspección.</p>
-        </a>
-    <?php endif; ?>
 
 </div>
 

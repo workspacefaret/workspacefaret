@@ -2547,3 +2547,25 @@
 [data-theme="light"] .pr-lista-link:hover {
     background: #e2e8f0;
 }
+
+/* ---- Prevencion de Riesgos: pestañas del panel de administracion (enlaces) ---- */
+
+.pr-tabs .admin-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+}
+
+.pr-tabs .admin-tab:hover {
+    color: #fff;
+}
+
+[data-theme="light"] .pr-tabs .admin-tab {
+    color: #64748b;
+}
+
+[data-theme="light"] .pr-tabs .admin-tab:hover,
+[data-theme="light"] .pr-tabs .admin-tab.is-active {
+    color: #0f172a;
+}
