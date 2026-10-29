@@ -6,6 +6,45 @@ if (!defined('PR_VISTA')) {
 }
 ?>
 <section class="section">
+    <div class="admin-kpi-grid pr-kpi-grid-4">
+        <div class="admin-kpi-card admin-kpi-card-link pr-kpi-click" style="--kpi-color:#3b82f6" data-inv-filtro="ACTIVOS" role="button" tabindex="0">
+            <span><i class="bi bi-fire"></i>Extintores activos</span>
+            <strong id="invKpiActivos">-</strong>
+            <small>En la planta seleccionada</small>
+        </div>
+        <div class="admin-kpi-card admin-kpi-card-link pr-kpi-click" style="--kpi-color:#f59e0b" data-inv-filtro="SIN" role="button" tabindex="0">
+            <span><i class="bi bi-geo-alt"></i>Sin área asignada</span>
+            <strong id="invKpiSinArea">-</strong>
+            <small>Activos por clasificar</small>
+        </div>
+        <div class="admin-kpi-card admin-kpi-card-link" style="--kpi-color:#dc2626">
+            <span><i class="bi bi-calendar-x"></i>Vencidos</span>
+            <strong id="invKpiVencidos">-</strong>
+            <small>Activos con fecha cumplida</small>
+        </div>
+        <div class="admin-kpi-card admin-kpi-card-link pr-kpi-click" style="--kpi-color:#64748b" data-inv-filtro="BAJA" role="button" tabindex="0">
+            <span><i class="bi bi-archive"></i>De baja</span>
+            <strong id="invKpiBaja">-</strong>
+            <small>Conservan su historial</small>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="pr-banner" id="invBanner" hidden>
+        <div class="pr-banner-texto">
+            <strong id="invBannerTitulo"></strong>
+            <p id="invBannerDetalle"></p>
+            <div class="pr-progreso" aria-hidden="true"><div class="pr-progreso-fill" id="invBarra" style="width:0%"></div></div>
+        </div>
+        <button type="button" class="admin-btn admin-btn-primary" id="invBannerBoton">
+            <i class="bi bi-funnel"></i>
+            Ver los sin área
+        </button>
+    </div>
+</section>
+
+<section class="section">
     <div class="panel admin-panel">
         <div class="section-header">
             <div class="section-title">

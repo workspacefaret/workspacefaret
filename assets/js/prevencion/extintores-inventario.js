@@ -33,7 +33,37 @@
         });
     }
 
+    function esVencido(e) {
+        const d = PR.diasParaVencer(e.vencimiento);
+        return d !== null && d < 0;
+    }
+
+    // Resumen superior: sobre todos los extintores de la planta elegida (no depende de los demás filtros).
+    function dibujarResumen() {
+        const activos = extintores.filter(function (e) { return e.activo; });
+        const sinArea = activos.filter(function (e) { return !e.areaId; }).length;
+        const conArea = activos.length - sinArea;
+        $('invKpiActivos').textContent = activos.length;
+        $('invKpiSinArea').textContent = sinArea;
+        $('invKpiVencidos').textContent = activos.filter(esVencido).length;
+        $('invKpiBaja').textContent = extintores.length - activos.length;
+
+        const banner = $('invBanner');
+        if (!activos.length) { banner.hidden = true; return; }
+        const pct = Math.round((conArea / activos.length) * 100);
+        banner.hidden = false;
+        banner.className = 'pr-banner ' + (sinArea ? 'pr-banner-warn' : 'pr-banner-ok');
+        $('invBannerTitulo').textContent = sinArea
+            ? sinArea + (sinArea === 1 ? ' extintor activo sin área' : ' extintores activos sin área')
+            : 'Todos los extintores activos tienen área';
+        $('invBannerDetalle').textContent = conArea + ' de ' + activos.length + ' clasificados (' + pct + '%). ' +
+            (sinArea ? 'Asígnales un área para que cada brigadista vea solo los de su zona.' : 'Los brigadistas con áreas asignadas ya ven sus extintores.');
+        $('invBarra').style.width = pct + '%';
+        $('invBannerBoton').hidden = !sinArea;
+    }
+
     function dibujar() {
+        dibujarResumen();
         const lista = visibles();
         $('badgeCantidad').textContent = lista.length + (lista.length === 1 ? ' extintor' : ' extintores');
 
@@ -43,12 +73,12 @@
         }
 
         $('tablaBody').innerHTML = lista.map(function (e) {
-            return '<tr>' +
+            return '<tr' + (e.activo && !e.areaId ? ' class="pr-row-sin-area"' : '') + '>' +
                 '<td>' + PR.escapeHtml(e.plantaNombre) + '</td>' +
                 '<td>' + e.numero + '</td>' +
                 '<td>' + PR.escapeHtml(e.ubicacion) + '</td>' +
                 '<td>' + PR.escapeHtml(PR.etiquetaTipo(e)) + '</td>' +
-                '<td><select data-area-de="' + e.id + '" aria-label="Área del extintor ' + e.numero + '">' + opcionesAreas(e.areaId) + '</select></td>' +
+                '<td><select class="pr-area-select" data-area-de="' + e.id + '" aria-label="Área del extintor ' + e.numero + '">' + opcionesAreas(e.areaId) + '</select></td>' +
                 '<td>' + PR.badgeVencimiento(e.vencimiento) + '</td>' +
                 '<td>' + (e.activo ? PR.badge('badge-success', 'Activo') : PR.badge('badge-danger', 'De baja')) + '</td>' +
                 '<td class="admin-table-actions"><button type="button" class="admin-icon-btn" data-editar="' + e.id + '" title="Editar"><i class="bi bi-pencil"></i></button></td>' +
@@ -150,6 +180,21 @@
     $('btnCerrarModal').addEventListener('click', cerrarModal);
     $('formPlanta').addEventListener('change', actualizarSugerencias);
     $('formExtintor').addEventListener('submit', guardar);
+    // Los KPI y el aviso filtran la tabla (sin recargar datos).
+    function filtrarDesdeResumen(clave) {
+        $('filtroEstado').value = clave === 'BAJA' ? 'BAJA' : 'ACTIVOS';
+        $('filtroArea').value = clave === 'SIN' ? 'SIN' : '';
+        $('filtroBuscar').value = '';
+        dibujar();
+        $('tablaBody').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    document.querySelectorAll('[data-inv-filtro]').forEach(function (t) {
+        t.addEventListener('click', function () { filtrarDesdeResumen(t.dataset.invFiltro); });
+        t.addEventListener('keydown', function (ev) {
+            if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); filtrarDesdeResumen(t.dataset.invFiltro); }
+        });
+    });
+    $('invBannerBoton').addEventListener('click', function () { filtrarDesdeResumen('SIN'); });
     $('filtroPlanta').addEventListener('change', cargar);
     $('filtroEstado').addEventListener('change', dibujar);
     $('filtroArea').addEventListener('change', dibujar);
@@ -174,6 +219,8 @@
             e.areaId = nueva;
             const area = areas.find(function (a) { return a.id === nueva; });
             e.areaNombre = area ? area.nombre : null;
+            dibujarResumen();
+            select.closest('tr').classList.toggle('pr-row-sin-area', e.activo && !e.areaId);
             PR.toast(area ? 'Área «' + area.nombre + '» asignada al extintor N° ' + e.numero + '.' : 'Se quitó el área del extintor N° ' + e.numero + '.', 'success');
         } catch (error) {
             select.value = e.areaId ? String(e.areaId) : '';

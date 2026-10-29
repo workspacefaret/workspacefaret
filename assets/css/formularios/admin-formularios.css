@@ -2569,3 +2569,123 @@
 [data-theme="light"] .pr-tabs .admin-tab.is-active {
     color: #0f172a;
 }
+
+/* ---- Prevencion de Riesgos: pestaña Extintores (resumen, aviso de clasificacion, filas) ---- */
+
+.pr-kpi-grid-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 1100px) {
+    .pr-kpi-grid-4 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.pr-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 18px 22px;
+    border-radius: 18px;
+    border: 1px solid rgba(148, 163, 184, .18);
+    background: rgba(15, 23, 42, .92);
+}
+
+.pr-banner[hidden] {
+    display: none;
+}
+
+.pr-banner-warn {
+    border-color: rgba(245, 158, 11, .5);
+    background: rgba(245, 158, 11, .1);
+}
+
+.pr-banner-ok {
+    border-color: rgba(34, 197, 94, .45);
+    background: rgba(34, 197, 94, .1);
+}
+
+.pr-banner-texto {
+    flex: 1;
+    min-width: 0;
+}
+
+.pr-banner-texto strong {
+    display: block;
+    font-size: 16px;
+    color: #fff;
+}
+
+.pr-banner-texto p {
+    margin: 4px 0 12px;
+    font-size: 13px;
+    color: #cbd5e1;
+}
+
+.pr-row-sin-area td:first-child {
+    box-shadow: inset 3px 0 0 #f59e0b;
+}
+
+.pr-area-select {
+    min-height: 36px;
+    min-width: 200px;
+    max-width: 280px;
+    border-radius: 10px;
+    border: 1px solid rgba(148, 163, 184, .25);
+    background-color: rgba(255, 255, 255, .08);
+    color: #fff;
+    padding: 0 10px;
+}
+
+.pr-area-select option {
+    background-color: #0f172a;
+    color: #fff;
+}
+
+.pr-area-select:focus {
+    outline: 2px solid #60a5fa;
+    outline-offset: 1px;
+}
+
+@media (max-width: 800px) {
+    .pr-banner {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+
+[data-theme="light"] .pr-banner {
+    background: #ffffff;
+    border-color: #e2e8f0;
+}
+
+[data-theme="light"] .pr-banner-warn {
+    background: #fffbeb;
+    border-color: #fcd34d;
+}
+
+[data-theme="light"] .pr-banner-ok {
+    background: #f0fdf4;
+    border-color: #86efac;
+}
+
+[data-theme="light"] .pr-banner-texto strong {
+    color: #0f172a;
+}
+
+[data-theme="light"] .pr-banner-texto p {
+    color: #475569;
+}
+
+[data-theme="light"] .pr-area-select {
+    background-color: #ffffff;
+    border-color: #cbd5e1;
+    color: #0f172a;
+}
+
+[data-theme="light"] .pr-area-select option {
+    background-color: #ffffff;
+    color: #0f172a;
+}
