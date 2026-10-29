@@ -110,9 +110,15 @@
     }
 
     function enviarJson(metodo, ruta, cuerpo) {
+        const headers = { 'Content-Type': 'application/json' };
+        // IIS rechaza PUT hacia PHP (405): en el admin se envía como POST con override, que api.php convierte de vuelta.
+        if (window.PR_ADMIN && metodo === 'PUT') {
+            metodo = 'POST';
+            headers['X-HTTP-Method-Override'] = 'PUT';
+        }
         return api(ruta, {
             method: metodo,
-            headers: { 'Content-Type': 'application/json' },
+            headers: headers,
             body: JSON.stringify(cuerpo)
         });
     }

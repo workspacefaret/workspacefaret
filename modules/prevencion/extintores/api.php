@@ -35,6 +35,11 @@ $rutas = [
 ];
 
 $metodo = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+// IIS de este servidor responde 405 a PUT hacia PHP: el navegador envía POST + X-HTTP-Method-Override: PUT y aquí se restituye.
+// Solo se acepta ese valor exacto; la lista blanca, el nivel y el origen se validan igual sobre el método ya restituido.
+if ($metodo === 'POST' && ($_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'] ?? '') === 'PUT') {
+    $metodo = 'PUT';
+}
 $ruta = $_GET['r'] ?? '';
 if (!is_string($ruta) || strlen($ruta) > 60) {
     prFallar(404, 'No encontrado.');
