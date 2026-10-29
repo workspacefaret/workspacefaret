@@ -2689,3 +2689,111 @@
     background-color: #ffffff;
     color: #0f172a;
 }
+
+/* ---- Prevencion de Riesgos: pestaña Brigadistas y areas (etiquetas, avatar, barras) ---- */
+
+.pr-filtro-simple {
+    grid-template-columns: minmax(220px, 360px);
+}
+
+.pr-persona {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 700;
+}
+
+.pr-avatar {
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 800;
+    color: #fff;
+    background: linear-gradient(135deg, #2563eb, #0ea5e9);
+}
+
+.pr-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.pr-chip {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #bfdbfe;
+    background: rgba(37, 99, 235, .2);
+    border: 1px solid rgba(96, 165, 250, .35);
+}
+
+.pr-chip-neutro {
+    color: #cbd5e1;
+    background: rgba(148, 163, 184, .14);
+    border-color: rgba(148, 163, 184, .3);
+}
+
+.pr-chip-alerta {
+    color: #fde68a;
+    background: rgba(245, 158, 11, .16);
+    border-color: rgba(245, 158, 11, .45);
+}
+
+.pr-barra-fila {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 160px;
+}
+
+.pr-barra {
+    flex: 1;
+    height: 10px;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, .2);
+    overflow: hidden;
+}
+
+.pr-barra i {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #22c55e, #16a34a);
+}
+
+.pr-row-inactiva td {
+    opacity: .55;
+}
+
+.pr-row-inactiva td:last-child {
+    opacity: 1;
+}
+
+[data-theme="light"] .pr-chip {
+    color: #1d4ed8;
+    background: #eff6ff;
+    border-color: #bfdbfe;
+}
+
+[data-theme="light"] .pr-chip-neutro {
+    color: #475569;
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+[data-theme="light"] .pr-chip-alerta {
+    color: #92400e;
+    background: #fffbeb;
+    border-color: #fcd34d;
+}
+
+[data-theme="light"] .pr-barra {
+    background: #e2e8f0;
+}

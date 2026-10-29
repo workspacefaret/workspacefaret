@@ -6,6 +6,40 @@ if (!defined('PR_VISTA')) {
 }
 ?>
 <section class="section">
+    <div class="admin-kpi-grid pr-kpi-grid-4">
+        <div class="admin-kpi-card admin-kpi-card-link" style="--kpi-color:#3b82f6">
+            <span><i class="bi bi-people"></i>Brigadistas activos</span>
+            <strong id="cfgKpiActivos">-</strong>
+            <small>Aparecen en el formulario</small>
+        </div>
+        <div class="admin-kpi-card admin-kpi-card-link" style="--kpi-color:#22c55e">
+            <span><i class="bi bi-diagram-3"></i>Con áreas asignadas</span>
+            <strong id="cfgKpiConAreas">-</strong>
+            <small>Ven solo los extintores de sus áreas</small>
+        </div>
+        <div class="admin-kpi-card admin-kpi-card-link" style="--kpi-color:#f59e0b">
+            <span><i class="bi bi-eye"></i>Sin restricción</span>
+            <strong id="cfgKpiSinAreas">-</strong>
+            <small>Ven todos los extintores</small>
+        </div>
+        <div class="admin-kpi-card admin-kpi-card-link" style="--kpi-color:#a855f7">
+            <span><i class="bi bi-geo-alt"></i>Áreas sin extintores</span>
+            <strong id="cfgKpiAreasVacias">-</strong>
+            <small>Áreas activas sin ningún extintor</small>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="pr-banner" id="cfgBanner">
+        <div class="pr-banner-texto">
+            <strong>Cómo funcionan las áreas</strong>
+            <p id="cfgBannerDetalle">Un brigadista sin áreas asignadas ve todos los extintores. Con una o más áreas, ve solo los extintores de esas áreas.</p>
+        </div>
+    </div>
+</section>
+
+<section class="section">
     <div class="panel admin-panel">
         <div class="section-header">
             <div class="section-title">
@@ -19,6 +53,13 @@ if (!defined('PR_VISTA')) {
         </div>
 
         <div id="alertaBrigadistas" class="admin-alert hidden"></div>
+
+        <div class="admin-filters pr-filtro-simple">
+            <div class="admin-filter-field">
+                <label for="brigadistaBuscar">Buscar brigadista</label>
+                <input type="text" id="brigadistaBuscar" placeholder="Nombre o área">
+            </div>
+        </div>
 
         <div class="admin-table-wrap">
             <table class="admin-table">
