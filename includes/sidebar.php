@@ -173,6 +173,23 @@
                 </div>
             <?php endif; ?>
 
+            <?php if (hasModuleAccess('prevencion_riesgos')): ?>
+                <a href="/modules/prevencion/">
+                    <i class="bi bi-shield-check"></i>
+                    Prevención de Riesgos
+                </a>
+                <div class="menu-submenu">
+                    <a href="/modules/prevencion/extintores/inspeccion/">
+                        <i class="bi bi-fire"></i>
+                        Inspección de extintores
+                    </a>
+                    <a href="/modules/prevencion/extintores/admin/">
+                        <i class="bi bi-speedometer2"></i>
+                        Panel de administración
+                    </a>
+                </div>
+            <?php endif; ?>
+
             <?php if (hasModuleAccess('rrhh')): ?>
                 <a href="/modules/rrhh/">
                     <i class="bi bi-people-fill"></i>
