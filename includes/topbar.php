@@ -2,8 +2,13 @@
 
 <div class="topbar">
 
-    <div>
-        Portal Operacional Faret
+    <div class="topbar-left">
+        <?php if ($usuarioActual): ?>
+            <button type="button" id="sidebarToggle" class="theme-toggle sidebar-toggle" title="Mostrar u ocultar menú" aria-label="Mostrar u ocultar menú">
+                <i class="bi bi-list"></i>
+            </button>
+        <?php endif; ?>
+        <span>Portal Operacional Faret</span>
     </div>
 
     <div class="topbar-actions">

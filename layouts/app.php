@@ -20,6 +20,10 @@ content="width=device-width, initial-scale=1.0">
         if (tema === 'light' || tema === 'dark') {
             document.documentElement.setAttribute('data-theme', tema);
         }
+        document.documentElement.classList.add('js-sb');
+        if (localStorage.getItem('ws-sidebar') === 'mini') {
+            document.documentElement.setAttribute('data-sidebar', 'mini');
+        }
     } catch (e) {}
 })();
 </script>
@@ -37,6 +41,7 @@ href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.m
 <div class="app">
 
     <?php include $_SERVER['DOCUMENT_ROOT'].'/includes/sidebar.php'; ?>
+    <script src="/assets/js/sidebar.js"></script>
 
     <div class="main">
 

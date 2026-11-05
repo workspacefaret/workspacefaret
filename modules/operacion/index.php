@@ -376,6 +376,33 @@ $novedades = obtenerNovedadesActivas(5, $usuario);
 <script src="/assets/js/operacion-pendientes.js"></script>
 
 <?php
+// Aviso de novedades de la versión: solo los puntos de módulos a los que el usuario tiene acceso.
+$novedadesVersion = [];
+$configNovedades = @include $_SERVER['DOCUMENT_ROOT'] . '/config/novedades_version.php';
+if (is_array($configNovedades) && !empty($configNovedades['id'])) {
+    $slidesVisibles = [];
+    foreach (array_slice($configNovedades['slides'] ?? [], 0, 3) as $slide) {
+        $puntos = [];
+        foreach ($slide['puntos'] ?? [] as $punto) {
+            if (empty($punto['modulo']) || hasModuleAccess($punto['modulo'])) {
+                $puntos[] = (string) $punto['t'];
+            }
+        }
+        if ($puntos) {
+            $slidesVisibles[] = ['titulo' => (string) $slide['titulo'], 'icono' => (string) ($slide['icono'] ?? ''), 'puntos' => $puntos];
+        }
+    }
+    if ($slidesVisibles) {
+        $novedadesVersion = ['id' => (string) $configNovedades['id'], 'userId' => (int) ($usuario['id'] ?? 0), 'slides' => $slidesVisibles];
+    }
+}
+?>
+<?php if ($novedadesVersion): ?>
+<script>window.wsNovedades = <?= json_encode($novedadesVersion, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?>;</script>
+<script src="/assets/js/novedades-modal.js"></script>
+<?php endif; ?>
+
+<?php
 $contenido = ob_get_clean();
 
 include '../../layouts/app.php';
