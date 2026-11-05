@@ -104,6 +104,7 @@ if (!defined('PR_VISTA')) {
                 </tbody>
             </table>
         </div>
+        <div class="pr-paginacion" id="paginacionTabla"></div>
     </div>
 </section>
 

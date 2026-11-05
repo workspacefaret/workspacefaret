@@ -43,6 +43,77 @@ if (!defined('PR_VISTA')) {
     <div class="panel admin-panel">
         <div class="section-header">
             <div class="section-title">
+                <h2>Cumplimiento mensual</h2>
+                <p>Extintores de las áreas de cada brigadista que inspeccionó en el mes. Haz clic en una fila para ver lo que le falta.</p>
+            </div>
+            <div class="admin-hero-actions">
+                <div class="admin-filter-field pr-periodo-field">
+                    <label for="cumplPeriodo">Periodo</label>
+                    <input type="month" id="cumplPeriodo">
+                </div>
+                <button type="button" class="admin-btn admin-btn-secondary" id="btnExportarCumplimiento">
+                    <i class="bi bi-file-earmark-excel"></i>
+                    Exportar Excel
+                </button>
+            </div>
+        </div>
+
+        <div id="alertaCumplimiento" class="admin-alert hidden"></div>
+
+        <div class="admin-kpi-grid pr-kpi-grid-4" id="cumplKpis">
+            <div class="admin-kpi-card" style="--kpi-color:#3b82f6">
+                <span><i class="bi bi-people"></i>Evaluados</span>
+                <strong id="cumplKpiEvaluados">-</strong>
+                <small>Con áreas y extintores asignados</small>
+            </div>
+            <div class="admin-kpi-card" style="--kpi-color:#22c55e">
+                <span><i class="bi bi-patch-check"></i>Cumplen</span>
+                <strong id="cumplKpiCumplen">-</strong>
+                <small>Inspeccionaron el 100% de lo asignado</small>
+            </div>
+            <div class="admin-kpi-card" id="cumplKpiPendientesCard" style="--kpi-color:#f59e0b">
+                <span><i class="bi bi-hourglass-split" id="cumplKpiPendientesIcono"></i><b id="cumplKpiPendientesTitulo">En curso</b></span>
+                <strong id="cumplKpiPendientes">-</strong>
+                <small id="cumplKpiPendientesDetalle">Aún les quedan extintores por inspeccionar</small>
+            </div>
+            <div class="admin-kpi-card" style="--kpi-color:#a855f7">
+                <span><i class="bi bi-speedometer"></i>Avance global</span>
+                <strong id="cumplKpiGlobal">-</strong>
+                <small id="cumplKpiGlobalDetalle">Inspeccionados / asignados</small>
+            </div>
+        </div>
+
+        <div class="pr-banner pr-banner-nota hidden" id="cumplAviso">
+            <div class="pr-banner-texto">
+                <strong id="cumplAvisoTitulo"></strong>
+                <p id="cumplAvisoDetalle"></p>
+            </div>
+        </div>
+
+        <div class="admin-table-wrap">
+            <table class="admin-table pr-tabla-cumplimiento">
+                <thead>
+                    <tr>
+                        <th>Brigadista</th>
+                        <th>Avance del mes</th>
+                        <th>Pendientes</th>
+                        <th>Cumplimiento</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaCumplimiento">
+                    <tr><td colspan="5" class="admin-empty">Cargando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="pr-hint"><i class="bi bi-info-circle"></i>Se mide con las áreas asignadas hoy. No se cuentan las inspecciones sin brigadista (anteriores al formulario por brigadista o registradas desde la sesión del portal). Los brigadistas marcados como «No evaluado» no entran en el cálculo.</p>
+    </div>
+</section>
+
+<section class="section">
+    <div class="panel admin-panel">
+        <div class="section-header">
+            <div class="section-title">
                 <h2>Brigadistas</h2>
                 <p>Haz clic en «Editar» para cambiar sus áreas o desactivarlo.</p>
             </div>
@@ -147,6 +218,13 @@ if (!defined('PR_VISTA')) {
                 </label>
             </div>
 
+            <div class="admin-form-field admin-form-field-full">
+                <label class="pr-check">
+                    <input type="checkbox" id="brigadistaEvaluable" checked>
+                    Incluir en la evaluación de cumplimiento mensual
+                </label>
+            </div>
+
             <div class="admin-form-actions">
                 <button type="submit" class="admin-btn admin-btn-primary" id="guardarBrigadista">
                     <i class="bi bi-save"></i>
@@ -196,4 +274,5 @@ if (!defined('PR_VISTA')) {
     </div>
 </div>
 
+<script src="/assets/js/prevencion/extintores-cumplimiento.js"></script>
 <script src="/assets/js/prevencion/extintores-configuracion.js"></script>

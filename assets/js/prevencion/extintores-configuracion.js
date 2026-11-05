@@ -76,7 +76,8 @@
                 ? nombres.map(function (n) { return '<span class="pr-chip">' + PR.escapeHtml(n) + '</span>'; }).join('')
                 : '<span class="pr-chip pr-chip-neutro">Todas (sin restricción)</span>';
             return '<tr' + (b.activo ? '' : ' class="pr-row-inactiva"') + '>' +
-                '<td><div class="pr-persona"><span class="pr-avatar">' + PR.escapeHtml(iniciales(b.nombre)) + '</span>' + PR.escapeHtml(b.nombre) + '</div></td>' +
+                '<td><div class="pr-persona"><span class="pr-avatar">' + PR.escapeHtml(iniciales(b.nombre)) + '</span>' + PR.escapeHtml(b.nombre) +
+                (b.evaluable ? '' : ' <span class="pr-chip pr-chip-neutro" title="No entra en el cumplimiento mensual">No evaluado</span>') + '</div></td>' +
                 '<td><div class="pr-chips">' + detalle + '</div></td>' +
                 '<td>' + estado(b.activo) + '</td>' +
                 '<td class="admin-table-actions"><button type="button" class="admin-icon-btn" data-editar-brigadista="' + b.id + '" title="Editar"><i class="bi bi-pencil"></i></button></td>' +
@@ -124,6 +125,7 @@
         $('brigadistaId').value = b ? b.id : '';
         $('brigadistaNombre').value = b ? b.nombre : '';
         $('brigadistaActivo').checked = b ? b.activo : true;
+        $('brigadistaEvaluable').checked = b ? b.evaluable : true;
         const asignadas = b ? b.areaIds : [];
         $('brigadistaAreas').innerHTML = areas.filter(function (a) { return a.activo || asignadas.includes(a.id); }).map(function (a) {
             return '<label class="pr-check" style="display:flex;align-items:center;gap:8px;font-weight:500;margin-bottom:6px;"><input type="checkbox" value="' + a.id + '"' + (asignadas.includes(a.id) ? ' checked' : '') + '> ' +
@@ -144,6 +146,7 @@
             await PR.enviarJson(id ? 'PUT' : 'POST', 'brigadistas' + (id ? '/' + id : ''), {
                 nombre: $('brigadistaNombre').value.trim(),
                 activo: $('brigadistaActivo').checked,
+                evaluable: $('brigadistaEvaluable').checked,
                 areaIds: areaIds
             });
             $('modalBrigadista').classList.add('hidden');

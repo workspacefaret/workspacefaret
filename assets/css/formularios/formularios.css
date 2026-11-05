@@ -1175,3 +1175,38 @@
 .pr-crit.is-na {
     opacity: .6;
 }
+
+/* ---- Prevencion de Riesgos: boton "Mostrar mas" de la lista movil ---- */
+
+.pr-mas-btn {
+    width: 100%;
+    margin-top: 12px;
+    min-height: 48px;
+    border-radius: 14px;
+    border: 1px dashed rgba(148, 163, 184, .5);
+    background: rgba(255, 255, 255, .05);
+    color: #fff;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.pr-mas-btn small {
+    font-weight: 600;
+    color: #94a3b8;
+}
+
+.pr-mas-btn:active {
+    background: rgba(255, 255, 255, .12);
+}
+
+[data-theme="light"] .pr-mas-btn {
+    background: #fff;
+    border-color: #94a3b8;
+    color: #0f172a;
+}
+
+[data-theme="light"] .pr-mas-btn small {
+    color: #64748b;
+}

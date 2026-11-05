@@ -6,8 +6,36 @@
     const ESTADOS = {
         PENDIENTE: { label: 'Pendiente', badge: 'badge-warning' },
         CONFORME: { label: 'Conforme', badge: 'badge-success' },
-        CON_HALLAZGOS: { label: 'Con hallazgos', badge: 'badge-danger' }
+        CON_HALLAZGOS: { label: 'Con hallazgos', badge: 'badge-danger' },
+        // Estados derivados de la gestión del hallazgo (ver estadoConGestion).
+        EN_PLANIFICACION: { label: 'En planificación', badge: 'badge-primary' },
+        CONFORME_CORREGIDO: { label: 'Conforme (corregido)', badge: 'badge-success' },
+        CONFORME_CON_OBS: { label: 'Conforme c/ observaciones', badge: 'badge-success' }
     };
+
+    // Registros de la bitácora de gestión de un hallazgo (columna tipo de pr_acciones_correctivas).
+    const ACCIONES = {
+        PLANIFICADA: { label: 'Corrección planificada', icono: 'bi-calendar-check', clase: 'plan' },
+        CORREGIDO: { label: 'Hallazgo corregido', icono: 'bi-wrench-adjustable', clase: 'ok' },
+        CONFORME_CON_OBS: { label: 'Cerrado conforme con observaciones', icono: 'bi-clipboard-check', clase: 'ok' }
+    };
+
+    const ESTADO_POR_GESTION = {
+        PLANIFICADA: 'EN_PLANIFICACION',
+        CORREGIDO: 'CONFORME_CORREGIDO',
+        CONFORME_CON_OBS: 'CONFORME_CON_OBS'
+    };
+
+    // Resultado de la inspección + último registro de gestión -> estado que se muestra.
+    // Solo un hallazgo (CON_HALLAZGOS) cambia de estado con la gestión; la inspección guardada no se modifica.
+    function estadoConGestion(resultado, gestionTipo) {
+        return resultado === 'CON_HALLAZGOS' ? (ESTADO_POR_GESTION[gestionTipo] || 'CON_HALLAZGOS') : resultado;
+    }
+
+    // true si el estado es de un equipo conforme (inspección limpia, corregido o cerrado con observaciones).
+    function esConforme(estado) {
+        return estado === 'CONFORME' || estado === 'CONFORME_CORREGIDO' || estado === 'CONFORME_CON_OBS';
+    }
 
     const RESULTADOS = {
         SI: { label: 'Sí', badge: 'badge-success' },
@@ -53,7 +81,23 @@
 
     // Estado de la inspección del periodo consultado.
     function estadoDe(extintor) {
-        return extintor.inspeccionId ? extintor.inspeccionResultado : 'PENDIENTE';
+        return extintor.inspeccionId ? estadoConGestion(extintor.inspeccionResultado, extintor.gestionTipo) : 'PENDIENTE';
+    }
+
+    // Fecha local de hoy como YYYY-MM-DD (para <input type="date">; toISOString daría la fecha UTC).
+    function hoyISO() {
+        const d = new Date();
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
+    // Días enteros transcurridos desde una fecha hasta hoy.
+    function diasDesde(valor) {
+        const fecha = new Date(valor);
+        if (Number.isNaN(fecha.getTime())) return null;
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+        fecha.setHours(0, 0, 0, 0);
+        return Math.round((hoy - fecha) / 86400000);
     }
 
     // Días hasta el vencimiento (negativo = vencido). null si no hay fecha.
@@ -168,9 +212,69 @@
         setTimeout(cerrar, tipo === 'success' ? 4000 : 8000);
     }
 
+    // ---------- Paginación en el navegador ----------
+    // Las pantallas de Extintores traen la lista completa (filtros, KPIs y Excel trabajan sobre ella): aquí solo se recorta lo que se
+    // dibuja. contenedor = donde va la barra; alCambiar = vuelve a dibujar la tabla; ancla = elemento al que volver al cambiar de página.
+    const FILAS_POR_PAGINA = [25, 50, 100];
+
+    function filasGuardadas() {
+        try {
+            const n = Number(localStorage.getItem('pr-extintores-filas'));
+            return FILAS_POR_PAGINA.includes(n) ? n : FILAS_POR_PAGINA[0];
+        } catch (e) { return FILAS_POR_PAGINA[0]; }
+    }
+
+    function crearPaginador(contenedor, alCambiar, ancla) {
+        let pagina = 1;
+        let porPagina = filasGuardadas();
+
+        function dibujarBarra(total, desde, hasta, totalPaginas) {
+            const resumen = '<span class="pr-pag-resumen">Mostrando <strong>' + desde + '–' + hasta + '</strong> de <strong>' + total + '</strong></span>';
+            if (total <= FILAS_POR_PAGINA[0]) { contenedor.innerHTML = resumen; return; }
+
+            contenedor.innerHTML = resumen + '<div class="pr-pag-controles">' +
+                '<label class="pr-pag-filas">Filas <select data-pag-filas aria-label="Filas por página">' +
+                FILAS_POR_PAGINA.map(function (n) { return '<option value="' + n + '"' + (n === porPagina ? ' selected' : '') + '>' + n + '</option>'; }).join('') +
+                '</select></label>' +
+                '<button type="button" data-pag="-1"' + (pagina === 1 ? ' disabled' : '') + '><i class="bi bi-chevron-left"></i>Anterior</button>' +
+                '<span class="pr-pag-estado">Página ' + pagina + ' de ' + totalPaginas + '</span>' +
+                '<button type="button" data-pag="1"' + (pagina === totalPaginas ? ' disabled' : '') + '>Siguiente<i class="bi bi-chevron-right"></i></button>' +
+                '</div>';
+        }
+
+        // Devuelve solo las filas de la página actual y dibuja la barra. Si la lista se acorta, la página se ajusta sola.
+        function cortar(lista) {
+            const total = lista.length;
+            if (!total) { contenedor.innerHTML = ''; return []; }
+            const totalPaginas = Math.ceil(total / porPagina);
+            pagina = Math.min(Math.max(pagina, 1), totalPaginas);
+            const desde = (pagina - 1) * porPagina;
+            const hasta = Math.min(desde + porPagina, total);
+            dibujarBarra(total, desde + 1, hasta, totalPaginas);
+            return lista.slice(desde, hasta);
+        }
+
+        contenedor.addEventListener('click', function (ev) {
+            const boton = ev.target.closest('[data-pag]');
+            if (!boton || boton.disabled) return;
+            pagina += Number(boton.dataset.pag);
+            alCambiar();
+            if (ancla) ancla.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+        contenedor.addEventListener('change', function (ev) {
+            if (!ev.target.matches('[data-pag-filas]')) return;
+            porPagina = Number(ev.target.value);
+            try { localStorage.setItem('pr-extintores-filas', String(porPagina)); } catch (e) { /* sin storage */ }
+            pagina = 1;
+            alCambiar();
+        });
+
+        return { cortar: cortar, reiniciar: function () { pagina = 1; } };
+    }
+
     window.PrExt = {
         toast, api, enviarJson, escapeHtml, formatearFecha, formatearFechaHora, formatearPeriodo, etiquetaTipo,
-        estadoDe, diasParaVencer, badge, badgeEstado, badgeResultado, badgeVencimiento, leerError,
-        plantaGuardada, guardarPlanta, llenarSelectPlantas, mostrarAlerta, ESTADOS, RESULTADOS
+        estadoDe, estadoConGestion, esConforme, hoyISO, diasDesde, ACCIONES, diasParaVencer, badge, badgeEstado, badgeResultado, badgeVencimiento, leerError,
+        plantaGuardada, guardarPlanta, llenarSelectPlantas, mostrarAlerta, crearPaginador, ESTADOS, RESULTADOS
     };
 })();

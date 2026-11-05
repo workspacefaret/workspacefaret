@@ -20,12 +20,17 @@ if (!defined('PR_VISTA')) {
         <div class="admin-kpi-card admin-kpi-card-link pr-kpi-click" style="--kpi-color:#22c55e" data-filtro="CONFORME" role="button" tabindex="0">
             <span><i class="bi bi-check2-circle"></i>Conformes</span>
             <strong id="kpiConformes">-</strong>
-            <small>Inspeccionados sin observaciones</small>
+            <small>Sin hallazgos, corregidos o cerrados con observaciones</small>
         </div>
         <div class="admin-kpi-card admin-kpi-card-link pr-kpi-click" style="--kpi-color:#ef4444" data-filtro="CON_HALLAZGOS" role="button" tabindex="0">
             <span><i class="bi bi-exclamation-triangle"></i>Con hallazgos</span>
             <strong id="kpiHallazgos">-</strong>
-            <small>Al menos un criterio en «No»</small>
+            <small>Sin gestión registrada</small>
+        </div>
+        <div class="admin-kpi-card admin-kpi-card-link pr-kpi-click" style="--kpi-color:#3b82f6" data-filtro="EN_PLANIFICACION" role="button" tabindex="0">
+            <span><i class="bi bi-calendar-check"></i>En planificación</span>
+            <strong id="kpiPlanificacion">-</strong>
+            <small>Corrección programada</small>
         </div>
         <div class="admin-kpi-card admin-kpi-card-link pr-kpi-click" style="--kpi-color:#dc2626" data-filtro="VENCIDO" role="button" tabindex="0">
             <span><i class="bi bi-calendar-x"></i>Vencidos</span>
@@ -37,8 +42,13 @@ if (!defined('PR_VISTA')) {
             <strong id="kpiPorVencer">-</strong>
             <small>Próximos a vencer</small>
         </div>
+        <div class="admin-kpi-card admin-kpi-card-link pr-kpi-click" style="--kpi-color:#e11d48" data-ancla="tarjetaHallazgos" role="button" tabindex="0">
+            <span><i class="bi bi-clipboard2-pulse"></i>Hallazgos vigentes</span>
+            <strong id="kpiVigentes">-</strong>
+            <small>De cualquier mes, aún sin cerrar</small>
+        </div>
     </div>
-    <p class="pr-hint"><i class="bi bi-hand-index"></i>Haz clic en Pendientes, Conformes, Con hallazgos o Vencidos para filtrar la tabla.</p>
+    <p class="pr-hint"><i class="bi bi-hand-index"></i>Haz clic en una tarjeta para filtrar la tabla o ir al detalle. «Hallazgos vigentes» incluye los de meses anteriores que siguen sin cerrarse.</p>
 </section>
 
 <section class="section">
@@ -88,8 +98,9 @@ if (!defined('PR_VISTA')) {
             <h3>Vencidos y por vencer (60 días)</h3>
             <div id="listaVencimientos" class="pr-chart">Cargando...</div>
         </div>
-        <div class="chart-card">
+        <div class="chart-card" id="tarjetaHallazgos">
             <h3>Hallazgos que requieren atención</h3>
+            <p class="pr-chart-sub">De cualquier mes, hasta que se cierren. Los más antiguos primero.</p>
             <div id="listaHallazgos" class="pr-chart">Cargando...</div>
         </div>
     </div>
@@ -127,8 +138,11 @@ if (!defined('PR_VISTA')) {
                 <select id="filtroEstado">
                     <option value="">Todos</option>
                     <option value="PENDIENTE">Pendiente</option>
-                    <option value="CONFORME">Conforme</option>
-                    <option value="CON_HALLAZGOS">Con hallazgos</option>
+                    <option value="CONFORME">Conformes (todos)</option>
+                    <option value="CONFORME_CORREGIDO">Conforme (corregido)</option>
+                    <option value="CONFORME_CON_OBS">Conforme c/ observaciones</option>
+                    <option value="CON_HALLAZGOS">Con hallazgos (sin gestión)</option>
+                    <option value="EN_PLANIFICACION">En planificación</option>
                     <option value="VENCIDO">Vencido</option>
                 </select>
             </div>
@@ -166,6 +180,7 @@ if (!defined('PR_VISTA')) {
                 </tbody>
             </table>
         </div>
+        <div class="pr-paginacion" id="paginacionTabla"></div>
     </div>
 </section>
 

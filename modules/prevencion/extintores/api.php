@@ -28,9 +28,9 @@ function prFallar(int $status, string $mensaje): void
 
 // Rutas permitidas: [método, patrón de la ruta relativa, nivel mínimo]. Todo lo demás se rechaza.
 $rutas = [
-    ['GET', '#^(catalogos|consolidado|\d+|\d+/inspecciones|inspecciones/\d+)?$#', 'ver'],
-    ['GET', '#^(areas|brigadistas)$#', 'gestionar'],
-    ['POST', '#^(|inspecciones|areas|brigadistas)$#', 'gestionar'],
+    ['GET', '#^(catalogos|consolidado|hallazgos-abiertos|\d+|\d+/inspecciones|inspecciones/\d+|inspecciones/\d+/acciones)?$#', 'ver'],
+    ['GET', '#^(areas|brigadistas|brigadistas/cumplimiento)$#', 'gestionar'],
+    ['POST', '#^(|inspecciones|inspecciones/\d+/acciones|areas|brigadistas)$#', 'gestionar'],
     ['PUT', '#^(\d+|areas/\d+|brigadistas/\d+)$#', 'gestionar'],
 ];
 

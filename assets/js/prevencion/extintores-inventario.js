@@ -19,6 +19,8 @@
         el.className = 'admin-alert admin-alert-' + (tipo || 'error') + (mensaje ? '' : ' hidden');
     }
 
+    const paginador = PR.crearPaginador($('paginacionTabla'), function () { dibujar(); }, $('tablaBody').closest('.admin-table-wrap'));
+
     function visibles() {
         const estado = $('filtroEstado').value;
         const texto = $('filtroBuscar').value.trim().toLowerCase();
@@ -66,13 +68,14 @@
         dibujarResumen();
         const lista = visibles();
         $('badgeCantidad').textContent = lista.length + (lista.length === 1 ? ' extintor' : ' extintores');
+        const pagina = paginador.cortar(lista);
 
         if (!lista.length) {
             $('tablaBody').innerHTML = '<tr><td colspan="8" class="admin-empty">No hay extintores con esos filtros.</td></tr>';
             return;
         }
 
-        $('tablaBody').innerHTML = lista.map(function (e) {
+        $('tablaBody').innerHTML = pagina.map(function (e) {
             return '<tr' + (e.activo && !e.areaId ? ' class="pr-row-sin-area"' : '') + '>' +
                 '<td>' + PR.escapeHtml(e.plantaNombre) + '</td>' +
                 '<td>' + e.numero + '</td>' +
@@ -180,12 +183,18 @@
     $('btnCerrarModal').addEventListener('click', cerrarModal);
     $('formPlanta').addEventListener('change', actualizarSugerencias);
     $('formExtintor').addEventListener('submit', guardar);
+    // Cambiar un filtro vuelve a la primera página; guardar o editar un extintor conserva la página actual.
+    function aplicarFiltros() {
+        paginador.reiniciar();
+        dibujar();
+    }
+
     // Los KPI y el aviso filtran la tabla (sin recargar datos).
     function filtrarDesdeResumen(clave) {
         $('filtroEstado').value = clave === 'BAJA' ? 'BAJA' : 'ACTIVOS';
         $('filtroArea').value = clave === 'SIN' ? 'SIN' : '';
         $('filtroBuscar').value = '';
-        dibujar();
+        aplicarFiltros();
         $('tablaBody').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
     document.querySelectorAll('[data-inv-filtro]').forEach(function (t) {
@@ -195,10 +204,10 @@
         });
     });
     $('invBannerBoton').addEventListener('click', function () { filtrarDesdeResumen('SIN'); });
-    $('filtroPlanta').addEventListener('change', cargar);
-    $('filtroEstado').addEventListener('change', dibujar);
-    $('filtroArea').addEventListener('change', dibujar);
-    $('filtroBuscar').addEventListener('input', dibujar);
+    $('filtroPlanta').addEventListener('change', function () { paginador.reiniciar(); cargar(); });
+    $('filtroEstado').addEventListener('change', aplicarFiltros);
+    $('filtroArea').addEventListener('change', aplicarFiltros);
+    $('filtroBuscar').addEventListener('input', aplicarFiltros);
     // Asignación rápida de área: guarda al cambiar el selector de la fila.
     $('tablaBody').addEventListener('change', async function (ev) {
         const select = ev.target.closest('[data-area-de]');

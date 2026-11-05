@@ -34,6 +34,9 @@
         let extintores = [];
         let filtro = 'PENDIENTES';
         let periodo = '';
+        const TANDA = 20;      // tarjetas que se muestran de a poco en el teléfono ("Mostrar más")
+        let mostrados = TANDA;
+        let claveFiltros = '';
 
         if (new URLSearchParams(window.location.search).get('ok')) {
             PR.mostrarAlerta(alerta, 'Inspección registrada correctamente.', 'success');
@@ -55,6 +58,10 @@
                 return (e.ubicacion + ' ' + e.numero + ' ' + e.tipo + ' ' + (e.areaNombre || '')).toLowerCase().includes(texto);
             });
 
+            // Cualquier cambio de filtro, búsqueda, brigadista, planta o área vuelve a la primera tanda.
+            const clave = [filtro, texto, selectBrigadista.value, selectPlanta.value, selectArea.value].join('|');
+            if (clave !== claveFiltros) { claveFiltros = clave; mostrados = TANDA; }
+
             if (!visibles.length) {
                 contenedor.innerHTML = '<p class="pr-muted">' + (total && filtro === 'PENDIENTES' && !texto
                     ? 'No quedan extintores pendientes este mes con estos filtros.'
@@ -62,14 +69,18 @@
                 return;
             }
 
-            contenedor.innerHTML = visibles.map(function (e) {
+            const tanda = visibles.slice(0, mostrados);
+            const restantes = visibles.length - tanda.length;
+            contenedor.innerHTML = tanda.map(function (e) {
                 const area = e.areaNombre ? ' · ' + PR.escapeHtml(e.areaNombre) : '';
                 return '<a class="pr-ext" href="' + URL_LISTA + '?e=' + e.id + '&b=' + encodeURIComponent(selectBrigadista.value) + '">' +
                     '<span class="pr-ext-num">' + e.numero + '</span>' +
                     '<span class="pr-ext-info"><strong>' + PR.escapeHtml(e.ubicacion) + '</strong>' +
                     '<small>' + PR.escapeHtml(PR.etiquetaTipo(e)) + area + '</small></span>' +
                     PR.badgeEstado(e.inspeccionado ? 'CONFORME' : 'PENDIENTE', e.inspeccionado ? 'Inspeccionado' : null) + '</a>';
-            }).join('');
+            }).join('') + (restantes > 0
+                ? '<button type="button" class="pr-mas-btn" id="prMostrarMas">Mostrar más <small>(' + Math.min(TANDA, restantes) + ' de ' + restantes + ' restantes)</small></button>'
+                : '');
         }
 
         async function cargarExtintores() {
@@ -109,6 +120,11 @@
             }
         }
 
+        contenedor.addEventListener('click', function (ev) {
+            if (!ev.target.closest('#prMostrarMas')) return;
+            mostrados += TANDA;
+            dibujar();
+        });
         selectBrigadista.addEventListener('change', async function () {
             guardarBrigadista(selectBrigadista.value);
             await cargarAreas();

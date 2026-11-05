@@ -3,9 +3,12 @@
     const PR = window.PrExt;
     const $ = function (id) { return document.getElementById(id); };
 
+    const paginador = PR.crearPaginador($('paginacionTabla'), function () { dibujarTabla(); }, $('tablaBody').closest('.admin-table-wrap'));
+
     let criterios = [];
     let periodoActual = '';
     let filas = [];      // consolidado del periodo/planta consultados
+    let vigentes = [];   // hallazgos abiertos de cualquier mes (no dependen del periodo)
     let visibles = [];   // filas tras los filtros del lado del cliente
 
     function alertaListado(mensaje) {
@@ -27,8 +30,10 @@
         const cuenta = function (fn) { return filas.filter(fn).length; };
         $('kpiTotal').textContent = filas.length;
         $('kpiPendientes').textContent = cuenta(function (f) { return PR.estadoDe(f) === 'PENDIENTE'; });
-        $('kpiConformes').textContent = cuenta(function (f) { return PR.estadoDe(f) === 'CONFORME'; });
+        $('kpiConformes').textContent = cuenta(function (f) { return PR.esConforme(PR.estadoDe(f)); });
         $('kpiHallazgos').textContent = cuenta(function (f) { return PR.estadoDe(f) === 'CON_HALLAZGOS'; });
+        $('kpiPlanificacion').textContent = cuenta(function (f) { return PR.estadoDe(f) === 'EN_PLANIFICACION'; });
+        $('kpiVigentes').textContent = vigentes.length;
         $('kpiVencidos').textContent = cuenta(esVencido);
         $('kpiPorVencer').textContent = cuenta(function (f) {
             const d = PR.diasParaVencer(f.vencimiento);
@@ -38,7 +43,7 @@
 
     // ---------- Dashboard (reutiliza DashboardCharts; depende solo de periodo y planta, no de los filtros de la tabla) ----------
 
-    const COLORES_ESTADO = { 'Conformes': '#22c55e', 'Con hallazgos': '#ef4444', 'Pendientes': '#f59e0b' };
+    const COLORES_ESTADO = { 'Conformes': '#22c55e', 'Con hallazgos': '#ef4444', 'En planificación': '#3b82f6', 'Pendientes': '#f59e0b' };
     const SIN_INFO = '<p class="pr-sin-info">Sin información</p>';
 
     function pintar(id, html) { $(id).innerHTML = html; }
@@ -55,12 +60,13 @@
     function dibujarDashboard() {
         const total = filas.length;
         const estado = function (f) { return PR.estadoDe(f); };
-        const conformes = filas.filter(function (f) { return estado(f) === 'CONFORME'; }).length;
+        const conformes = filas.filter(function (f) { return PR.esConforme(estado(f)); }).length;
         const conHallazgos = filas.filter(function (f) { return estado(f) === 'CON_HALLAZGOS'; }).length;
+        const enPlanificacion = filas.filter(function (f) { return estado(f) === 'EN_PLANIFICACION'; }).length;
         const pendientes = filas.filter(function (f) { return estado(f) === 'PENDIENTE'; }).length;
 
         // Avance del mes
-        const inspeccionados = conformes + conHallazgos;
+        const inspeccionados = total - pendientes;
         const pct = total ? Math.round((inspeccionados / total) * 100) : 0;
         $('avanceTexto').textContent = total
             ? inspeccionados + ' de ' + total + ' extintores inspeccionados en ' + PR.formatearPeriodo($('filtroPeriodo').value)
@@ -69,13 +75,13 @@
         $('avancePct').textContent = total ? pct + '%' : '-';
 
         if (!total) {
-            ['chartEstados', 'chartTipos', 'chartCriterios', 'chartPlantas', 'chartAreas', 'listaVencimientos', 'listaHallazgos']
+            ['chartEstados', 'chartTipos', 'chartCriterios', 'chartPlantas', 'chartAreas', 'listaVencimientos']
                 .forEach(function (id) { pintar(id, SIN_INFO); });
             return;
         }
 
         // Estado de los extintores
-        window.DashboardCharts.renderDonut('chartEstados', { 'Conformes': conformes, 'Con hallazgos': conHallazgos, 'Pendientes': pendientes }, { colores: COLORES_ESTADO });
+        window.DashboardCharts.renderDonut('chartEstados', { 'Conformes': conformes, 'Con hallazgos': conHallazgos, 'En planificación': enPlanificacion, 'Pendientes': pendientes }, { colores: COLORES_ESTADO });
 
         // Por tipo
         window.DashboardCharts.renderDonut('chartTipos', window.DashboardCharts.contarPorCampo(filas, 'tipo'));
@@ -98,7 +104,7 @@
         filas.forEach(function (f) {
             const p = plantas[f.plantaNombre] || (plantas[f.plantaNombre] = { c: 0, h: 0, p: 0 });
             const e = estado(f);
-            if (e === 'CONFORME') p.c++; else if (e === 'CON_HALLAZGOS') p.h++; else p.p++;
+            if (PR.esConforme(e)) p.c++; else if (e === 'CON_HALLAZGOS' || e === 'EN_PLANIFICACION') p.h++; else p.p++;
         });
         const ancho = function (n, t) { return (n / t * 100).toFixed(2) + '%'; };
         pintar('chartPlantas', '<div class="pr-plantas">' + Object.keys(plantas).map(function (nombre) {
@@ -132,14 +138,33 @@
                 PR.badgeVencimiento(f.vencimiento) + '</li>';
         })) + (venc.length > 8 ? '<p class="pr-mas">y ' + (venc.length - 8) + ' más. Usa el filtro «Vencido» en la tabla.</p>' : '') : SIN_INFO);
 
-        // Hallazgos
-        const hall = filas.filter(function (f) { return estado(f) === 'CON_HALLAZGOS' && f.inspeccionId; });
-        pintar('listaHallazgos', hall.length ? listaTarjetas(hall.slice(0, 8).map(function (f) {
-            return '<li><a class="pr-lista-link" href="/modules/prevencion/extintores/admin/detalle.php?id=' + f.inspeccionId + '">' +
-                '<div><strong>N° ' + f.numero + ' · ' + PR.escapeHtml(f.ubicacion) + '</strong>' +
-                '<small>' + PR.escapeHtml(f.plantaNombre) + ' · ' + PR.escapeHtml(f.inspeccionUsuario || '-') + '</small></div>' +
-                '<span class="badge badge-danger">' + hallazgos(f) + (hallazgos(f) === 1 ? ' hallazgo' : ' hallazgos') + '</span></a></li>';
-        })) + (hall.length > 8 ? '<p class="pr-mas">y ' + (hall.length - 8) + ' más. Usa el filtro «Con hallazgos» en la tabla.</p>' : '') : SIN_INFO);
+    }
+
+    // Hallazgos vigentes (de cualquier mes): sin gestión o con corrección planificada. Independiente del periodo de la tabla.
+    function dibujarHallazgos() {
+        if (!vigentes.length) {
+            pintar('listaHallazgos', '<p class="pr-sin-info"><i class="bi bi-shield-check"></i> No hay hallazgos vigentes.</p>');
+            return;
+        }
+
+        const LIMITE = 10;
+        pintar('listaHallazgos', listaTarjetas(vigentes.slice(0, LIMITE).map(function (h) {
+            const dias = PR.diasDesde(h.fechaInspeccion);
+            const antiguedad = dias === null ? '' : (dias === 0 ? 'hoy' : 'hace ' + dias + (dias === 1 ? ' día' : ' días'));
+            let estado;
+            if (h.gestionTipo === 'PLANIFICADA') {
+                const atrasado = h.gestionFechaCompromiso && PR.diasParaVencer(h.gestionFechaCompromiso) < 0;
+                estado = atrasado
+                    ? PR.badge('badge-danger', 'Plazo vencido ' + PR.formatearFecha(h.gestionFechaCompromiso))
+                    : PR.badge('badge-primary', 'Plan: ' + PR.formatearFecha(h.gestionFechaCompromiso));
+            } else {
+                estado = PR.badge('badge-danger', h.cantidadHallazgos + (h.cantidadHallazgos === 1 ? ' hallazgo' : ' hallazgos') + ' · sin gestión');
+            }
+            return '<li><a class="pr-lista-link" href="/modules/prevencion/extintores/admin/detalle.php?id=' + h.inspeccionId + '">' +
+                '<div><strong>N° ' + h.numero + ' · ' + PR.escapeHtml(h.ubicacion) + '</strong>' +
+                '<small>' + PR.escapeHtml(h.plantaNombre) + ' · detectado ' + antiguedad + ' por ' + PR.escapeHtml(h.usuario || '-') + '</small></div>' +
+                estado + '</a></li>';
+        })) + (vigentes.length > LIMITE ? '<p class="pr-mas">y ' + (vigentes.length - LIMITE) + ' más.</p>' : ''));
     }
 
     function filtrar() {
@@ -148,7 +173,9 @@
         const texto = $('filtroBuscar').value.trim().toLowerCase();
 
         visibles = filas.filter(function (f) {
-            if (estado === 'VENCIDO' ? !esVencido(f) : (estado && PR.estadoDe(f) !== estado)) return false;
+            if (estado === 'VENCIDO' ? !esVencido(f)
+                : estado === 'CONFORME' ? !PR.esConforme(PR.estadoDe(f))
+                : (estado && PR.estadoDe(f) !== estado)) return false;
             if (tipo && f.tipo !== tipo) return false;
             if (!texto) return true;
             return [f.ubicacion, f.numero, f.plantaNombre, f.areaNombre || '', f.inspeccionUsuario || ''].join(' ').toLowerCase().includes(texto);
@@ -158,13 +185,14 @@
     function dibujarTabla() {
         filtrar();
         $('badgeCantidad').textContent = visibles.length + (visibles.length === 1 ? ' extintor' : ' extintores');
+        const pagina = paginador.cortar(visibles);
 
         if (!visibles.length) {
             $('tablaBody').innerHTML = '<tr><td colspan="10" class="admin-empty">No hay extintores con esos filtros.</td></tr>';
             return;
         }
 
-        $('tablaBody').innerHTML = visibles.map(function (f) {
+        $('tablaBody').innerHTML = pagina.map(function (f) {
             const n = hallazgos(f);
             const celdaHallazgos = f.inspeccionId ? (n ? '<strong>' + n + '</strong>' : '0') : '-';
             return '<tr' + (f.inspeccionId ? ' class="admin-row-clickable" data-id="' + f.inspeccionId + '"' : '') + '>' +
@@ -181,7 +209,14 @@
         }).join('');
     }
 
+    // Cambiar un filtro vuelve a la primera página; cambiar de página o de filas no pasa por aquí.
+    function aplicarFiltros() {
+        paginador.reiniciar();
+        dibujarTabla();
+    }
+
     async function cargar() {
+        paginador.reiniciar();
         alertaListado('');
         $('tablaBody').innerHTML = '<tr><td colspan="10" class="admin-empty">Cargando...</td></tr>';
         if (!$('filtroPeriodo').value) $('filtroPeriodo').value = periodoActual;
@@ -189,18 +224,19 @@
         const planta = $('filtroPlanta').value;
 
         try {
-            filas = await PR.api('consolidado?periodo=' + encodeURIComponent(periodo) +
-                (planta ? '&plantaId=' + encodeURIComponent(planta) : ''));
-            dibujarKpis();
-            dibujarDashboard();
-            dibujarTabla();
+            [filas, vigentes] = await Promise.all([
+                PR.api('consolidado?periodo=' + encodeURIComponent(periodo) + (planta ? '&plantaId=' + encodeURIComponent(planta) : '')),
+                PR.api('hallazgos-abiertos' + (planta ? '?plantaId=' + encodeURIComponent(planta) : ''))
+            ]);
         } catch (error) {
             filas = [];
-            dibujarKpis();
-            dibujarDashboard();
-            dibujarTabla();
+            vigentes = [];
             alertaListado(error.message);
         }
+        dibujarKpis();
+        dibujarDashboard();
+        dibujarHallazgos();
+        dibujarTabla();
     }
 
     // ---------- Excel (mismo estilo de exportación del resto del portal: HTML .xls) ----------
@@ -262,8 +298,12 @@
     });
     // Los KPI de estado filtran la tabla y llevan hasta ella.
     function filtrarDesdeKpi(tarjeta) {
+        if (tarjeta.dataset.ancla) {
+            $(tarjeta.dataset.ancla).scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
         $('filtroEstado').value = tarjeta.dataset.filtro;
-        dibujarTabla();
+        aplicarFiltros();
         $('seccionTabla').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
     document.querySelectorAll('.pr-kpi-click').forEach(function (t) {
@@ -274,14 +314,14 @@
     });
     $('filtroPeriodo').addEventListener('change', cargar);
     $('filtroPlanta').addEventListener('change', cargar);
-    ['filtroEstado', 'filtroTipo'].forEach(function (id) { $(id).addEventListener('change', dibujarTabla); });
-    $('filtroBuscar').addEventListener('input', dibujarTabla);
+    ['filtroEstado', 'filtroTipo'].forEach(function (id) { $(id).addEventListener('change', aplicarFiltros); });
+    $('filtroBuscar').addEventListener('input', aplicarFiltros);
     $('btnExportarExcel').addEventListener('click', exportarExcel);
     $('btnLimpiarFiltros').addEventListener('click', function () {
         $('filtroEstado').value = '';
         $('filtroTipo').value = '';
         $('filtroBuscar').value = '';
-        dibujarTabla();
+        aplicarFiltros();
     });
 
     PR.api('catalogos').then(function (catalogos) {

@@ -6,6 +6,10 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/config/api.php';
 
 $inspeccionId = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 
+// Registrar acciones correctivas exige nivel «Gestionar» (api.php lo vuelve a exigir en cada llamada).
+$puedeGestionar = moduleAccessLevel('prevencion_riesgos') === 'gestionar';
+$usuarioActual = (string) (currentUser()['nombre'] ?? '');
+
 ob_start();
 ?>
 
@@ -35,6 +39,28 @@ ob_start();
             <span id="badgeResultado"></span>
         </div>
         <div class="admin-kpi-grid" id="datosInspeccion"></div>
+    </div>
+</section>
+
+<section class="section" id="seccionGestion" style="display:none;">
+    <div class="panel admin-panel">
+        <div class="section-header">
+            <div class="section-title">
+                <h2>Gestión del hallazgo</h2>
+                <p>Acciones tomadas para corregir lo detectado en esta inspección. La inspección original no se modifica.</p>
+            </div>
+            <span id="badgeGestion"></span>
+        </div>
+        <div id="alertaGestion" class="admin-alert hidden"></div>
+        <div class="pr-gestion-grid">
+            <div class="pr-gestion-col">
+                <h3 class="pr-subtitulo">Criterios con hallazgo</h3>
+                <ul class="pr-criterios" id="gestionCriterios"></ul>
+                <h3 class="pr-subtitulo">Bitácora</h3>
+                <ol class="pr-timeline" id="gestionBitacora"></ol>
+            </div>
+            <div class="pr-gestion-col" id="gestionAccion"></div>
+        </div>
     </div>
 </section>
 
@@ -81,8 +107,11 @@ ob_start();
     // Las llamadas administrativas pasan por api.php (valida sesión y permiso en el servidor); no hay claves en el navegador.
     window.PR_ADMIN = true;
     window.prInspeccionId = <?= $inspeccionId ?>;
+    window.prPuedeGestionar = <?= $puedeGestionar ? 'true' : 'false' ?>;
+    window.prUsuarioActual = <?= json_encode($usuarioActual, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
 </script>
 <script src="/assets/js/prevencion/extintores-comun.js"></script>
+<script src="/assets/js/prevencion/extintores-gestion.js"></script>
 <script>
     (async function () {
         const PR = window.PrExt;
@@ -97,7 +126,10 @@ ob_start();
 
             document.getElementById('tituloDetalle').textContent = 'Extintor N° ' + i.numero + ' · ' + i.plantaNombre;
             document.getElementById('subtituloDetalle').textContent = i.ubicacion + ' — inspección de ' + PR.formatearPeriodo(i.periodo);
-            document.getElementById('badgeResultado').innerHTML = PR.badgeEstado(i.resultadoGeneral);
+            const pintarEstado = function () {
+                document.getElementById('badgeResultado').innerHTML = PR.badgeEstado(PR.estadoConGestion(i.resultadoGeneral, i.gestionTipo));
+            };
+            pintarEstado();
 
             const kpi = function (titulo, valor) {
                 return '<div class="admin-kpi-card"><span>' + titulo + '</span><strong style="font-size:20px">' + valor + '</strong></div>';
@@ -113,15 +145,32 @@ ob_start();
                     '</td><td>' + (r.anio || '-') + '</td><td>' + PR.escapeHtml(r.observacion || '-') + '</td></tr>';
             }).join('');
 
-            document.getElementById('tablaHistorial').innerHTML = historial.map(function (h) {
-                const actual = h.id === i.id ? ' <small>(esta)</small>' : '';
-                return '<tr><td><a href="?id=' + h.id + '">' + PR.escapeHtml(PR.formatearPeriodo(h.periodo)) + '</a>' + actual + '</td><td>' +
-                    PR.escapeHtml(PR.formatearFechaHora(h.fechaInspeccion)) + '</td><td>' + PR.escapeHtml(h.usuario) +
-                    '</td><td>' + PR.badgeEstado(h.resultadoGeneral) + '</td></tr>';
-            }).join('');
+            const pintarHistorial = function () {
+                document.getElementById('tablaHistorial').innerHTML = historial.map(function (h) {
+                    const actual = h.id === i.id ? ' <small>(esta)</small>' : '';
+                    return '<tr><td><a href="?id=' + h.id + '">' + PR.escapeHtml(PR.formatearPeriodo(h.periodo)) + '</a>' + actual + '</td><td>' +
+                        PR.escapeHtml(PR.formatearFechaHora(h.fechaInspeccion)) + '</td><td>' + PR.escapeHtml(h.usuario) +
+                        '</td><td>' + PR.badgeEstado(PR.estadoConGestion(h.resultadoGeneral, h.gestionTipo)) + '</td></tr>';
+                }).join('');
+            };
+            pintarHistorial();
 
             ['seccionDetalle', 'seccionResultados', 'seccionHistorial'].forEach(function (id) {
                 document.getElementById(id).style.display = '';
+            });
+
+            // Gestión del hallazgo: al registrar una acción se refrescan el estado de cabecera y el historial.
+            window.PrGestion.iniciar({
+                inspeccion: i,
+                puedeGestionar: window.prPuedeGestionar,
+                usuario: window.prUsuarioActual,
+                alCambiar: function (gestionTipo) {
+                    i.gestionTipo = gestionTipo;
+                    const propia = historial.find(function (h) { return h.id === i.id; });
+                    if (propia) propia.gestionTipo = gestionTipo;
+                    pintarEstado();
+                    pintarHistorial();
+                }
             });
         } catch (error) {
             fallo(error.message);
