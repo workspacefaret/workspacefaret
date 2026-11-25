@@ -8,6 +8,7 @@ return [
     'desarrollo' => ['label' => 'Desarrollo', 'icono' => 'bi-palette-fill'],
     'pilas_cartulina' => ['label' => 'Pilas Cartulina Dimensionado', 'icono' => 'bi-layers-fill'],
     'prevencion_riesgos' => ['label' => 'Prevención de Riesgos', 'icono' => 'bi-shield-check'],
+    'desgaje' => ['label' => 'Desgaje', 'icono' => 'bi-scissors'],
     'rrhh' => ['label' => 'RRHH', 'icono' => 'bi-people-fill'],
     'datos' => ['label' => 'Centro de Control', 'icono' => 'bi-database-fill'],
     'mejora_continua' => ['label' => 'Mejora Continua', 'icono' => 'bi-clipboard-check-fill'],

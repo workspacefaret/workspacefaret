@@ -239,7 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         tablaBody.querySelectorAll('tr[data-detalle-id]').forEach(fila => {
             fila.addEventListener('click', () => {
-                window.location.href = `/modules/rrhh/desgaje/admin/detalle.php?id=${fila.dataset.detalleId}`;
+                window.location.href = `/modules/desgaje/admin/detalle.php?id=${fila.dataset.detalleId}`;
             });
         });
 

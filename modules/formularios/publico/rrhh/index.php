@@ -9,7 +9,7 @@ ob_start();
 
 <div class="module-grid">
 
-    <a href="/modules/rrhh/desgaje/registro/" class="module-card">
+    <a href="/modules/desgaje/registro/" class="module-card">
         <div class="module-icon">
             <i class="bi bi-scissors"></i>
         </div>

@@ -27,12 +27,12 @@ ob_start();
         <p>Solicitudes de desarrollo gráfico y estructural.</p>
     </a>
 
-    <a href="/modules/formularios/publico/rrhh/" class="module-card">
+    <a href="/modules/desgaje/registro/" class="module-card">
         <div class="module-icon">
-            <i class="bi bi-people-fill"></i>
+            <i class="bi bi-scissors"></i>
         </div>
 
-        <h2>RRHH</h2>
+        <h2>Desgaje</h2>
         <p>Registro de producción de desgaje.</p>
     </a>
 

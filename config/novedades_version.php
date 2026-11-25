@@ -10,22 +10,14 @@
  */
 
 return [
-    'id' => '2026-11-05',
+    'id' => '2026-11-25',
     'slides' => [
         [
-            'titulo' => 'Extintores: listas más ágiles',
-            'icono' => 'bi-list-ol',
+            'titulo' => 'Desgaje ahora es un módulo propio',
+            'icono' => 'bi-scissors',
             'puntos' => [
-                ['modulo' => 'prevencion_riesgos', 't' => 'El panel y el inventario ahora muestran las filas por páginas (25, 50 o 100, tú eliges). El Excel sigue exportando todos los resultados filtrados.'],
-                ['modulo' => 'prevencion_riesgos', 't' => 'En el teléfono, la lista de extintores carga de a 20 con el botón «Mostrar más».'],
-            ],
-        ],
-        [
-            'titulo' => 'Extintores: gestión de hallazgos y cumplimiento',
-            'icono' => 'bi-shield-check',
-            'puntos' => [
-                ['modulo' => 'prevencion_riesgos', 't' => 'Cada hallazgo puede planificarse, darse por corregido o cerrarse como conforme con observaciones, sin modificar la inspección original.'],
-                ['modulo' => 'prevencion_riesgos', 't' => 'Nuevo indicador mensual por brigadista: extintores asignados frente a inspeccionados. En el mes en curso lo pendiente figura como «En curso».'],
+                ['modulo' => 'desgaje', 't' => 'Desgaje salió de RRHH: ahora tiene su propio acceso en el menú lateral y en los accesos rápidos de Operación.'],
+                ['modulo' => 'desgaje', 't' => 'El registro y el panel funcionan igual que antes. Los enlaces antiguos redirigen solos a las nuevas direcciones.'],
             ],
         ],
     ],

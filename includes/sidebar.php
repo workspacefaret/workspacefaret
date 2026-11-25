@@ -211,6 +211,23 @@
                 </div>
             <?php endif; ?>
 
+            <?php if (hasModuleAccess('desgaje')): ?>
+                <a href="/modules/desgaje/">
+                    <i class="bi bi-scissors"></i>
+                    Desgaje
+                </a>
+                <div class="menu-submenu">
+                    <a href="/modules/desgaje/registro/">
+                        <i class="bi bi-file-earmark-plus-fill"></i>
+                        Registro de Desgaje
+                    </a>
+                    <a href="/modules/desgaje/admin/">
+                        <i class="bi bi-clipboard-data"></i>
+                        Panel Desgaje
+                    </a>
+                </div>
+            <?php endif; ?>
+
             <?php if (hasModuleAccess('rrhh')): ?>
                 <a href="/modules/rrhh/">
                     <i class="bi bi-people-fill"></i>
@@ -224,14 +241,6 @@
                     <a href="/modules/rrhh/guardias/usuarios/">
                         <i class="bi bi-person-gear"></i>
                         Usuarios Guardias
-                    </a>
-                    <a href="/modules/rrhh/desgaje/registro/">
-                        <i class="bi bi-scissors"></i>
-                        Registro de Desgaje
-                    </a>
-                    <a href="/modules/rrhh/desgaje/admin/">
-                        <i class="bi bi-clipboard-data"></i>
-                        Panel Desgaje
                     </a>
                 </div>
             <?php endif; ?>

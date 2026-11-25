@@ -18,6 +18,7 @@ $verDesarrollo = hasModuleAccess('desarrollo');
 $verMejoraContinua = hasModuleAccess('mejora_continua');
 $verRecorridos = hasModuleAccess('rrhh') || hasModuleAccess('datos');
 $verRrhh = hasModuleAccess('rrhh');
+$verDesgaje = hasModuleAccess('desgaje');
 $verCpmPrm = hasModuleAccess('planificacion');
 $verControlMoldes = hasModuleAccess('control_moldes');
 $verStockMoldes = hasModuleAccess('stock_moldes');
@@ -138,7 +139,8 @@ $areas = [
     ['titulo' => 'Moldes', 'descripcion' => 'Perfiles, registro, control y stock de moldes.', 'url' => '/modules/planificacion/moldes/', 'icono' => 'bi-box-seam', 'ver' => $verMoldes],
     ['titulo' => 'Logística', 'descripcion' => 'Formularios y recursos del área logística.', 'url' => '/modules/operacion/logistica/', 'icono' => 'bi-truck', 'ver' => $verLogistica],
     ['titulo' => 'Desarrollo', 'descripcion' => 'Solicitudes y seguimiento gráfico y estructural.', 'url' => '/modules/formularios/desarrollo/', 'icono' => 'bi-palette-fill', 'ver' => $verDesarrollo],
-    ['titulo' => 'RRHH', 'descripcion' => 'Guardias, desgaje y administración de RRHH.', 'url' => '/modules/rrhh/', 'icono' => 'bi-people-fill', 'ver' => $verRrhh],
+    ['titulo' => 'Desgaje', 'descripcion' => 'Registro y panel de producción de desgaje.', 'url' => '/modules/desgaje/', 'icono' => 'bi-scissors', 'ver' => $verDesgaje],
+    ['titulo' => 'RRHH', 'descripcion' => 'Guardias y administración de RRHH.', 'url' => '/modules/rrhh/', 'icono' => 'bi-people-fill', 'ver' => $verRrhh],
     ['titulo' => 'Pilas Cartulina', 'descripcion' => 'Entrega y recepción firmada de pilas de cartulina por NP.', 'url' => '/modules/formularios/pilas-cartulina/', 'icono' => 'bi-layers-fill', 'ver' => $verPilasCartulina],
 ];
 
