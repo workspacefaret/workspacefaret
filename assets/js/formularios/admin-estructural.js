@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
             aplicarFiltros();
 
         } catch (error) {
-            tablaBody.innerHTML = `<tr><td colspan="13" class="admin-empty">${escapeHtml(error.message)}</td></tr>`;
+            tablaBody.innerHTML = `<tr><td colspan="14" class="admin-empty">${escapeHtml(error.message)}</td></tr>`;
         }
     }
 
@@ -135,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderTabla() {
         if (!solicitudesFiltradas.length) {
-            tablaBody.innerHTML = `<tr><td colspan="13" class="admin-empty">No hay solicitudes para mostrar.</td></tr>`;
+            tablaBody.innerHTML = `<tr><td colspan="14" class="admin-empty">No hay solicitudes para mostrar.</td></tr>`;
             return;
         }
 
@@ -149,6 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td><span class="admin-priority">${escapeHtml(item.prioridad || '-')}</span></td>
                 <td>${formatearFecha(item.fechaRegistro)}</td>
                 <td>${escapeHtml(item.solicitanteNombre)}</td>
+                <td>${escapeHtml(item.asignadorPlano || '-')}</td>
                 <td>${escapeHtml(item.operadorEdicion || '-')}</td>
                 <td>${escapeHtml(item.clienteNombre)}${item.clienteNuevo ? ` <small>(${escapeHtml(item.clienteNuevo)})</small>` : ''}</td>
                 <td>${escapeHtml(item.oc || '-')}</td>
@@ -254,6 +255,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${escapeHtml(item.sustrato)}</td>
                 <td>${escapeHtml(item.referencia || '')}</td>
                 <td>${item.cantidadAdjuntos > 0 ? 'Sí' : 'No'}</td>
+                <td>${escapeHtml(item.asignadorPlano || '')}</td>
+                <td>${escapeHtml(item.operadorEdicion || '')}</td>
             </tr>
         `).join('');
 
@@ -272,8 +275,8 @@ document.addEventListener('DOMContentLoaded', () => {
             </head>
             <body>
                 <table>
-                    <tr><td colspan="15" class="title">Exportación Solicitudes Desarrollo Estructural</td></tr>
-                    <tr><td colspan="15" class="subtitle">Workspace Faret - ${new Date().toLocaleString('es-CL')}</td></tr>
+                    <tr><td colspan="17" class="title">Exportación Solicitudes Desarrollo Estructural</td></tr>
+                    <tr><td colspan="17" class="subtitle">Workspace Faret - ${new Date().toLocaleString('es-CL')}</td></tr>
                     <tr></tr>
                     <tr>
                         <th>CÓDIGO</th>
@@ -291,6 +294,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         <th>SUSTRATO</th>
                         <th>REFERENCIA</th>
                         <th>ARCHIVO ADJUNTO</th>
+                        <th>ASIGNADOR DE PLANO</th>
+                        <th>DESARROLLADOR ESTRUCTURAL</th>
                     </tr>
                     ${filas}
                 </table>
@@ -324,7 +329,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function mostrarCargando() {
-        tablaBody.innerHTML = `<tr><td colspan="13" class="admin-empty">Cargando solicitudes...</td></tr>`;
+        tablaBody.innerHTML = `<tr><td colspan="14" class="admin-empty">Cargando solicitudes...</td></tr>`;
     }
 
     function formatearFecha(valor) {

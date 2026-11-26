@@ -10,14 +10,22 @@
  */
 
 return [
-    'id' => '2026-11-25',
+    'id' => '2026-11-26',
     'slides' => [
         [
-            'titulo' => 'Desgaje ahora es un módulo propio',
-            'icono' => 'bi-scissors',
+            'titulo' => 'Estructural: foto obligatoria en Perfil',
+            'icono' => 'bi-camera-fill',
             'puntos' => [
-                ['modulo' => 'desgaje', 't' => 'Desgaje salió de RRHH: ahora tiene su propio acceso en el menú lateral y en los accesos rápidos de Operación.'],
-                ['modulo' => 'desgaje', 't' => 'El registro y el panel funcionan igual que antes. Los enlaces antiguos redirigen solos a las nuevas direcciones.'],
+                ['modulo' => 'desarrollo', 't' => 'El formulario de solicitud estructural pregunta ahora si es una solicitud de Perfil.'],
+                ['modulo' => 'desarrollo', 't' => 'Si la respuesta es Sí, se debe adjuntar al menos una fotografía (JPG, PNG, WEBP, GIF o BMP). Un PDF o documento no la reemplaza.'],
+            ],
+        ],
+        [
+            'titulo' => 'Estructural: responsables y reapertura',
+            'icono' => 'bi-people-fill',
+            'puntos' => [
+                ['modulo' => 'desarrollo', 't' => 'Cada solicitud puede registrar Asignador de plano y Desarrollador estructural. Ambos se ven en el detalle, el listado, el Excel y el PDF.'],
+                ['modulo' => 'desarrollo', 't' => 'Al reabrir una solicitud estructural queda En Proceso, con el mismo código, adjuntos e historial. Desarrollo Gráfico no cambia.'],
             ],
         ],
     ],

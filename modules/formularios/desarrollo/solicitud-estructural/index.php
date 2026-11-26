@@ -108,6 +108,17 @@ ob_start();
         </div>
 
         <div class="form-grid-mobile">
+            <div class="field field-full">
+                <label for="esPerfil">¿Es una solicitud de Perfil?</label>
+                <select id="esPerfil" name="esPerfil">
+                    <option value="NO" selected>No</option>
+                    <option value="SI">Sí</option>
+                </select>
+                <small class="aviso-foto-perfil" hidden style="color:#dc2626;font-weight:700;margin-top:4px;">
+                    Debe adjuntar una fotografía obligatoria (sección 5 · Adjuntos).
+                </small>
+            </div>
+
             <div class="field">
                 <label for="esMultiProducto">¿Es más de un producto?</label>
                 <select id="esMultiProducto" name="esMultiProducto">
@@ -183,6 +194,11 @@ ob_start();
             </div>
         </div>
 
+        <p class="aviso-foto-perfil" hidden style="color:#dc2626;font-weight:700;margin:0 0 10px;">
+            <i class="bi bi-camera-fill"></i>
+            Solicitud de Perfil: la fotografía es obligatoria (JPG, PNG, WEBP, GIF o BMP).
+        </p>
+
         <div class="upload-card">
 
             <input
@@ -209,7 +225,7 @@ ob_start();
 </section>
 
 <script src="/assets/js/formularios/upload-dropzone.js"></script>
-<script src="/assets/js/formularios/solicitud-estructural.js"></script>
+<script src="/assets/js/formularios/solicitud-estructural.js?v=20261126"></script>
 
 <?php
 $contenido = ob_get_clean();

@@ -14,7 +14,7 @@ $esAdminTi = (currentUser()['rol'] ?? null) === 'admin_ti';
 ob_start();
 ?>
 
-<link rel="stylesheet" href="/assets/css/formularios/admin-formularios.css">
+<link rel="stylesheet" href="/assets/css/formularios/admin-formularios.css?v=20261126">
 
 <section class="hero admin-hero">
     <div>
@@ -128,7 +128,8 @@ ob_start();
                         <th>Prioridad</th>
                         <th>Fecha creación</th>
                         <th>Solicitante</th>
-                        <th>Editor asignado</th>
+                        <th>Asignador de plano</th>
+                        <th>Desarrollador estructural</th>
                         <th>Cliente</th>
                         <th>OC</th>
                         <th>Producto</th>
@@ -140,7 +141,7 @@ ob_start();
                 </thead>
                 <tbody id="tablaSolicitudesBody">
                     <tr>
-                        <td colspan="13" class="admin-empty">Cargando solicitudes...</td>
+                        <td colspan="14" class="admin-empty">Cargando solicitudes...</td>
                     </tr>
                 </tbody>
             </table>
@@ -157,7 +158,7 @@ ob_start();
     window.API_ADMIN_DELETE_KEY = <?= json_encode(defined('API_ADMIN_DELETE_KEY') ? API_ADMIN_DELETE_KEY : '') ?>;
     <?php endif; ?>
 </script>
-<script src="/assets/js/formularios/admin-estructural.js"></script>
+<script src="/assets/js/formularios/admin-estructural.js?v=20261126"></script>
 
 <?php
 $contenido = ob_get_clean();

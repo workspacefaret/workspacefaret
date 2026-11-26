@@ -31,10 +31,27 @@ document.addEventListener('DOMContentLoaded', () => {
     let clienteSeleccionado = null;
     let clienteTimer = null;
 
+    const MENSAJE_FALTA_FOTO = 'NO SE PUEDE GENERAR LA SOLICITUD POR QUE FALTA LA FOTO';
+    // Límite del servidor para una petición (100 MB), con margen para los datos del formulario.
+    const MAXIMO_BYTES_PERFIL = 99 * 1024 * 1024;
+
+    const esPerfilSelect = document.getElementById('esPerfil');
+    // Una clave por solicitud pendiente: al reintentar se reutiliza y el servidor no duplica.
+    let clavesEnvio = [];
+    let enviando = false;
+
     cargarPrioridades();
     cargarSolicitantes();
     actualizarVisibilidadOtros();
     actualizarVisibilidadCantidadProductos();
+    actualizarAvisoFotoPerfil();
+
+    esPerfilSelect.addEventListener('change', actualizarAvisoFotoPerfil);
+
+    function actualizarAvisoFotoPerfil() {
+        const visible = esPerfilSelect.value === 'SI';
+        document.querySelectorAll('.aviso-foto-perfil').forEach(aviso => aviso.hidden = !visible);
+    }
 
     adjuntosInput?.addEventListener('change', () => {
         const archivos = Array.from(adjuntosInput.files);
@@ -281,6 +298,18 @@ document.addEventListener('DOMContentLoaded', () => {
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
 
+        // Evita un segundo envío mientras se revisan las fotografías o se está enviando.
+        if (enviando) return;
+        enviando = true;
+
+        try {
+            await procesarEnvio();
+        } finally {
+            enviando = false;
+        }
+    });
+
+    async function procesarEnvio() {
         const prioridad = prioridades.find(x => String(x.id) === prioridadSelect.value);
         const solicitante = solicitantes.find(x => String(x.id) === solicitanteSelect.value);
 
@@ -352,15 +381,166 @@ document.addEventListener('DOMContentLoaded', () => {
             referencia: referenciaSeleccionada.join(', '),
             referenciaOtrosTexto: otrosCheckbox && otrosCheckbox.checked
                 ? referenciaOtrosTexto.value.trim()
-                : null
+                : null,
+            esPerfil: esPerfilSelect.value === 'SI'
         };
+
+        if (payload.esPerfil && !(await validarAdjuntosPerfil())) {
+            return;
+        }
 
         if (esMultiProducto) {
             await enviarSolicitudesMultiples(payload, cantidadProductos);
+        } else if (payload.esPerfil) {
+            await enviarSolicitudPerfil(payload);
         } else {
             await enviarSolicitud(payload);
         }
-    });
+    }
+
+    // No borra nada del formulario: se puede adjuntar la foto y continuar.
+    async function validarAdjuntosPerfil() {
+        const archivos = Array.from(adjuntosInput.files || []);
+        let hayFotografia = false;
+
+        for (const archivo of archivos) {
+            if (await esFotografia(archivo)) {
+                hayFotografia = true;
+                break;
+            }
+        }
+
+        if (!hayFotografia) {
+            mostrarAlerta('error', MENSAJE_FALTA_FOTO);
+            alert(MENSAJE_FALTA_FOTO);
+            return false;
+        }
+
+        if (archivos.some(a => a.size === 0)) {
+            mostrarAlerta('error', 'Hay un archivo vacío entre los adjuntos. Quítalo y vuelve a enviar.');
+            return false;
+        }
+
+        if (archivos.reduce((total, a) => total + a.size, 0) > MAXIMO_BYTES_PERFIL) {
+            mostrarAlerta('error', 'Los adjuntos superan 99 MB en total. Reduce su tamaño y vuelve a enviar.');
+            return false;
+        }
+
+        return true;
+    }
+
+    // Revisa el contenido (no la extensión). El servidor vuelve a validar.
+    async function esFotografia(archivo) {
+        const b = new Uint8Array(await archivo.slice(0, 12).arrayBuffer());
+        if (b.length < 12) return false;
+
+        const inicia = (...firma) => firma.every((valor, i) => b[i] === valor);
+        const texto = (desde, hasta) => String.fromCharCode(...b.slice(desde, hasta));
+
+        const firmaValida = inicia(0xFF, 0xD8, 0xFF)
+            || inicia(0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)
+            || ['GIF87a', 'GIF89a'].includes(texto(0, 6))
+            || texto(0, 2) === 'BM'
+            || (texto(0, 4) === 'RIFF' && texto(8, 12) === 'WEBP');
+
+        if (!firmaValida) return false;
+        if (typeof createImageBitmap !== 'function') return true;
+
+        try {
+            (await createImageBitmap(archivo)).close();
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    function claveEnvio(indice) {
+        if (!clavesEnvio[indice]) {
+            clavesEnvio[indice] = crypto.randomUUID
+                ? crypto.randomUUID()
+                : '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c =>
+                    (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
+        }
+
+        return clavesEnvio[indice];
+    }
+
+    // Perfil: datos y archivos viajan juntos; el servidor crea todo o nada.
+    async function crearSolicitudPerfil(payload, indice) {
+        const formData = new FormData();
+        formData.append('solicitud', JSON.stringify(payload));
+        formData.append('claveEnvio', claveEnvio(indice));
+        Array.from(adjuntosInput.files).forEach(archivo => formData.append('archivos', archivo));
+
+        const sinConfirmacion = 'No se pudo confirmar el registro. Tus datos se conservan: '
+            + 'vuelve a presionar Enviar (no recargues la página) y la solicitud no se duplicará.';
+
+        let response;
+        try {
+            response = await fetch(`${apiBaseUrl}solicitudes-estructural/perfil`, {
+                method: 'POST',
+                body: formData
+            });
+        } catch {
+            throw new Error(sinConfirmacion);
+        }
+
+        if (response.status === 400) {
+            const texto = await response.text();
+            if (texto === MENSAJE_FALTA_FOTO) alert(MENSAJE_FALTA_FOTO);
+            throw new Error(texto && !texto.startsWith('{') ? texto : 'No fue posible crear la solicitud. Revisa los datos.');
+        }
+
+        if (response.status === 404 || response.status === 405) {
+            throw new Error('El servidor todavía no admite solicitudes de Perfil. No se creó la solicitud.');
+        }
+
+        if (response.status === 413) {
+            throw new Error('Los adjuntos son demasiado grandes. No se creó la solicitud.');
+        }
+
+        const data = response.ok ? await response.json().catch(() => null) : null;
+
+        if (!data || !data.id) {
+            throw new Error(sinConfirmacion);
+        }
+
+        return data;
+    }
+
+    async function enviarSolicitudPerfil(payload) {
+        try {
+            bloquearFormulario(true);
+            mostrarAlerta('success', 'Enviando solicitud y fotografía...');
+
+            const data = await crearSolicitudPerfil(payload, 0);
+            const registro = data.yaExistia
+                ? `Tu envío anterior ya había quedado registrado como ${data.codigo}; no se creó otra solicitud.`
+                : `Solicitud ${data.codigo} registrada.`;
+
+            let notificada = true;
+            try {
+                mostrarAlerta('success', 'Solicitud creada. Enviando notificación...');
+                await notificarSolicitud(data.id);
+            } catch {
+                notificada = false;
+            }
+
+            // La solicitud ya existe: se limpia el formulario para que no se vuelva a crear.
+            resetearFormularioTrasEnvio();
+            mostrarAlerta(
+                notificada ? 'success' : 'error',
+                notificada
+                    ? `${registro} Notificación enviada correctamente.`
+                    : `${registro} No fue posible enviar la notificación por correo; no la envíes de nuevo y avisa a Desarrollo.`
+            );
+
+        } catch (error) {
+            mostrarAlerta('error', error.message);
+        } finally {
+            bloquearFormulario(false);
+        }
+    }
 
     async function subirAdjuntos(solicitudId) {
         const archivos = Array.from(adjuntosInput.files || []);
@@ -423,8 +603,10 @@ document.addEventListener('DOMContentLoaded', () => {
         adjuntosPreview.innerHTML = '<span class="muted">No hay archivos seleccionados</span>';
         clienteSeleccionado = null;
         clienteIdInput.value = '';
+        clavesEnvio = [];
         actualizarVisibilidadOtros();
         actualizarVisibilidadCantidadProductos();
+        actualizarAvisoFotoPerfil();
 
         const prioridadMedia = prioridades.find(x => x.nombre === 'MEDIA');
         if (prioridadMedia) {
@@ -462,7 +644,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             for (let i = 1; i <= cantidad; i++) {
                 mostrarAlerta('success', `Creando solicitud ${i} de ${cantidad}...`);
-                const data = await crearUnaSolicitud(payload);
+                const data = payload.esPerfil
+                    ? await crearSolicitudPerfil(payload, i - 1)
+                    : await crearUnaSolicitud(payload);
                 if (data.codigo) codigos.push(data.codigo);
             }
 

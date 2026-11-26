@@ -8,6 +8,19 @@ ob_start();
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $usuarioActual = currentUser()['nombre'] ?? 'Desconocido';
+
+// Sugerencias para los responsables: usuarios activos con acceso a Desarrollo.
+// El campo sigue siendo texto libre (compatible con los registros historicos).
+try {
+    $sugerenciasResponsables = getAuthPdo()->query(
+        "SELECT DISTINCT u.nombre FROM usuarios u
+         INNER JOIN usuario_modulos m ON m.usuario_id = u.id
+         WHERE u.activo = 1 AND m.modulo_clave = 'desarrollo'
+         ORDER BY u.nombre"
+    )->fetchAll(PDO::FETCH_COLUMN);
+} catch (Throwable $e) {
+    $sugerenciasResponsables = [];
+}
 ?>
 
 <link rel="stylesheet" href="/assets/css/formularios/admin-formularios.css">
@@ -58,8 +71,17 @@ $usuarioActual = currentUser()['nombre'] ?? 'Desconocido';
                 <label for="nuevoEstado">Nuevo estado</label>
                 <select id="nuevoEstado"></select>
 
-                <label for="editorAsignado">Diseñador Estructural Asignado</label>
-                <input type="text" id="editorAsignado" placeholder="Nombre">
+                <label for="asignadorPlano" data-asignador hidden>Asignador de plano</label>
+                <input type="text" id="asignadorPlano" data-asignador hidden placeholder="Nombre" maxlength="150" list="listaResponsables">
+
+                <label for="editorAsignado">Desarrollador estructural</label>
+                <input type="text" id="editorAsignado" placeholder="Nombre" maxlength="150" list="listaResponsables">
+
+                <datalist id="listaResponsables">
+                    <?php foreach ($sugerenciasResponsables as $nombre): ?>
+                        <option value="<?= htmlspecialchars($nombre) ?>"></option>
+                    <?php endforeach; ?>
+                </datalist>
 
                 <label for="nivelComplejidad">Nivel de complejidad</label>
                 <select id="nivelComplejidad">
@@ -117,7 +139,7 @@ $usuarioActual = currentUser()['nombre'] ?? 'Desconocido';
         <div class="admin-modal-header">
             <div class="section-title">
                 <h2>Reabrir solicitud</h2>
-                <p>El código de la solicitud se mantiene. La reapertura queda registrada en el historial.</p>
+                <p>La solicitud quedará En Proceso y mantiene su código. La reapertura queda registrada en el historial.</p>
             </div>
             <button class="admin-icon-btn" id="btnCerrarModalReabrir" type="button" title="Cerrar">
                 <i class="bi bi-x-lg"></i>
@@ -144,6 +166,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const solicitudId = <?= $id ?>;
     const apiBaseUrl = '<?= htmlspecialchars(API_FORMULARIOS) ?>';
     const usuarioActual = <?= json_encode($usuarioActual, JSON_UNESCAPED_UNICODE) ?>;
+
+    // La API anterior no informa asignadorPlano: en ese caso el campo no se muestra
+    // ni se envía, para no aparentar que se guardó (publicación escalonada).
+    let soportaAsignador = false;
 
     cargarTodo();
 
@@ -184,6 +210,9 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('btnPdfDetalle').href = `${apiBaseUrl}solicitudes-estructural/${item.id}/pdf`;
         document.getElementById('nuevoEstado').value = item.estadoId;
         document.getElementById('editorAsignado').value = item.operadorEdicion || '';
+        soportaAsignador = 'asignadorPlano' in item;
+        document.getElementById('asignadorPlano').value = item.asignadorPlano || '';
+        document.querySelectorAll('[data-asignador]').forEach(el => el.hidden = !soportaAsignador);
         document.getElementById('nivelComplejidad').value = item.nivelComplejidad || '';
 
         const referencia = item.referenciaOtrosTexto
@@ -194,7 +223,9 @@ document.addEventListener('DOMContentLoaded', () => {
             ${campo('Código', item.codigo)}
             ${campo('Estado', mostrarEstado(item.estado))}
             ${campo('Prioridad', item.prioridad)}
-            ${campo('Editor asignado', item.operadorEdicion)}
+            ${typeof item.esPerfil === 'boolean' ? campo('Solicitud de Perfil', item.esPerfil ? 'Sí' : 'No') : ''}
+            ${soportaAsignador ? campo('Asignador de plano', item.asignadorPlano) : ''}
+            ${campo('Desarrollador estructural', item.operadorEdicion)}
             ${campo('Nivel de complejidad', item.nivelComplejidad)}
             ${campo('OC', item.oc)}
             ${campo('Fecha registro', formatearFecha(item.fechaRegistro))}
@@ -277,7 +308,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 usuario: usuarioActual,
                 observacion,
                 operadorEdicion,
-                nivelComplejidad
+                nivelComplejidad,
+                ...(soportaAsignador
+                    ? { asignadorPlano: document.getElementById('asignadorPlano').value.trim() }
+                    : {})
             })
         });
 
