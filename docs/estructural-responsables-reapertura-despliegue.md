@@ -2,6 +2,8 @@
 
 Fecha: 2026-11-26. Estado: **PUBLICADO en producción el 2026-11-26 con autorización del usuario. OPERATIVO CON OBSERVACIONES.**
 
+**Validación visual en la plataforma:** confirmada por el usuario el 2026-11-26, después de publicar. No informó pruebas de creación, guardado o reapertura con datos reales.
+
 ## Registro de la publicación (2026-11-26, hora local)
 
 | Paso | Resultado |
@@ -30,7 +32,8 @@ Fecha: 2026-11-26. Estado: **PUBLICADO en producción el 2026-11-26 con autoriza
 1. Primera solicitud de Perfil real: guardado de la foto, descarga, historial y correo (confirma permisos de `wwwroot/uploads` por la ruta nueva).
 2. Rechazo del **servidor** a un Perfil sin foto (probado solo en local con la misma DLL).
 3. Creación de una solicitud normal real, guardado de responsables y reapertura real.
-4. Revisión del panel y las novedades por una persona con sesión real.
+
+La revisión visual con sesión real ya fue confirmada por el usuario (ver arriba).
 
 Scripts SQL usados: `Formularios.Api/sql/2026-11-26_publicacion_paso1_respaldo.sql` y `..._paso2_migracion.sql`. **No volver a ejecutar la migración.**
 
